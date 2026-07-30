@@ -1,6 +1,6 @@
 {
   "defect": "REM_COAT",
-  "generated_at": "2026-07-30T12:05:19.854260+00:00",
+  "generated_at": "2026-07-30T13:01:48.997081+00:00",
   "n_rows_total": 100000,
   "n_primary": 2332,
   "n_broad": 2332,
@@ -43,13 +43,14 @@
     "Cooling_Thermal_Load",
     "Laser_Cleaning_Demand",
     "Cleaning_Capacity",
-    "Cleaning_Load_Ratio"
+    "Cleaning_Load_Ratio",
+    "Maintenance_Count"
   ],
   "effect_size_min_cliffs_delta": 0.2,
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 34,
+    "insufficient_evidence": 35,
     "candidate_weak_signal": 3,
     "candidate_needs_domain_review": 1,
     "confirmed": 1

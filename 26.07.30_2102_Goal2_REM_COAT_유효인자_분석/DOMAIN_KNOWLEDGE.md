@@ -29,6 +29,7 @@
 | 결과 공변 | `Surface_Roughness` | either | 코팅 잔류가 표면 거칠기를 바꿀 가능성, 원인 아닐 수 있음 |
 | 헤드 노후 | `Laser_Head_Remain_Time` | down | 약한 가설 — 빔 품질 저하가 코팅 소작 효율에 간접 영향 가능성 |
 | 팀 공용 피처 | `Cleaning_Capacity`(세정 능력 종합), `Cleaning_Load_Ratio`(수요/능력) | down / up | `Cleaning_Load_Ratio`의 분자(`Laser_Cleaning_Demand`)는 원래 Particle(디브리) 기준으로 설계된 개념이라 이 defect엔 다소 부정확할 수 있음을 명시하고 포함 |
+| 정비 이력 프록시 | `Maintenance_Count` | either | 김시우님 preprocessing decision_note가 Goal2 확인 가치 있다고 명시. 실제 신호 없음(effect size -0.01) |
 
 ## 4. 실제 통계 결과와의 대조
 

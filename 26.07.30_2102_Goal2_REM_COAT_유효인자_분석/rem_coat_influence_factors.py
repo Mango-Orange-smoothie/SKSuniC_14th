@@ -42,6 +42,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config  # noqa: E402
 from pipeline.common import (  # noqa: E402
+    compute_stratum_baseline_stats,
     load_dataset,
     stratified_split_by_defect,
     zscore_transform,
@@ -54,7 +55,8 @@ BINARY_COL = "Remain_Coat"
 
 CANDIDATE_COLS = config.FDC_COLS + config.RESPONSES
 TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
-ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES
+NEEDS_CUSTOM_BASELINE = ["Maintenance_Count"]
+ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES + NEEDS_CUSTOM_BASELINE
 
 LABELS = ["is_remcoat_primary", "is_remcoat_broad"]
 
@@ -74,6 +76,11 @@ DOMAIN_HYPOTHESIS = {
     "Laser_Head_Remain_Time": ("헤드 노후 — 빔 품질 저하가 코팅 소작(燒灼) 효율에 간접 영향 가능성(약한 가설)", "down"),
     "Cleaning_Capacity": ("팀 공용 피처(CLN_Flow×Pressure×Time) — 세정 능력 종합지표, 이 defect의 핵심 메커니즘", "down"),
     "Cleaning_Load_Ratio": ("팀 공용 피처(디브리수요/세정능력) — 분자가 원래 디브리(Particle) 기준이라 이 defect엔 다소 부정확할 수 있으나 세정능력 축은 공유", "up"),
+    "Maintenance_Count": (
+        "정비 이력 프록시(00_column_classification.csv decision_note가 Goal2 확인 가치 있다고 명시) "
+        "— 세정계 정비와 연관될 수 있으나 방향 상충 가능성이 있어 특정하지 않음",
+        "either",
+    ),
 }
 
 # 코팅 제거는 절단(레이저) 서브시스템과 물리적으로 분리된 "세정" 서브시스템의 일이라고
@@ -155,7 +162,12 @@ def build_dataset() -> pd.DataFrame:
     baseline_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
     baseline_stats = pd.read_csv(baseline_path)
 
-    df = zscore_transform(df, baseline_stats, config.OPCOND, ALL_FEATURE_COLS)
+    custom_baseline = compute_stratum_baseline_stats(
+        df[df["is_normal"]], config.OPCOND, NEEDS_CUSTOM_BASELINE
+    )
+    baseline_stats_ext = pd.concat([baseline_stats, custom_baseline], ignore_index=True)
+
+    df = zscore_transform(df, baseline_stats_ext, config.OPCOND, ALL_FEATURE_COLS)
     return df
 
 

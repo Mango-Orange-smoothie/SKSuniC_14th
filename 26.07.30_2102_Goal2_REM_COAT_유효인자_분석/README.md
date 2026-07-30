@@ -37,7 +37,12 @@ python "26.07.30_2102_Goal2_REM_COAT_유효인자_분석/rem_coat_influence_fact
 | `03_tree_importance.csv` | RandomForest permutation importance |
 | `04_rem_coat_influence_factors_final.csv` | **메인 산출물** |
 
-## 결과 요약 (2026-07-30 실행 기준)
+## 결과 요약 (2026-07-30 실행 기준, Maintenance_Count 추가 반영 최종판)
+
+`Maintenance_Count`(김시우님 preprocessing decision_note가 "Goal2 확인 가치 있음"이라고
+명시한 컬럼, 초판 누락 발견 후 추가)는 무신호(effect size -0.01) — confirmed 결과는
+변화 없음.
+
 
 `confirmed` 1건: **`CLN_Pressure`**(effect size -0.54, p≈0 — 두 방법 모두 강하게 합의).
 방향도 가설과 정확히 일치(압력 낮을수록 remain coat 증가) — 팀 HealthIndex 설계서가
