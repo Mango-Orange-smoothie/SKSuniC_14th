@@ -15,6 +15,8 @@ RandomForest permutation importance)을 **모두** 통과한 것만 "유효인�
 python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 ```
 
+도메인 가설/판단기준/논리를 코드 밖에서 검토하고 싶으면 [`DOMAIN_KNOWLEDGE.md`](./DOMAIN_KNOWLEDGE.md) 참고.
+
 ## 핵심 설계 결정
 
 - **라벨 3종 병행**: `NG_Code=='BURN'`(엄격, 392건)을 주 라벨로 쓰되 `Edge_Burn==1`(broad,
