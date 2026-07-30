@@ -59,3 +59,17 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 - `Top_Kerf`/`Bottom_Kerf`/`Surface_Roughness`처럼 "결과 공변" 성격의 Response 변수는
   burn의 원인이라기보다 같은 근본원인(과열)의 동반증상일 가능성이 있어, Health Index
   가중치나 SOP 매칭에 쓸 때는 "원인 인자"와 구분해서 다뤄야 한다.
+
+## 추후 개인 검토 예정 (기록용)
+
+이번 분석은 100,000행 전체를 행 단위로 쓰고 OPCOND(Product×Recipe)는 z-score 정규화
+기준으로만 사용했다(그룹 집계 X). 확인 과정에서 **OPCOND 조합(54개)별 BURN 발생률이
+0.10%~0.85%로 최대 약 8배 차이**나는 것을 발견했다(`01_burn_rate_by_stratum.csv`의
+`Product_ID+Recipe_ID` 행 참고). 다만 조합당 BURN 건수가 2~16건뿐이라 이 차이가 통계적으로
+유의한 신호인지 우연인지는 검정하지 않았다.
+
+- 그룹(OPCOND) 단위 집계로 재분석하는 것이 원인인자 발굴에 더 나은지는 별도로 검토가
+  필요하다고 판단했으나, 표본 부족(그룹당 BURN 2~16건)으로 이번 라운드에서는 보류했다.
+  이 브랜치 작업자가 추후 개인적으로 카이제곱/Fisher 검정 등으로 이어서 확인할 예정.
+  (결과가 유의하면 Goal1 담당자와도 공유 — "장비/레시피가 아니라 특정 Product×Recipe
+  조합 자체가 burn 위험 요인일 수 있다"는 별개의 질문이라 Goal1 쪽에 더 가까움.)
