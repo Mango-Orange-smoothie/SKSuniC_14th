@@ -1,6 +1,6 @@
 {
   "defect": "PARTICLE",
-  "generated_at": "2026-07-30T11:59:41.768382+00:00",
+  "generated_at": "2026-07-30T12:59:08.404711+00:00",
   "n_rows_total": 100000,
   "n_primary": 6455,
   "n_broad": 7792,
@@ -43,14 +43,15 @@
     "Cooling_Thermal_Load",
     "Laser_Cleaning_Demand",
     "Cleaning_Capacity",
-    "Cleaning_Load_Ratio"
+    "Cleaning_Load_Ratio",
+    "Maintenance_Count"
   ],
   "effect_size_min_cliffs_delta": 0.2,
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 31,
-    "candidate_weak_signal": 6,
+    "insufficient_evidence": 33,
+    "candidate_weak_signal": 5,
     "confirmed": 2
   },
   "confirmed_factors": [

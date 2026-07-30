@@ -36,6 +36,7 @@
 | 가공 제거량 | `Groove_Depth`, `Kerf_Width_Profile`, `Top_Kerf`, `Bottom_Kerf` | up | 더 넓고 깊게 깎을수록 디브리 발생량 증가 |
 | 결과 공변 | `Surface_Roughness` | up | particle이 표면에 남아 거칠기 직접 상승 — **원인 아니라 증상, 통계로 압도적 확인(4절)** |
 | 팀 공용 피처 | `Laser_Cleaning_Demand`(디브리 발생 수요), `Cleaning_Capacity`(세정 능력), `Cleaning_Load_Ratio`(수요/능력 — 핵심 밸런스 가설) | up / down / up | `config.DOMAIN_FEATURES` 재사용 |
+| 정비 이력 프록시 | `Maintenance_Count` | either | 김시우님 preprocessing decision_note가 Goal2 확인 가치 있다고 명시, 방향 상충 가능성 있어 미특정. 실제 신호 없음(effect size -0.01) |
 
 ## 4. 실제 통계 결과와의 대조
 

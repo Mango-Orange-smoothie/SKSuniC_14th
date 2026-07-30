@@ -35,7 +35,12 @@ python "26.07.30_2055_Goal2_PARTICLE_유효인자_분석/particle_influence_fact
 | `03_tree_importance.csv` | RandomForest permutation importance |
 | `04_particle_influence_factors_final.csv` | **메인 산출물** |
 
-## 결과 요약 (2026-07-30 실행 기준)
+## 결과 요약 (2026-07-30 실행 기준, Maintenance_Count 추가 반영 최종판)
+
+`Maintenance_Count`(김시우님 preprocessing decision_note가 "Goal2 확인 가치 있음"이라고
+명시한 컬럼, 초판 누락 발견 후 추가)는 무신호(effect size -0.01) — confirmed 결과는
+변화 없음.
+
 
 `confirmed` 2건: **Surface_Roughness**(effect size 0.72, p≈0으로 압도적 — 다만 이건
 "원인"이 아니라 "particle이 표면에 남아 거칠기를 직접 높이는 결과 공변"일 가능성이 매우

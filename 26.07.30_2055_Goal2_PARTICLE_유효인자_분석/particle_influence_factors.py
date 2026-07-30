@@ -41,6 +41,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config  # noqa: E402
 from pipeline.common import (  # noqa: E402
+    compute_stratum_baseline_stats,
     load_dataset,
     stratified_split_by_defect,
     zscore_transform,
@@ -55,7 +56,11 @@ CANDIDATE_COLS = config.FDC_COLS + config.RESPONSES
 # Particle 전용 신규 공학피처는 만들지 않았다 — 핵심 가설("디브리 발생 수요 vs 세정 능력")을
 # 팀 공용 피처 Cleaning_Load_Ratio가 이미 정확히 수식화하고 있어 중복 재구현하지 않는다.
 TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
-ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES
+# 김시우님 00_column_classification.csv decision_note가 "Goal2 확인 가치 있음"이라고
+# 명시한 컬럼. undocumented 서브시스템이라 초판에서 누락됐다가 발견 후 추가. baseline이
+# 없어 직접 계산해야 한다.
+NEEDS_CUSTOM_BASELINE = ["Maintenance_Count"]
+ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES + NEEDS_CUSTOM_BASELINE
 
 LABELS = ["is_particle_primary", "is_particle_broad"]
 
@@ -85,6 +90,12 @@ DOMAIN_HYPOTHESIS = {
     "Laser_Cleaning_Demand": ("팀 공용 피처(Laser_Power×Groove_Depth) — 디브리 발생 수요 지표", "up"),
     "Cleaning_Capacity": ("팀 공용 피처(CLN_Flow×Pressure×Time) — 세정 능력 종합지표", "down"),
     "Cleaning_Load_Ratio": ("팀 공용 피처(수요/능력) — 핵심 밸런스 가설을 직접 수식화", "up"),
+    "Maintenance_Count": (
+        "정비 이력 프록시(00_column_classification.csv decision_note가 Goal2 확인 가치 있다고 명시) "
+        "— 정비 시 세정계 부품 교체/재교정과 연관될 수 있으나 방향(정비 직후 안정 vs 정비 주기가 "
+        "긴 설비의 누적 오염) 상충 가능성이 있어 특정하지 않음",
+        "either",
+    ),
 }
 
 # 정렬/센터링 계열(HealthIndex 설계서 E유형)과 방열 계열(Burn 전용 메커니즘)은
@@ -148,7 +159,13 @@ def build_dataset() -> pd.DataFrame:
     baseline_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
     baseline_stats = pd.read_csv(baseline_path)  # 팀 공용 피처 4개 baseline도 이미 포함되어 있음
 
-    df = zscore_transform(df, baseline_stats, config.OPCOND, ALL_FEATURE_COLS)
+    # Maintenance_Count는 사전 baseline이 없으므로 OK행 기준으로 직접 산출.
+    custom_baseline = compute_stratum_baseline_stats(
+        df[df["is_normal"]], config.OPCOND, NEEDS_CUSTOM_BASELINE
+    )
+    baseline_stats_ext = pd.concat([baseline_stats, custom_baseline], ignore_index=True)
+
+    df = zscore_transform(df, baseline_stats_ext, config.OPCOND, ALL_FEATURE_COLS)
     return df
 
 
