@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T11:09:31.707569+00:00",
+  "generated_at": "2026-07-30T11:34:34.562980+00:00",
   "n_rows_total": 100000,
   "n_burn_primary": 392,
   "n_burn_broad": 441,
@@ -45,8 +45,8 @@
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 21,
-    "candidate_weak_signal": 12,
+    "insufficient_evidence": 19,
+    "candidate_weak_signal": 14,
     "confirmed": 3
   },
   "confirmed_factors": [

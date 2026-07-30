@@ -74,6 +74,8 @@ DOMAIN_HYPOTHESIS = {
     "Vibration": ("기계적 불안정(국소 hot spot)", "up"),
     "CLN_Flow": ("이물/잔사(레이저 흡수)", "down"),
     "CLN_Pressure": ("이물/잔사(레이저 흡수)", "down"),
+    "CLN_Time": ("이물/잔사(레이저 흡수) — CLN_Flow/Pressure와 동일 계열", "down"),
+    "Coating_Flow": ("이물/잔사(레이저 흡수) — 코팅 불균일 시 국소 흡수 편차 가능성", "down"),
     "Laser_Head_Remain_Time": ("헤드 노후", "down"),
     "Kerf_Width_Profile": ("결과 공변(동반증상 후보, 원인 아닐 수 있음)", "either"),
     "Top_Kerf": ("결과 공변, Kerf_Width_Profile과 동일 메커니즘 상속(HealthIndex 설계서 근거)", "either"),
@@ -83,6 +85,40 @@ DOMAIN_HYPOTHESIS = {
     "Surface_Roughness": ("결과 공변(동반증상 후보, 원인 아닐 수 있음)", "up"),
     "Thermal_Load_Ratio": ("에너지투입/방열 비율(신규 공학 피처)", "up"),
 }
+
+# Burn과는 무관하다고 판단한 컬럼 — "안 찾아본 것"이 아니라 "찾아봤는데 알려진 실패모드가
+# 열 축적(Burn)이 아니라 정렬/센터링(Chipping 계열)이라 관련 없다고 판단한 것"이다.
+# 근거: HealthIndex 설계서(v2) E유형(대칭성/정렬형) 분류.
+NOT_RELATED_TO_BURN = {
+    "Cutting_X_Index": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 알려진 실패모드는 Chipping이며 열 축적(Burn)과 무관",
+    "Cutting_Y_Index": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 알려진 실패모드는 Chipping이며 열 축적(Burn)과 무관",
+    "Cutting_Offset": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 목표 절단선 대비 편차, 열 축적(Burn)과 무관",
+    "Package_Size_1": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
+    "Package_Size_2": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
+    "Package_Size_3": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
+    "Package_Size_4": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
+}
+
+# 팀 HealthIndex 설계서(v2)에서도 아직 결론을 못 낸 컬럼 — 내(작성자)가 몰라서가 아니라
+# 팀 전체가 멘토링 자료로도 실패모드를 확정 못 한 F/G유형이라 억지로 가설을 넣지 않는다.
+TEAM_UNDETERMINED = {
+    "Laser_Current": "HealthIndex 설계서 F유형(불확실형) — 전기적 제어수치, 실패모드 근거 부족(팀 미확정)",
+    "Laser_Voltage": "HealthIndex 설계서 F유형(불확실형) — 전기적 제어수치, 실패모드 근거 부족(팀 미확정)",
+    "Coating_Thickness": "HealthIndex 설계서 G유형(미해결형) — 측정 시점(가공전/후)이 불확실, 팀 미확정",
+    "Coating_Uniformity": "HealthIndex 설계서 G유형(미해결형) — 측정 시점(가공전/후)이 불확실, 팀 미확정",
+}
+
+
+def domain_info(column: str) -> tuple[str, str, bool, str]:
+    """(설명 텍스트, 방향 가설, 유효인자 후보로 인정할지 여부, 상태분류) 반환."""
+    if column in DOMAIN_HYPOTHESIS:
+        mechanism, direction = DOMAIN_HYPOTHESIS[column]
+        return mechanism, direction, True, "burn_related"
+    if column in NOT_RELATED_TO_BURN:
+        return NOT_RELATED_TO_BURN[column], "not_applicable", False, "not_related_to_burn"
+    if column in TEAM_UNDETERMINED:
+        return TEAM_UNDETERMINED[column], "unknown", False, "team_undetermined"
+    return "미분류 — 검토 필요", "unknown", False, "unclassified"
 
 
 # ---------------------------------------------------------------------------
@@ -258,9 +294,11 @@ def build_final_table(univariate: pd.DataFrame, tree_importance: pd.DataFrame) -
     merged["n_labels_univariate_flag"] = merged[uni_flag_cols].sum(axis=1).astype(int)
     merged["n_labels_tree_flag"] = merged[tree_flag_cols].sum(axis=1).astype(int)
 
-    merged["domain_mechanism"] = merged["column"].map(lambda c: DOMAIN_HYPOTHESIS.get(c, ("도메인 가설 없음", ""))[0])
-    merged["domain_direction_hypothesis"] = merged["column"].map(lambda c: DOMAIN_HYPOTHESIS.get(c, ("", "unknown"))[1])
-    merged["has_domain_support"] = merged["column"].isin(DOMAIN_HYPOTHESIS)
+    domain_lookup = merged["column"].map(domain_info)
+    merged["domain_mechanism"] = domain_lookup.map(lambda t: t[0])
+    merged["domain_direction_hypothesis"] = domain_lookup.map(lambda t: t[1])
+    merged["has_domain_support"] = domain_lookup.map(lambda t: t[2])
+    merged["domain_status"] = domain_lookup.map(lambda t: t[3])
     merged["subsystem"] = merged["column"].map(
         lambda c: next((sub for sub, cols in config.SUBSYSTEMS.items() if c in cols), "engineered")
     )
@@ -277,7 +315,7 @@ def build_final_table(univariate: pd.DataFrame, tree_importance: pd.DataFrame) -
     merged["verdict"] = merged.apply(verdict, axis=1)
 
     ordered_cols = [
-        "column", "subsystem", "domain_mechanism", "domain_direction_hypothesis",
+        "column", "subsystem", "domain_status", "domain_mechanism", "domain_direction_hypothesis",
         "p_fdr_is_burn_primary", "cliffs_delta_is_burn_primary",
         "p_fdr_is_burn_broad", "cliffs_delta_is_burn_broad",
         "importance_mean_is_burn_primary", "rank_is_burn_primary",

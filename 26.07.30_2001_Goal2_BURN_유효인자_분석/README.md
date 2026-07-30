@@ -29,6 +29,12 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
   합의해야 하고, 도메인 가설표에도 있어야 `confirmed`. 같은 방법이 Primary/Broad 두 라벨
   모두에서 뜨는 것은 "라벨 일관성"이라는 별개의 보강 신호로만 취급하고 방법 합의 수에는
   중복 반영하지 않는다 (`n_labels_univariate_flag` / `n_labels_tree_flag` 컬럼 참고).
+- **도메인 가설이 없는 컬럼도 "왜 없는지" 3가지로 구분해 명시** (`domain_status` 컬럼):
+  `burn_related`(Burn 메커니즘과 연결된 가설 있음, 25개) / `not_related_to_burn`(HealthIndex
+  설계서 근거상 알려진 실패모드가 Chipping·정렬 계열이라 Burn과 무관하다고 **판단한** 것,
+  7개 — Cutting_X/Y_Index, Cutting_Offset, Package_Size_1~4) / `team_undetermined`(팀
+  HealthIndex 설계서에서도 F/G유형으로 아직 결론 못 낸 것, 4개 — Laser_Current/Voltage,
+  Coating_Thickness/Uniformity). "안 찾아본 것"과 "찾아봤는데 관련 없는 것"을 구분하기 위함.
 
 ## 산출물
 
@@ -56,6 +62,9 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 - README(`pipeline/README.md`)가 교차검증하라고 요구하는 `03_impact_factor_ranking.csv`,
   `full_correlation/02b_process_parameter_correlation_pairs.csv`가 저장소 어느 브랜치에도
   없어 이번 라운드에서는 교차검증하지 못했다. 파일 위치 확인 후 재검증 필요.
+- `CLN_Time`/`Coating_Flow`는 초판에서 도메인 가설 매핑을 누락했다가 발견 후 추가함
+  (`CLN_Flow`/`CLN_Pressure`와 동일한 "이물/잔사" 계열). 통계 신호가 원래 약해 최종
+  `confirmed` 목록에는 영향 없었음.
 - `Top_Kerf`/`Bottom_Kerf`/`Surface_Roughness`처럼 "결과 공변" 성격의 Response 변수는
   burn의 원인이라기보다 같은 근본원인(과열)의 동반증상일 가능성이 있어, Health Index
   가중치나 SOP 매칭에 쓸 때는 "원인 인자"와 구분해서 다뤄야 한다.
