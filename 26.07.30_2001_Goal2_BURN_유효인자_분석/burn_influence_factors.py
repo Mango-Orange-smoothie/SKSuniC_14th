@@ -48,8 +48,12 @@ from pipeline.common import (  # noqa: E402
 OUT_DIR = Path(__file__).resolve().parent
 
 CANDIDATE_COLS = config.FDC_COLS + config.RESPONSES
-ENGINEERED_COLS = ["Thermal_Load_Ratio"]
-ALL_FEATURE_COLS = CANDIDATE_COLS + ENGINEERED_COLS
+ENGINEERED_COLS = ["Thermal_Load_Ratio"]  # 신규 피처 - baseline을 직접 계산해야 함
+# 팀이 이미 만들어둔 4개 공용 도메인 비율 피처. load_dataset()이 자동으로 붙여주고,
+# 00_stratum_baseline_stats_by_opcond.csv에도 이미 baseline이 있어 그대로 재사용한다
+# (compute_stratum_baseline_stats 재계산 불필요 — README의 "재구현 금지" 원칙).
+TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
+ALL_FEATURE_COLS = CANDIDATE_COLS + ENGINEERED_COLS + TEAM_DOMAIN_FEATURES
 
 LABELS = ["is_burn_primary", "is_burn_broad"]
 
@@ -84,6 +88,7 @@ DOMAIN_HYPOTHESIS = {
     "Groove_Depth": ("결과 공변(동반증상 후보, 원인 아닐 수 있음)", "either"),
     "Surface_Roughness": ("결과 공변(동반증상 후보, 원인 아닐 수 있음)", "up"),
     "Thermal_Load_Ratio": ("에너지투입/방열 비율(신규 공학 피처)", "up"),
+    "Cooling_Thermal_Load": ("방열 능력(팀 공용 피처 = Cooling_Water_Temp/Cooling_Flow)", "up"),
 }
 
 # Burn과는 무관하다고 판단한 컬럼 — "안 찾아본 것"이 아니라 "찾아봤는데 알려진 실패모드가
@@ -97,6 +102,9 @@ NOT_RELATED_TO_BURN = {
     "Package_Size_2": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
     "Package_Size_3": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
     "Package_Size_4": "정렬/센터링 계열(HealthIndex 설계서 E유형) — 다이 패키지 크기 불균형은 센터링 불량 지표, 열 축적과 무관",
+    "Laser_Cleaning_Demand": "팀 공용 피처(Laser_Power×Groove_Depth) — 세정 수요(디브리 발생량) 지표라 이물/세정 계열 불량(Particle/Remain_Coat)과 관련, 열 축적(Burn)과는 무관",
+    "Cleaning_Capacity": "팀 공용 피처(CLN_Flow×CLN_Pressure×CLN_Time) — 세정 능력 지표, 열 축적(Burn)과 무관",
+    "Cleaning_Load_Ratio": "팀 공용 피처(세정수요/세정능력) — 이물/세정 계열 불량과 관련, 열 축적(Burn)과 무관",
 }
 
 # 팀 HealthIndex 설계서(v2)에서도 아직 결론을 못 낸 컬럼 — 내(작성자)가 몰라서가 아니라

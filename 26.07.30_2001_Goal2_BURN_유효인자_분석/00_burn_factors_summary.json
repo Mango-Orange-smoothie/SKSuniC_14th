@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T11:34:34.562980+00:00",
+  "generated_at": "2026-07-30T11:54:10.090273+00:00",
   "n_rows_total": 100000,
   "n_burn_primary": 392,
   "n_burn_broad": 441,
@@ -39,19 +39,22 @@
     "Coating_Uniformity",
     "Cutting_Offset",
     "Surface_Roughness",
-    "Thermal_Load_Ratio"
+    "Thermal_Load_Ratio",
+    "Cooling_Thermal_Load",
+    "Laser_Cleaning_Demand",
+    "Cleaning_Capacity",
+    "Cleaning_Load_Ratio"
   ],
   "effect_size_min_cliffs_delta": 0.2,
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 19,
-    "candidate_weak_signal": 14,
-    "confirmed": 3
+    "insufficient_evidence": 23,
+    "candidate_weak_signal": 15,
+    "confirmed": 2
   },
   "confirmed_factors": [
     "Frequency",
-    "Thermal_Load_Ratio",
-    "Surface_Roughness"
+    "Thermal_Load_Ratio"
   ]
 }

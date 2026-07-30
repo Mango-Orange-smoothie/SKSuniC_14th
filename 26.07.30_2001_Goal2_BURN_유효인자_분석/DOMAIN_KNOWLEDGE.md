@@ -56,6 +56,11 @@ BURN 발생률이 Machine_ID(0.33~0.47%)·Product_ID·Recipe_ID 전반에서 균
 | 헤드 노후 | `Laser_Head_Remain_Time` | down | 헤드 수명 소진 → 빔 품질 저하 → burn 위험 증가 가능성 |
 | 결과 공변(동반증상 후보) | `Kerf_Width_Profile`, `Top_Kerf`, `Bottom_Kerf`, `Kerf_Angle`, `Groove_Depth`, `Surface_Roughness` | either/up | burn과 같은 근본원인(과열)의 부산물일 수 있음 — **원인이 아니라 증상일 가능성**을 항상 함께 표기 |
 | 에너지투입/방열 비율(신규) | `Thermal_Load_Ratio` | up | `Laser_Power × Frequency / Cooling_Flow` — 1절의 밸런스 가설을 직접 수식화 |
+| 방열 능력(팀 공용 피처) | `Cooling_Thermal_Load` | up | `Cooling_Water_Temp / Cooling_Flow`. 초판에서 후보 누락 발견 후 추가 — baseline은 이미 계산되어 있어 재계산 불필요 |
+
+`Laser_Cleaning_Demand`/`Cleaning_Capacity`/`Cleaning_Load_Ratio`(팀 공용 피처)는 후보에는
+포함했지만 "세정 수요/능력" 프레임이라 Burn(열 축적) 메커니즘과 무관하다고 판단해
+`not_related_to_burn`으로 분류 — 대신 Particle/Remain_Coat 분석에서 핵심 피처로 쓴다.
 
 ### 4-1. 팀 HealthIndex 설계서와 방향 가설이 다른 경우 — 왜 다른가
 

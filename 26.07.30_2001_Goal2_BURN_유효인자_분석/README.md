@@ -48,16 +48,20 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 | `03_tree_importance.csv` | RandomForest permutation importance (라벨별 × 후보컬럼별) |
 | `04_burn_influence_factors_final.csv` | **메인 산출물** — 도메인 가설 + 통계 교차검증 병합 최종표 |
 
-## 현재 결과 요약 (2026-07-30 실행 기준)
+## 현재 결과 요약 (2026-07-30 실행 기준, 팀 공용 도메인피처 4개 추가 반영판)
 
-`confirmed` 3건: **Frequency**(에너지 투입/펄스중첩, effect size 0.98·p≈4.5e-245로 압도적),
-**Thermal_Load_Ratio**(에너지/방열 비율 공학피처, effect size 0.54), **Surface_Roughness**
-(결과 공변 — 원인이라기보다 동일 근본원인의 동반증상일 가능성 높음, 해석 시 주의).
+`confirmed` 2건: **Frequency**(에너지 투입/펄스중첩, effect size 0.98·p≈5.0e-245로 압도적),
+**Thermal_Load_Ratio**(에너지/방열 비율 공학피처, effect size 0.54).
 
-`Cooling_Flow`는 트리 중요도(다변량·상호작용)에서만 상위권으로 잡히고 단변량 검정에서는
-안 잡힘 — burn이 Cooling_Flow 단독보다 Laser_Power/Frequency와의 **조합**에서 작동한다는
-도메인 가설과 정합적인 패턴. `candidate_weak_signal`로 분류, Goal3(상호작용) 팀원에게
-우선 전달할 후보로 남겨둠.
+`Surface_Roughness`는 초판에서 confirmed였다가, 팀 공용 도메인피처 4개
+(`Cooling_Thermal_Load` 등, 8절 참고)를 후보에 추가하면서 트리 중요도 top-10 경쟁이
+치열해져 순위가 밀려 `candidate_weak_signal`로 내려감 — 단변량(Broad 라벨)에서는 여전히
+유의하므로 완전히 배제하지는 않음.
+
+`Cooling_Flow`, `Cooling_Thermal_Load`는 트리 중요도(다변량·상호작용)에서만 상위권으로
+잡히고 단변량 검정에서는 안 잡힘 — burn이 냉각 변수 단독보다 Laser_Power/Frequency와의
+**조합**에서 작동한다는 도메인 가설과 정합적인 패턴. 둘 다 `candidate_weak_signal`로 분류,
+Goal3(상호작용) 팀원에게 우선 전달할 후보로 남겨둠.
 
 ## 알려진 한계 / 다음 확인 사항
 
@@ -67,6 +71,13 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 - `CLN_Time`/`Coating_Flow`는 초판에서 도메인 가설 매핑을 누락했다가 발견 후 추가함
   (`CLN_Flow`/`CLN_Pressure`와 동일한 "이물/잔사" 계열). 통계 신호가 원래 약해 최종
   `confirmed` 목록에는 영향 없었음.
+- **팀 공용 도메인피처 4개(`config.DOMAIN_FEATURES`) 누락도 초판에서 발견 후 추가함.**
+  `Cooling_Thermal_Load`(=Cooling_Water_Temp/Cooling_Flow)는 Burn의 방열 메커니즘과
+  정확히 겹치는데도 처음엔 후보에서 빠져 있었음 — baseline이 이미 계산되어 있어
+  재계산 없이 바로 추가 가능했음. 이 4개를 추가하면서 후보 컬럼이 36→40개로 늘어
+  트리 중요도 top-10 경쟁이 바뀌었고, `Surface_Roughness`가 confirmed에서 밀려남
+  (8절 결과 요약 참고). 다른 Goal(Particle/Remain_Coat 등) 분석에도 이 4개 피처를
+  처음부터 포함해야 함.
 - `Top_Kerf`/`Bottom_Kerf`/`Surface_Roughness`처럼 "결과 공변" 성격의 Response 변수는
   burn의 원인이라기보다 같은 근본원인(과열)의 동반증상일 가능성이 있어, Health Index
   가중치나 SOP 매칭에 쓸 때는 "원인 인자"와 구분해서 다뤄야 한다.
