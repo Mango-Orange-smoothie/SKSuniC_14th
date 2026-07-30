@@ -48,19 +48,26 @@ python "26.07.30_2001_Goal2_BURN_유효인자_분석/burn_influence_factors.py"
 | `03_tree_importance.csv` | RandomForest permutation importance (라벨별 × 후보컬럼별) |
 | `04_burn_influence_factors_final.csv` | **메인 산출물** — 도메인 가설 + 통계 교차검증 병합 최종표 |
 
-## 현재 결과 요약 (2026-07-30 실행 기준, 팀 공용 도메인피처 4개 추가 반영판)
+## 현재 결과 요약 (2026-07-30 실행 기준, Maintenance_Count 추가 반영 최종판)
 
-`confirmed` 2건: **Frequency**(에너지 투입/펄스중첩, effect size 0.98·p≈5.0e-245로 압도적),
-**Thermal_Load_Ratio**(에너지/방열 비율 공학피처, effect size 0.54).
+`confirmed` 5건: **Frequency**(effect size 0.98·p≈5.1e-245, 세 번의 후보군 변경에도
+1위 자리 흔들림 없음), **Thermal_Load_Ratio**(effect size 0.54), **Top_Kerf**,
+**Kerf_Width_Profile**, **Surface_Roughness**(전부 결과 공변 후보 — 원인이라기보다
+동일 근본원인의 동반증상일 가능성 높음, 해석 주의).
 
-`Surface_Roughness`는 초판에서 confirmed였다가, 팀 공용 도메인피처 4개
-(`Cooling_Thermal_Load` 등, 8절 참고)를 후보에 추가하면서 트리 중요도 top-10 경쟁이
-치열해져 순위가 밀려 `candidate_weak_signal`로 내려감 — 단변량(Broad 라벨)에서는 여전히
-유의하므로 완전히 배제하지는 않음.
+**⚠️ 트리 top-10 기준의 민감성 발견**: 이 폴더는 세 번 재실행됐다(초판 → 팀 도메인피처
+4개 추가 → Maintenance_Count 추가). 매번 후보 컬럼 수가 바뀔 때마다(36→40→41)
+`Top_Kerf`/`Kerf_Width_Profile`/`Surface_Roughness`/`Cooling_Flow`가 confirmed와
+candidate_weak_signal 사이를 오갔다 — 이 넷은 **트리 중요도가 항상 top-10 경계선
+근처**에 있어서, 다른 컬럼이 후보에 들어오고 나갈 때마다 상대 순위가 흔들린다.
+반면 `Frequency`/`Thermal_Load_Ratio`는 세 라운드 내내 흔들림 없이 confirmed였다 —
+**이 둘이 실질적으로 가장 신뢰도 높은 유효인자**이고, 경계선 근처 넷은 "확정"보다는
+"경계선 후보"로 읽는 게 정확하다. (`Maintenance_Count` 자체는 effect size -0.03로
+무신호, `insufficient_evidence`.)
 
 `Cooling_Flow`, `Cooling_Thermal_Load`는 트리 중요도(다변량·상호작용)에서만 상위권으로
 잡히고 단변량 검정에서는 안 잡힘 — burn이 냉각 변수 단독보다 Laser_Power/Frequency와의
-**조합**에서 작동한다는 도메인 가설과 정합적인 패턴. 둘 다 `candidate_weak_signal`로 분류,
+**조합**에서 작동한다는 도메인 가설과 정합적인 패턴. `candidate_weak_signal`로 분류,
 Goal3(상호작용) 팀원에게 우선 전달할 후보로 남겨둠.
 
 ## 알려진 한계 / 다음 확인 사항

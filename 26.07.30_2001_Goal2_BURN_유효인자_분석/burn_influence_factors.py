@@ -53,7 +53,12 @@ ENGINEERED_COLS = ["Thermal_Load_Ratio"]  # 신규 피처 - baseline을 직접 �
 # 00_stratum_baseline_stats_by_opcond.csv에도 이미 baseline이 있어 그대로 재사용한다
 # (compute_stratum_baseline_stats 재계산 불필요 — README의 "재구현 금지" 원칙).
 TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
-ALL_FEATURE_COLS = CANDIDATE_COLS + ENGINEERED_COLS + TEAM_DOMAIN_FEATURES
+# 김시우님 00_column_classification.csv의 decision_note가 "Goal2에서 후속 확인 가치 있음"
+# 이라고 명시한 컬럼. 원래 undocumented 서브시스템이라 FDC_COLS/RESPONSES에 안 들어가
+# 있어서 초판에서 누락됐다가, 전처리 산출물 재확인 과정에서 발견해 추가함. baseline이
+# 없어 Thermal_Load_Ratio와 같은 방식으로 직접 계산한다.
+NEEDS_CUSTOM_BASELINE = ENGINEERED_COLS + ["Maintenance_Count"]
+ALL_FEATURE_COLS = CANDIDATE_COLS + ENGINEERED_COLS + TEAM_DOMAIN_FEATURES + ["Maintenance_Count"]
 
 LABELS = ["is_burn_primary", "is_burn_broad"]
 
@@ -89,6 +94,12 @@ DOMAIN_HYPOTHESIS = {
     "Surface_Roughness": ("결과 공변(동반증상 후보, 원인 아닐 수 있음)", "up"),
     "Thermal_Load_Ratio": ("에너지투입/방열 비율(신규 공학 피처)", "up"),
     "Cooling_Thermal_Load": ("방열 능력(팀 공용 피처 = Cooling_Water_Temp/Cooling_Flow)", "up"),
+    "Maintenance_Count": (
+        "정비 이력 프록시(00_column_classification.csv decision_note가 Goal2 확인 가치 있다고 명시) "
+        "— 정비 직후 재교정 불안정 또는 정비 주기가 긴 설비의 누적 열화, 두 상충 가능성이 있어 "
+        "방향을 특정하지 않음",
+        "either",
+    ),
 }
 
 # Burn과는 무관하다고 판단한 컬럼 — "안 찾아본 것"이 아니라 "찾아봤는데 알려진 실패모드가
@@ -155,9 +166,10 @@ def build_dataset() -> pd.DataFrame:
     baseline_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
     baseline_stats = pd.read_csv(baseline_path)
 
-    # 신규 공학 피처(Thermal_Load_Ratio)는 사전 baseline이 없으므로 OK행 기준으로 직접 산출.
+    # 신규 공학 피처(Thermal_Load_Ratio)와 Maintenance_Count는 사전 baseline이 없으므로
+    # OK행 기준으로 직접 산출.
     engineered_baseline = compute_stratum_baseline_stats(
-        df[df["is_normal"]], config.OPCOND, ENGINEERED_COLS
+        df[df["is_normal"]], config.OPCOND, NEEDS_CUSTOM_BASELINE
     )
     baseline_stats_ext = pd.concat([baseline_stats, engineered_baseline], ignore_index=True)
 

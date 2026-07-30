@@ -62,6 +62,10 @@ BURN 발생률이 Machine_ID(0.33~0.47%)·Product_ID·Recipe_ID 전반에서 균
 포함했지만 "세정 수요/능력" 프레임이라 Burn(열 축적) 메커니즘과 무관하다고 판단해
 `not_related_to_burn`으로 분류 — 대신 Particle/Remain_Coat 분석에서 핵심 피처로 쓴다.
 
+`Maintenance_Count`(팀 preprocessing의 `00_column_classification.csv` decision_note가
+"Goal2에서 후속 확인 가치 있음"이라고 명시)도 추가했다 — 정비 이력 프록시라 방향을
+특정할 물리적 근거가 약해 `either`로 두었다. 실제 통계 결과는 무신호(effect size -0.03).
+
 ### 4-1. 팀 HealthIndex 설계서와 방향 가설이 다른 경우 — 왜 다른가
 
 팀의 `HealthIndex_설계서_v2`는 **모든 불량 유형을 아우르는 범용 분류**(A~G유형)이고,
