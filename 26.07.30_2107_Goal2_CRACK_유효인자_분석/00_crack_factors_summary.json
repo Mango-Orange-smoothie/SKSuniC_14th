@@ -1,6 +1,6 @@
 {
   "defect": "CRACK",
-  "generated_at": "2026-07-30T12:12:22.091507+00:00",
+  "generated_at": "2026-07-30T13:04:20.424761+00:00",
   "n_rows_total": 100000,
   "n_primary": 34,
   "n_broad": 41,
@@ -44,16 +44,16 @@
     "Cooling_Thermal_Load",
     "Laser_Cleaning_Demand",
     "Cleaning_Capacity",
-    "Cleaning_Load_Ratio"
+    "Cleaning_Load_Ratio",
+    "Maintenance_Count"
   ],
   "effect_size_min_cliffs_delta": 0.2,
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 29,
-    "candidate_weak_signal": 7,
-    "confirmed": 2,
-    "candidate_needs_domain_review": 1
+    "insufficient_evidence": 30,
+    "candidate_weak_signal": 8,
+    "confirmed": 2
   },
   "confirmed_factors": [
     "Frequency",

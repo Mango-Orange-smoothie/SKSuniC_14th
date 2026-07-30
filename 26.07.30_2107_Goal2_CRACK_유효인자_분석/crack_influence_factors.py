@@ -48,6 +48,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config  # noqa: E402
 from pipeline.common import (  # noqa: E402
+    compute_stratum_baseline_stats,
     load_dataset,
     stratified_split_by_defect,
     zscore_transform,
@@ -60,7 +61,8 @@ BINARY_COL = "Micro_Crack"
 
 CANDIDATE_COLS = config.FDC_COLS + config.RESPONSES
 TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
-ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES
+NEEDS_CUSTOM_BASELINE = ["Maintenance_Count"]
+ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES + NEEDS_CUSTOM_BASELINE
 
 LABELS = ["is_crack_primary", "is_crack_broad"]
 
@@ -89,6 +91,11 @@ DOMAIN_HYPOTHESIS = {
     "Groove_Depth": ("응력 집중 — 그루브가 깊을수록 절단 팁(선단)에 응력이 집중될 가능성(제 추론)", "up"),
     "Laser_Head_Remain_Time": ("헤드 노후 — 빔 품질 저하 시 국소 응력집중 가능성(제 추론)", "down"),
     "Surface_Roughness": ("결과 공변(동반증상 후보) — 균열이 표면 거칠기를 바꿀 가능성, 원인 아닐 수 있음(제 추론)", "up"),
+    "Maintenance_Count": (
+        "정비 이력 프록시(00_column_classification.csv decision_note가 Goal2 확인 가치 있다고 명시) "
+        "— 정비 직후 재교정 스트레스 또는 정비 주기가 긴 설비의 누적 피로, 상충 가능성 있어 미특정",
+        "either",
+    ),
 }
 
 # 정렬/센터링, 세정 계열은 파단(균열) 메커니즘과 직접 연결고리가 없다고 판단했다.
@@ -150,7 +157,12 @@ def build_dataset() -> pd.DataFrame:
     baseline_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
     baseline_stats = pd.read_csv(baseline_path)
 
-    df = zscore_transform(df, baseline_stats, config.OPCOND, ALL_FEATURE_COLS)
+    custom_baseline = compute_stratum_baseline_stats(
+        df[df["is_normal"]], config.OPCOND, NEEDS_CUSTOM_BASELINE
+    )
+    baseline_stats_ext = pd.concat([baseline_stats, custom_baseline], ignore_index=True)
+
+    df = zscore_transform(df, baseline_stats_ext, config.OPCOND, ALL_FEATURE_COLS)
     return df
 
 

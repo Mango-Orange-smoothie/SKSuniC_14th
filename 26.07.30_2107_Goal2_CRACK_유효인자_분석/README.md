@@ -41,7 +41,13 @@ python "26.07.30_2107_Goal2_CRACK_유효인자_분석/crack_influence_factors.py
 | `03_tree_importance.csv` | RandomForest permutation importance |
 | `04_crack_influence_factors_final.csv` | **메인 산출물** |
 
-## 결과 요약 (2026-07-30 실행 기준, n=34 극소표본 주의)
+## 결과 요약 (2026-07-30 실행 기준, Maintenance_Count 추가 반영 최종판, n=34 극소표본 주의)
+
+`Maintenance_Count`는 무신호(effect size -0.007). 후보가 39→40개로 늘면서 트리 top-10
+순위가 또 흔들려 `Kerf_Width_Profile`이 `candidate_needs_domain_review`에서
+`insufficient_evidence`로 내려갔다 — BURN 분석에서도 확인된 "top-N 경계선 컬럼은 후보군
+구성에 민감하다"는 패턴이 여기서도 재현됨. 여전히 재검토 가치는 있다고 보고
+DOMAIN_KNOWLEDGE.md에 남겨둔다.
 
 `confirmed` 2건: **Frequency**(effect size 0.86, p≈2.2e-16 — BURN 분석에서도 1위였던
 바로 그 변수. 펄스 중첩→열피로 축적이라는 메커니즘이 Burn과 Crack 모두에서 확인된

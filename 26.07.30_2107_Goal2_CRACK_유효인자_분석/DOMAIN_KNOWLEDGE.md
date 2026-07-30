@@ -37,6 +37,7 @@ Micro_Crack(미세균열)은 재료의 파단강도를 넘어서는 스트레스
 | 응력 집중(구조) | `Groove_Depth`(그루브가 깊을수록 절단 팁에 응력 집중 가능성) | up |
 | 헤드 노후 | `Laser_Head_Remain_Time` | down |
 | 결과 공변 | `Surface_Roughness` — **통계로 확인됨(4절)** | up |
+| 정비 이력 프록시(김시우님 preprocessing decision_note 근거, 신호 없음 -0.007) | `Maintenance_Count` | either |
 
 이 표의 방향 가설은 전부 열충격/기계적 피로라는 **일반 물리 원리**에서 도출한 것이지,
 회의록·멘토링에서 Crack에 대해 직접 확인된 서술이 아니다.
