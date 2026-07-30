@@ -38,6 +38,7 @@ Chipping(모서리 파손)은 절단 경계에서 재질이 매끈하게 제거�
 | 정렬 동반지표 | `Package_Size_1~4` | either | 센터링 불량의 동반지표 |
 | 헤드 노후 | `Laser_Head_Remain_Time` | down | 제 추론 |
 | 결과 공변 | `Surface_Roughness` | up | 모서리 파손 부위가 거칠기를 높일 가능성, 원인 아닐 수 있음 |
+| 정비 이력 프록시 | `Maintenance_Count` | either | 김시우님 preprocessing decision_note가 Goal2 확인 가치 있다고 명시, 실제 신호 없음(effect size 0.16) |
 
 ## 4. 실제 통계 결과와의 대조 (n=4, 극도로 조심스럽게 읽을 것)
 

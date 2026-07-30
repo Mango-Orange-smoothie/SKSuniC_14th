@@ -49,6 +49,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config  # noqa: E402
 from pipeline.common import (  # noqa: E402
+    compute_stratum_baseline_stats,
     load_dataset,
     stratified_split_by_defect,
     zscore_transform,
@@ -61,7 +62,8 @@ BINARY_COL = "Chipping"
 
 CANDIDATE_COLS = config.FDC_COLS + config.RESPONSES
 TEAM_DOMAIN_FEATURES = config.DOMAIN_FEATURES
-ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES
+NEEDS_CUSTOM_BASELINE = ["Maintenance_Count"]
+ALL_FEATURE_COLS = CANDIDATE_COLS + TEAM_DOMAIN_FEATURES + NEEDS_CUSTOM_BASELINE
 
 LABELS = ["is_chip_primary", "is_chip_broad"]
 
@@ -91,6 +93,11 @@ DOMAIN_HYPOTHESIS = {
     "Package_Size_4": ("정렬 불량의 동반지표 — 위와 동일 이유", "either"),
     "Laser_Head_Remain_Time": ("헤드 노후 — 빔 품질 저하 시 Chipping 위험 증가 가능성(제 추론)", "down"),
     "Surface_Roughness": ("결과 공변(동반증상 후보) — 모서리 파손 부위가 표면 거칠기를 높일 가능성, 원인 아닐 수 있음", "up"),
+    "Maintenance_Count": (
+        "정비 이력 프록시(00_column_classification.csv decision_note가 Goal2 확인 가치 있다고 명시) "
+        "— 방향 상충 가능성 있어 미특정",
+        "either",
+    ),
 }
 
 # 방열/체류시간(Burn 전용), 세정/코팅(Particle·Remain_Coat 전용) 계열은 Chipping의
@@ -151,7 +158,12 @@ def build_dataset() -> pd.DataFrame:
     baseline_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
     baseline_stats = pd.read_csv(baseline_path)
 
-    df = zscore_transform(df, baseline_stats, config.OPCOND, ALL_FEATURE_COLS)
+    custom_baseline = compute_stratum_baseline_stats(
+        df[df["is_normal"]], config.OPCOND, NEEDS_CUSTOM_BASELINE
+    )
+    baseline_stats_ext = pd.concat([baseline_stats, custom_baseline], ignore_index=True)
+
+    df = zscore_transform(df, baseline_stats_ext, config.OPCOND, ALL_FEATURE_COLS)
     return df
 
 

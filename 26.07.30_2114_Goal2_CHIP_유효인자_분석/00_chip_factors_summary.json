@@ -1,6 +1,6 @@
 {
   "defect": "CHIP",
-  "generated_at": "2026-07-30T12:17:38.644623+00:00",
+  "generated_at": "2026-07-30T13:06:50.986643+00:00",
   "n_rows_total": 100000,
   "n_primary": 4,
   "n_broad": 4,
@@ -44,16 +44,17 @@
     "Cooling_Thermal_Load",
     "Laser_Cleaning_Demand",
     "Cleaning_Capacity",
-    "Cleaning_Load_Ratio"
+    "Cleaning_Load_Ratio",
+    "Maintenance_Count"
   ],
   "effect_size_min_cliffs_delta": 0.2,
   "fdr_alpha": 0.05,
   "tree_top_n": 10,
   "verdict_counts": {
-    "insufficient_evidence": 33,
-    "candidate_weak_signal": 3,
-    "confirmed": 2,
-    "candidate_needs_domain_review": 1
+    "insufficient_evidence": 31,
+    "candidate_weak_signal": 5,
+    "candidate_needs_domain_review": 2,
+    "confirmed": 2
   },
   "confirmed_factors": [
     "Kerf_Width_Profile",

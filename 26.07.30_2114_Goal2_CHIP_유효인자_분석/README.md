@@ -43,7 +43,13 @@ python "26.07.30_2114_Goal2_CHIP_유효인자_분석/chip_influence_factors.py"
 | `03_tree_importance.csv` | RandomForest permutation importance |
 | `04_chip_influence_factors_final.csv` | **메인 산출물** |
 
-## 결과 요약 (2026-07-30 실행 기준, n=4 극소표본 — 참고용으로만 읽을 것)
+## 결과 요약 (2026-07-30 실행 기준, Maintenance_Count 추가 반영 최종판, n=4 극소표본 — 참고용으로만 읽을 것)
+
+`Maintenance_Count`는 무신호(effect size 0.16, n=4에선 이 정도도 우연 범위). confirmed는
+변화 없음. 다만 후보 추가로 트리 순위가 또 흔들려 `Laser_Power`가 새로
+`candidate_needs_domain_review`에 들어옴(effect size -0.98) — `Laser_Cleaning_Demand`와
+마찬가지로 `Groove_Depth`와의 상관에서 온 중복 신호로 추정된다(3절 참고). n=4에서는
+이런 흔들림이 특히 심하다는 걸 다시 확인시켜주는 사례.
 
 `confirmed` 2건: **`Kerf_Width_Profile`**(effect size ≈1.00), **`Groove_Depth`**
 (effect size ≈-0.83, 방향도 가설과 일치 — Depth 부족→Chipping). 둘 다 팀 HealthIndex
