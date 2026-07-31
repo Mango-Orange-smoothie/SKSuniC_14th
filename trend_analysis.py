@@ -13,22 +13,25 @@ RAW_INPUT_FILES = [
 
 CLASSIFICATION_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_column_classification.csv")
 STRATUM_STD_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_stratum_baseline_stats_by_opcond.csv")
+MACHINE_TREND_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_machine_column_trend.csv")
 BASELINE_AB_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "26.07.29_1625_Baseline_AB_ProductRecipe_v2.csv")
 BASELINE_C_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "26.07.29_1625_Baseline_C_위험선_ProductRecipe_v2.csv")
 BASELINE_E_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "Baseline_E_이론상수.csv")
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "trend_analysis_results.csv")
+CROSS_VALIDATION_CSV = os.path.join(OUTPUT_DIR, "trend_cross_validation.csv")
 
 GROUP_KEYS = ["Machine_ID", "Product_ID", "Recipe_ID"]
 WINDOW = 10
 Z_THRESHOLD = 2.0
+VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
-    "column", "type", "baseline", "current_value", "rolling_mean", "rolling_std",
-    "difference", "slope", "normalized_deviation", "trend_direction",
-    "early_warning", "message",
+    "column", "type", "matched_defect", "baseline", "current_value", "rolling_mean", "rolling_std",
+    "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
+    "variability_warning", "early_warning", "message",
 ]
 
 
@@ -37,7 +40,7 @@ OUTPUT_COLUMNS = [
 # ----------------------------------------------------------------------
 def check_required_files():
     required = [p for _, p in RAW_INPUT_FILES] + [
-        CLASSIFICATION_CSV, STRATUM_STD_CSV, BASELINE_AB_CSV, BASELINE_C_CSV, BASELINE_E_CSV,
+        CLASSIFICATION_CSV, STRATUM_STD_CSV, MACHINE_TREND_CSV, BASELINE_AB_CSV, BASELINE_C_CSV, BASELINE_E_CSV,
     ]
     missing = [p for p in required if not os.path.exists(p)]
     if missing:
@@ -134,6 +137,28 @@ def compute_group_rolling(values):
 
 
 # ----------------------------------------------------------------------
+# 5-1. 변동성(std) 확대 추세 계산
+#      rolling_std 시계열 자체에 다시 같은 크기(WINDOW)의 창을 대고 기울기를 구한다.
+#      앞쪽 (WINDOW-1)개는 변동성 추세를 판단할 이력이 부족해 NaN으로 둔다.
+# ----------------------------------------------------------------------
+def compute_std_trend(rolling_std):
+    n = len(rolling_std)
+    std_slope = np.full(n, np.nan)
+    if n < WINDOW:
+        return std_slope
+
+    windows = np.lib.stride_tricks.sliding_window_view(rolling_std, WINDOW)
+    w_mean = windows.mean(axis=1)
+    x = np.arange(WINDOW, dtype=float)
+    x_mean = x.mean()
+    denom = ((x - x_mean) ** 2).sum()
+    slope = ((windows - w_mean.reshape(-1, 1)) * (x - x_mean)).sum(axis=1) / denom
+
+    std_slope[WINDOW - 1:] = slope
+    return std_slope
+
+
+# ----------------------------------------------------------------------
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
@@ -141,6 +166,11 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                   state):
     df = pd.read_csv(path)
     n_input_rows = len(df)
+
+    # 00_machine_column_trend.csv는 원본 데이터(HealthIndex_Dataset.csv) 기준으로 만들어진
+    # 산출물이므로, 교차검증용 집계도 같은 소스에서만 수행한다.
+    is_reference_source = (source_name == RAW_INPUT_FILES[0][0])
+    machine_trend_tally = state.setdefault("machine_trend_tally", {})
 
     # 공통 분석 가능 컬럼만 사용 (두 파일 컬럼이 다를 경우 대비)
     usable_columns = [c for c in analysis_columns if c in df.columns]
@@ -220,6 +250,25 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
             trend_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
 
+            # 00_machine_column_trend.csv 교차검증용 집계 (Machine_ID x column 단위 방향 누적)
+            if is_reference_source:
+                tally = machine_trend_tally.setdefault((machine_id, col), {"up": 0, "down": 0, "flat": 0})
+                labels, label_counts = np.unique(trend_direction, return_counts=True)
+                for label, cnt in zip(labels, label_counts):
+                    tally[label] += int(cnt)
+
+            # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
+            std_slope = compute_std_trend(rolling_std)
+            ref_std = fallback_std_map.get((product_id, recipe_id, col), np.nan)
+            if ref_std is not None and not (isinstance(ref_std, float) and np.isnan(ref_std)) and ref_std > 0:
+                std_ratio = rolling_std / ref_std
+            else:
+                std_ratio = np.full(len(current_value), np.nan)
+            variability_warning = (
+                ~np.isnan(std_slope) & (std_slope > 0)
+                & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
+            )
+
             early_warning = np.zeros(len(current_value), dtype=bool)
             messages = np.array([""] * len(current_value), dtype=object)
 
@@ -289,7 +338,18 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                         f"이론 기준값({baseline_arr[i]:.4f}) 대비 지속적으로 벌어지는 편차가 감지되었습니다."
                     )
-            # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록, early_warning은 항상 False
+            # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
+            # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
+            for i in np.where(variability_warning)[0]:
+                vmsg = (
+                    f"{machine_id} / {product_id} / {recipe_id}의 {col} 변동성이 "
+                    f"정상 대비 지속적으로 확대되고 있습니다."
+                )
+                messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
+            early_warning = early_warning | variability_warning
+
+            matched_defect_val = extra.get("matched_defect", "") if extra else ""
+            matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
 
             frame = pd.DataFrame({
                 "source_file": source_name,
@@ -299,14 +359,17 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "Recipe_ID": recipe_id,
                 "column": col,
                 "type": col_type if col_type else "NONE",
+                "matched_defect": matched_defect_arr,
                 "baseline": baseline_arr,
                 "current_value": current_value,
                 "rolling_mean": rolling_mean,
                 "rolling_std": rolling_std,
+                "std_slope": std_slope,
                 "difference": difference,
                 "slope": slope,
                 "normalized_deviation": normalized_deviation,
                 "trend_direction": trend_direction,
+                "variability_warning": variability_warning,
                 "early_warning": early_warning,
                 "message": messages,
             })
@@ -328,6 +391,58 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             warning_samples.extend(ew_rows.head(needed).to_dict("records"))
 
     return n_input_rows, total_out_rows, warning_count, warning_samples
+
+
+# ----------------------------------------------------------------------
+# 7. 기존 00_machine_column_trend.csv(Kendall/OLS 기반)와의 교차검증
+#    Machine_ID x column 단위로, 이번 분석에서 나온 다수결 추세 방향과
+#    기존 산출물의 trend_class가 일치하는지 비교한다.
+# ----------------------------------------------------------------------
+def cross_validate_machine_trend(machine_trend_tally):
+    ref = pd.read_csv(MACHINE_TREND_CSV)
+
+    trend_class_direction_map = {
+        "candidate_upward_drift": "up",
+        "candidate_downward_drift": "down",
+        "no_trend": "flat",
+        "mixed": "flat",
+        "not_applicable": None,
+    }
+
+    rows = []
+    for row in ref.itertuples(index=False):
+        key = (row.Machine_ID, row.column)
+        tally = machine_trend_tally.get(key)
+        if not tally or sum(tally.values()) == 0:
+            continue
+        ref_direction = trend_class_direction_map.get(row.trend_class)
+        if ref_direction is None:
+            continue
+        my_direction = max(tally, key=tally.get)
+        rows.append({
+            "Machine_ID": row.Machine_ID,
+            "column": row.column,
+            "my_majority_direction": my_direction,
+            "reference_trend_class": row.trend_class,
+            "reference_direction": ref_direction,
+            "agree": my_direction == ref_direction,
+            "up_count": tally.get("up", 0),
+            "down_count": tally.get("down", 0),
+            "flat_count": tally.get("flat", 0),
+        })
+
+    result = pd.DataFrame(rows)
+    result.to_csv(CROSS_VALIDATION_CSV, index=False, encoding="utf-8-sig")
+
+    print(f"\n===== 00_machine_column_trend.csv 교차검증 =====")
+    if len(result) == 0:
+        print("비교 가능한 항목이 없습니다.")
+    else:
+        n_agree = int(result["agree"].sum())
+        n_total = len(result)
+        print(f"비교 대상 {n_total}건 중 일치 {n_agree}건({n_agree / n_total * 100:.1f}%), 불일치 {n_total - n_agree}건")
+    print(f"저장 파일: {CROSS_VALIDATION_CSV}")
+    return result
 
 
 def main():
@@ -378,6 +493,8 @@ def main():
 
     if total_warn == 0:
         print("[점검] early_warning이 0건입니다. 임계값(Z_THRESHOLD) 또는 Baseline 매핑 로직을 점검해야 합니다.")
+
+    cross_validate_machine_trend(state.get("machine_trend_tally", {}))
 
     for source_name, v in summary.items():
         print(f"\n===== {source_name} early_warning 샘플 (최대 10개) =====")
