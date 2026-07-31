@@ -74,11 +74,6 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
 
 ## 멘토 피드백 2차 반영 (`FDC_전처리_멘토링_정리.md` 기준, 26.07.31)
 
-- **⚠️ `Edge_Burn` — 아직 제외하지 않음, 최우선 재확인 필요**: 멘토가 "듣도 보도 못한 현상,
-  무시해도 된다"며 제거를 시사했으나 **최종 확정은 아니었다(잠정)**. Jun의 Goal2 BURN 분석
-  전체가 이 컬럼을 라벨로 쓰고 있어 영향이 매우 크므로, **멘토 재확인 전까지 절대 임의로
-  제외하지 않았다.** `00_column_classification.csv`에서 `mentor_pending_review=True`로만
-  표시해둠 — 재확인 결과가 나오면 최우선으로 반영할 것.
 - **재확인 대기 중인 컬럼 4개** (`mentor_pending_review=True`, 제외하지 않고 경고만 추가):
   `Bottom_Kerf`(다른 kerf 컬럼과 값 중복 가능성), `Surface_Roughness`(drop 여부 미확정 — Jun의
   BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 주의), `Cooling_Flow`/`Cooling_Water_Temp`
@@ -95,6 +90,21 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
 - **`Head_Temp`/`Cooling_Flow`/`Cooling_Water_Temp`/`Laser_Centering_Position`**: 멘토가 설명한
   인과사슬(Head_Temp→크리스탈 스팟 온도→굴절률→센터링 변화→Chipping/Kerf 불균일) 가설 —
   Goal3(상호작용) 담당자는 이 4개를 묶어서 다변량으로 분석하는 것을 우선 고려할 것.
+
+## 멘토 피드백 3차 반영 — `Edge_Burn` 최종 제외 확정 (26.08.01)
+
+- **`Edge_Burn`, `Edge_Burn_Die`를 defect 분석 대상에서 최종 제외했다.** 멘토 재확인 결과
+  유효한 실패모드가 아님이 확정됨. `00_column_classification.csv`에서
+  `analysis_role=mentor_excluded_defect`, `is_mentor_excluded_defect=True`,
+  `include_in_downstream_default=False`로 반영됨.
+- **⚠️ 팀 전체 영향— 반드시 확인할 것**: Jun의 Goal2 BURN 분석
+  (`26.07.30_2001_Goal2_BURN_유효인자_분석/`)은 `NG_Code=='BURN'`/`Edge_Burn==1`을 라벨로
+  써서 만든 것이라 **이번 제외 결정으로 전체가 무효화된다.** confirmed factors였던
+  `Frequency`, `Thermal_Load_Ratio`, `Top_Kerf`, `Kerf_Width_Profile`, `Surface_Roughness`는
+  더 이상 "BURN 유효인자"로 제출하면 안 됨. Jun에게 최우선 공유 필요 — 해당 폴더를
+  삭제할지, "제외된 defect였음"으로 아카이브만 할지는 팀 논의로 결정할 것.
+- 원본 데이터의 `Edge_Burn`/`Edge_Burn_Die` 값 자체는 지우지 않았다(추적성 보존) — 분석
+  피처셋에서만 빠진다.
 
 ## Goal별 활용법
 

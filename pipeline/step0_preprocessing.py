@@ -286,6 +286,8 @@ def _analysis_role_of(col: str) -> str:
         return "context_stratum"
     if col in ("Yield", "NG_Code"):
         return "target_outcome"
+    if col in config.MENTOR_EXCLUDED_DEFECTS:
+        return "mentor_excluded_defect"
     if col in config.DEFECTS_BINARY or col in config.DEFECTS_COUNT:
         return "target_defect"
     if col in config.UNDOCUMENTED_EXCLUDED:
@@ -328,6 +330,8 @@ def build_column_classification(
                 decision_note = "멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
             elif role == "mentor_excluded":
                 decision_note = config.MENTOR_EXCLUDED_VARS_NOTE
+            elif role == "mentor_excluded_defect":
+                decision_note = config.MENTOR_EXCLUDED_DEFECTS_NOTE
             elif role == "context_stratum":
                 decision_note = "장비/제품/레시피 층 정의 및 범주형 통제변수로 사용."
             elif role == "target_outcome":
@@ -364,6 +368,7 @@ def build_column_classification(
                 "is_operation_condition_key": col in config.OPCOND,
                 "is_excluded_identifier": col in config.EXCLUDED_IDENTIFIERS,
                 "is_mentor_excluded": col in config.MENTOR_EXCLUDED_VARS,
+                "is_mentor_excluded_defect": col in config.MENTOR_EXCLUDED_DEFECTS,
                 "mentor_pending_review": col in config.MENTOR_PENDING_REVIEW,
                 "include_in_downstream_default": include_default,
                 "decision_note": decision_note,
@@ -416,6 +421,7 @@ def main() -> None:
             name: len(cols) for name, cols in config.SUBSYSTEMS.items()
         },
         "mentor_excluded_columns": config.MENTOR_EXCLUDED_VARS,
+        "mentor_excluded_defects": config.MENTOR_EXCLUDED_DEFECTS,
         "mentor_pending_review_columns": config.MENTOR_PENDING_REVIEW,
         "notes": [
             "die 단위 x,y 좌표 없음 — 공간(DBSCAN) 클러스터링은 이번 범위 제외.",

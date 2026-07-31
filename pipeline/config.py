@@ -82,16 +82,20 @@ MENTOR_DOMAIN_NOTES = {
     "Laser_Centering_Position": "멘토 피드백: Head_Temp 인과사슬의 종착점 — 레이저 품질 이상의 핵심 원인 중 하나로 반복 언급됨.",
 }
 
+# 멘토 피드백(26.08.01) — 재확인 결과 최종 확정: Edge_Burn/Edge_Burn_Die는 유효한 실패모드가
+# 아니므로 defect 분석 대상에서 제외. Jun의 Goal2 BURN 분석(confirmed factors: Frequency,
+# Thermal_Load_Ratio, Top_Kerf, Kerf_Width_Profile, Surface_Roughness)은 이 라벨 자체를 쓴
+# 것이므로 전체가 무효화됨 — Jun에게 최우선으로 공유하고 BURN 분석 폴더 처리 방향(삭제 vs
+# "제외된 defect였음" 아카이브) 논의 필요.
+MENTOR_EXCLUDED_DEFECTS = ["Edge_Burn", "Edge_Burn_Die"]
+MENTOR_EXCLUDED_DEFECTS_NOTE = (
+    "멘토 확인 결과 유효한 실패모드가 아님이 확정되어 defect 분석 대상에서 제외 (26.08.01). "
+    "Jun의 Goal2 BURN 분석 전체가 이 라벨 기반이라 재검토 필요."
+)
+
 # 멘토 피드백(26.07.31) — 아직 최종 확정이 아니라 "재확인 예정"으로 남은 항목.
 # 함부로 제외하지 않고 include_in_downstream_default=True로 유지하되, 강한 경고를 남긴다.
-# 특히 Edge_Burn은 Jun의 Goal2 BURN 분석 전체가 이 컬럼을 라벨로 쓰고 있어 영향이 크다 —
-# 멘토 재확인 전까지 절대 임의로 제외하지 말 것.
 MENTOR_PENDING_REVIEW = {
-    "Edge_Burn": (
-        "⚠️ 멘토가 '듣도 보도 못한 현상, 무시해도 된다'며 제거를 시사했으나 "
-        "최종 확정은 아니었음(잠정). Jun의 Goal2 BURN 분석 전체가 이 라벨을 쓰고 있으므로 "
-        "재확인 전까지 절대 임의로 제외하지 말 것 — 멘토 재확인 최우선 필요."
-    ),
     "Bottom_Kerf": "멘토가 다른 kerf 컬럼과 값 중복 여부, 순수 샘플링 값인지 재확인 예정이라고 했음 — 결과 해석 시 주의.",
     "Surface_Roughness": (
         "멘토가 drop 여부를 확정하지 않음('필요상 넣어놓은 컬럼'이라고만 언급) — Jun의 "
