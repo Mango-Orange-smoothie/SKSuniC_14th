@@ -72,6 +72,30 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
   보지 말고, 잔여시간을 구간화(binning)해서 구간별 불량률을 비교하는 방법도 함께 검토할 것 —
   `00_column_classification.csv`의 해당 행 `decision_note`에도 남겨둠.
 
+## 멘토 피드백 2차 반영 (`FDC_전처리_멘토링_정리.md` 기준, 26.07.31)
+
+- **⚠️ `Edge_Burn` — 아직 제외하지 않음, 최우선 재확인 필요**: 멘토가 "듣도 보도 못한 현상,
+  무시해도 된다"며 제거를 시사했으나 **최종 확정은 아니었다(잠정)**. Jun의 Goal2 BURN 분석
+  전체가 이 컬럼을 라벨로 쓰고 있어 영향이 매우 크므로, **멘토 재확인 전까지 절대 임의로
+  제외하지 않았다.** `00_column_classification.csv`에서 `mentor_pending_review=True`로만
+  표시해둠 — 재확인 결과가 나오면 최우선으로 반영할 것.
+- **재확인 대기 중인 컬럼 4개** (`mentor_pending_review=True`, 제외하지 않고 경고만 추가):
+  `Bottom_Kerf`(다른 kerf 컬럼과 값 중복 가능성), `Surface_Roughness`(drop 여부 미확정 — Jun의
+  BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 주의), `Cooling_Flow`/`Cooling_Water_Temp`
+  (설비-컬럼 매핑 재확인 예정).
+- **`Power_Efficiency`**: 비선형(U자형/최적구간) 특성 — 단순 선형 상관만으로 판단 금지.
+- **`Vibration`**: 설비 열화의 대표 신호(실제 대형 스크랩 사고 사례 있음) — **Health Index(Goal5)
+  핵심 후보 변수**로 우선 고려할 것.
+- **`Kerf_Width_Profile`/`Top_Kerf`/`Groove_Depth`**: "7㎛ 기준점"이 이 합성 데이터에서는 실제
+  물리 상수가 아닐 수 있음 — 하드코딩 금지, baseline은 데이터 분포에서 역산 (Step0의 OK-baseline
+  방식이 이미 이 원칙을 따르고 있음).
+- **`Package_Size_1~4`**: 센터링 이상 시 비대칭 패턴이 생긴다는 도메인 힌트를 신규 팀 공용
+  피처 **`Package_Size_Asymmetry`**(4개 값의 행별 표준편차)로 수식화해서 `config.DOMAIN_FEATURES`
+  에 추가함 (어느 번호가 어느 방향인지 몰라도 계산 가능).
+- **`Head_Temp`/`Cooling_Flow`/`Cooling_Water_Temp`/`Laser_Centering_Position`**: 멘토가 설명한
+  인과사슬(Head_Temp→크리스탈 스팟 온도→굴절률→센터링 변화→Chipping/Kerf 불균일) 가설 —
+  Goal3(상호작용) 담당자는 이 4개를 묶어서 다변량으로 분석하는 것을 우선 고려할 것.
+
 ## Goal별 활용법
 
 - **Goal 1 (장비/제품 비교)**: `00_stratum_baseline_stats_by_machine_opcond.csv`의

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-31T13:45:16.257993+00:00",
+  "generated_at": "2026-07-31T14:12:05.254146+00:00",
   "row_count": 100000,
   "unique_key_count": 100000,
   "normal_count": 90783,
@@ -70,9 +70,21 @@
     "outcome": 2,
     "undocumented_env_or_infra": 10
   },
+  "mentor_excluded_columns": [
+    "Focus",
+    "Cutting_Offset"
+  ],
+  "mentor_pending_review_columns": {
+    "Edge_Burn": "⚠️ 멘토가 '듣도 보도 못한 현상, 무시해도 된다'며 제거를 시사했으나 최종 확정은 아니었음(잠정). Jun의 Goal2 BURN 분석 전체가 이 라벨을 쓰고 있으므로 재확인 전까지 절대 임의로 제외하지 말 것 — 멘토 재확인 최우선 필요.",
+    "Bottom_Kerf": "멘토가 다른 kerf 컬럼과 값 중복 여부, 순수 샘플링 값인지 재확인 예정이라고 했음 — 결과 해석 시 주의.",
+    "Surface_Roughness": "멘토가 drop 여부를 확정하지 않음('필요상 넣어놓은 컬럼'이라고만 언급) — Jun의 BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 최종 확정 전까지 결과 해석 시 주의.",
+    "Cooling_Flow": "멘토가 '컬럼을 다시 봐야겠다'며 설비-컬럼 매핑 재확인을 예고함 — 정확한 매핑 확정 전까지 결과 해석 시 주의.",
+    "Cooling_Water_Temp": "멘토가 '컬럼을 다시 봐야겠다'며 설비-컬럼 매핑 재확인을 예고함 — 정확한 매핑 확정 전까지 결과 해석 시 주의."
+  },
   "notes": [
     "die 단위 x,y 좌표 없음 — 공간(DBSCAN) 클러스터링은 이번 범위 제외.",
     "결측/불가능0/flatline은 flag_only 정책 — 자동 보간 없음.",
-    "OPCOND=[Product_ID,Recipe_ID], GROUP=[Machine_ID,Product_ID,Recipe_ID] — 용도 다름, README 참고."
+    "OPCOND=[Product_ID,Recipe_ID], GROUP=[Machine_ID,Product_ID,Recipe_ID] — 용도 다름, README 참고.",
+    "mentor_pending_review_columns은 아직 멘토 최종 확정 전 — 임의 제외 금지, 결과 해석 시 주의."
   ]
 }
