@@ -1,0 +1,69 @@
+﻿column,subsystem,data_type,analysis_role,variability_class,variability_ratio,dispersion_method,degradation_trend_class,missing_rate,zero_fault_rate,flatline_fault_rate,is_operation_condition_key,is_excluded_identifier,include_in_downstream_default,decision_note
+DateTime,id_production,datetime,datetime,not_applicable,,not_applicable,not_applicable,,,,False,False,False,
+Machine_ID,id_production,categorical,context_stratum,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,True,장비/제품/레시피 층 정의 및 범주형 통제변수로 사용.
+Product_ID,id_production,categorical,context_stratum,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,True,False,True,장비/제품/레시피 층 정의 및 범주형 통제변수로 사용.
+Shift,id_production,categorical,identifier_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,True,False,"멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
+Lot_ID,id_production,id,identifier_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,True,False,"멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
+Strip_ID,id_production,id,identifier_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,True,False,"멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
+Recipe_ID,id_production,categorical,context_stratum,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,True,False,True,장비/제품/레시피 층 정의 및 범주형 통제변수로 사용.
+Operator_ID,id_production,categorical,identifier_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,True,False,"멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
+Laser_Power,fdc_laser,continuous,predictor,stable,0.005698104319294408,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Power_Efficiency,fdc_laser,continuous,predictor,stable,0.0032042109729847864,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Laser_Centering_Position,fdc_laser,continuous,predictor,variable,7.708130503649003,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Frequency,fdc_motion,continuous,predictor,stable,0.0047708799377700565,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Feed_Speed,fdc_motion,continuous,predictor,stable,0.00321061561676659,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Focus,fdc_thermal,continuous,predictor,variable,3.372315334634961,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Head_Temp,fdc_thermal,continuous,predictor,moderate,0.022162488698146805,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Vibration,fdc_mechanical,continuous,predictor,variable,0.16395617226781597,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Laser_Current,fdc_laser,continuous,predictor,stable,0.011784201915702687,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Laser_Voltage,fdc_laser,continuous,predictor,stable,0.008288607007571402,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Beam_Diameter,fdc_laser,continuous,predictor,stable,0.008578430861775017,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Alignment_Time,fdc_motion,continuous,predictor,moderate,0.04985034205107783,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Process_Time,fdc_motion,continuous,predictor,stable,0.019912285826028768,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Cutting_X_Index,fdc_motion,continuous,predictor,variable,0.14959357686931957,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Cutting_Y_Index,fdc_motion,continuous,predictor,variable,0.15370223005809908,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Cooling_Flow,fdc_thermal,continuous,predictor,stable,0.01100032880713081,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Cooling_Water_Temp,fdc_thermal,continuous,predictor,stable,0.013589694550695794,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+CLN_Flow,fdc_cleaning,continuous,predictor,moderate,0.022403358801682066,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+CLN_Pressure,fdc_cleaning,continuous,predictor,stable,0.0065149728345684325,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Coating_Flow,fdc_cleaning,continuous,predictor,stable,0.009955997850567735,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+CLN_Time,fdc_cleaning,continuous,predictor,moderate,0.03347605104762054,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Laser_Head_Remain_Time,fdc_cleaning,continuous,predictor,variable,0.38592000198784426,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Kerf_Width_Profile,response,continuous,predictor,stable,0.004808015787356573,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Top_Kerf,response,continuous,predictor,stable,0.004526251395910323,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Bottom_Kerf,response,continuous,predictor,stable,0.004978019111979548,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Kerf_Angle,response,continuous,predictor,stable,0.0018660773860236057,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Groove_Depth,response,continuous,predictor,stable,0.003924594580863928,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Package_Size_1,response,continuous,predictor,stable,0.00012812286098079444,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Package_Size_2,response,continuous,predictor,stable,0.00010746098852210349,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Package_Size_3,response,continuous,predictor,stable,0.00010774258303915953,cv_or_range_normalized,mixed,0.0,0.0,0.0,False,False,True,
+Package_Size_4,response,continuous,predictor,stable,0.000128322425431978,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Coating_Thickness,response,continuous,predictor,stable,0.014693014777853446,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,
+Coating_Uniformity,response,continuous,predictor,stable,0.002511972951637109,cv_or_range_normalized,candidate_downward_drift,0.0,0.0,0.0,False,False,True,
+Cutting_Offset,response,continuous,predictor,variable,6.009502817990159,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Surface_Roughness,response,continuous,predictor,moderate,0.05416078041548247,cv_or_range_normalized,candidate_upward_drift,0.0,0.0,0.0,False,False,True,
+Chipping,defect_binary,binary,target_defect,moderate,0.041071925289867285,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Chipping_Die,defect_count,count,target_defect,variable,3.6116967809630163,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Remain_Coat,defect_binary,binary,target_defect,moderate,0.06928353794980353,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Remain_Coat_Die,defect_count,count,target_defect,variable,11.400114181841836,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Particle,defect_binary,binary,target_defect,moderate,0.06047298872655206,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Particle_Die,defect_count,count,target_defect,variable,8.122235662075628,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Micro_Crack,defect_binary,binary,target_defect,moderate,0.06408576780116525,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Micro_Crack_Die,defect_count,count,target_defect,variable,5.973373988666335,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Laser_Paim,defect_binary,binary,target_defect,variable,0.165879479485212,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Laser_Paim_Die,defect_count,count,target_defect,variable,4.820668825512412,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Edge_Burn,defect_binary,binary,target_defect,variable,0.3535531737101132,rate_cv,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Edge_Burn_Die,defect_count,count,target_defect,variable,4.643812423641281,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Fail_Die,defect_count,count,target_defect,variable,10.709647370009003,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,defect 타깃 — Goal2/4의 예측 대상.
+Yield,outcome,continuous,target_outcome,stable,0.0,cv_or_range_normalized,no_trend,0.0,0.0,0.0,False,False,True,"공정 결과 라벨 — 피처가 아니라 타깃/검증값(Goal2 타깃, Goal5 검증)."
+NG_Code,outcome,categorical,target_outcome,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,True,"공정 결과 라벨 — 피처가 아니라 타깃/검증값(Goal2 타깃, Goal5 검증)."
+PLC_CPU_Load,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"설비 IT 인프라 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외."
+PLC_Memory,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"설비 IT 인프라 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외."
+Network_Latency,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"네트워크 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외."
+LED_Brightness,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"비전검사 조명 조건으로 추정, 공정 물리량 아님 — 1차 제외."
+Room_Noise,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"환경 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외."
+Door_Open_Count,undocumented_env_or_infra,count,undocumented_excluded,moderate,1.835602248387223,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,False,"환경/보안 이벤트 카운트로 추정, 공정 물리량 아님 — 1차 제외."
+Fan_RPM,undocumented_env_or_infra,count,undocumented_excluded,variable,168.36668513968704,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,False,"설비 냉각팬 등 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외."
+Vision_Exposure,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"비전검사 카메라 노출값으로 추정, 공정 물리량 아님 — 1차 제외."
+Maintenance_Count,undocumented_env_or_infra,count,undocumented_retained,variable,3.5086177767262043,index_of_dispersion,not_applicable,0.0,0.0,0.0,False,False,True,정비 이력 프록시로 추정 — 정비 직후/직전 열화 패턴과 연관될 수 있어 Goal2(유효인자 발굴)/Goal4(이상탐지)에서 후속 확인 가치 있음. 1차 제외하지 않고 보류.
+Factory_Power,undocumented_env_or_infra,continuous,undocumented_excluded,not_applicable,,not_applicable,not_applicable,0.0,0.0,0.0,False,False,False,"공장 전력 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외."

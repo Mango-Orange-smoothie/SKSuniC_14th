@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-07-31T07:23:03.839906+00:00",
+  "defect_col": "Remain_Coat",
+  "n_rows": 100000,
+  "n_defect": 7442,
+  "defect_rate": 0.07442,
+  "effect_size_min": 0.2,
+  "fdr_alpha": 0.05,
+  "confirmed_by_both_methods": [
+    "CLN_Flow",
+    "Cleaning_Load_Ratio",
+    "Cleaning_Capacity",
+    "Bottom_Kerf",
+    "Head_Temp",
+    "Kerf_Width_Profile",
+    "Top_Kerf",
+    "Focus"
+  ],
+  "note": "Jun 브랜치 04_rem_coat_influence_factors_final.csv의 confirmed 판정(CLN_Pressure)과 독립적으로 재현되는지 비교하기 위한 검증. 통계 코드는 새로 작성, pipeline/config.py, pipeline/common.py만 재사용."
+}

@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-07-31T07:02:21.132728+00:00",
+  "method": "OPCOND z-score + Machine_ID 더미 통제 L1 로지스틱 회귀 + HistGradientBoosting permutation importance(ROC-AUC)",
+  "coef_meaningful_threshold": 0.15,
+  "confirmed_v2_machine_controlled": [
+    "CLN_Pressure",
+    "Coating_Thickness"
+  ],
+  "note": "1차 검증(verify_rem_coat_factors.py)과 Jun 브랜치 분석은 Machine/OPCOND confounding을 통제하지 않은 단변량 비교였음 — 이번이 통제 후 재확인."
+}
