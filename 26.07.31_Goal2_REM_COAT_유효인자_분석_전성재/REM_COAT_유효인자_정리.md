@@ -239,14 +239,33 @@ daeho님의 검사는 **"진짜 원인이면 장비가 서서히(누적적으로
 `CLN_Time`은 동시점부터 무신호(p=0.60)라 방법B(다변량)에서 유의했던 게 다중공선성
 착시였다는 기존 의심이 이걸로 더 뚜렷해졌다 — 원인 후보에서 완전히 제외.
 
-## 10. 다음에 확인할 것 (전성재 담당 관점)
+## 10. 팀 공용 `03_impact_factor_ranking.csv` 교차검증 (완료)
+
+`김시우` 브랜치(`f22b124` 커밋)에 있던 팀 최초 가설검증 산출물
+(`analysis_step_by_step.py` 결과, Machine_ID+Product_ID+Recipe_ID를 함께 통제하는
+GROUP 방식 — 지금까지 쓴 OPCOND/Machine-더미 방식과는 또 다른 네 번째 층화 방식)과
+대조했다. 사본: `reference_03_impact_factor_ranking_from_김시우branch.csv`.
+
+| 순위 | 변수(Remain_Coat 대상) | absolute_effect |
+|---|---|---|
+| **1** | **CLN_Pressure** | **1.123** (2위와 3.5배 차이, 압도적) |
+| 2 | Cleaning_Load_Ratio | 0.320 |
+| 3 | CLN_Flow | 0.284 |
+| 4 | Vibration | 0.042 |
+| 5 | Laser_Power | 0.036 |
+| — | CLN_Time | 0.012 (거의 무신호) |
+
+**네 번째 독립 방법에서도 CLN_Pressure가 1위**, `CLN_Time`은 여기서도 거의 무신호 —
+9번에서 "원인 후보 제외" 판단한 것과 일치. (`full_correlation/02b_process_parameter_correlation_pairs.csv`는
+확인 결과 공정변수-공정변수 간 상관만 담은 파일이라 defect 비교에는 해당 없음 — 교차검증
+대상에서 제외.)
+
+## 11. 다음에 확인할 것 (전성재 담당 관점)
 
 1. `Coating_Thickness` 측정 시점(가공 전/후)을 현업/멘토에게 확인 — 데이터 누수 여부 판가름
 2. DP04 장비의 `CLN_Pressure`/`CLN_Flow` 실측값이 다른 3대와 어떻게 다른지 장비별로 재확인
    (`00_stratum_baseline_stats_by_machine_opcond.csv` 활용 가능)
-3. `03_impact_factor_ranking.csv`, `full_correlation/02b_process_parameter_correlation_pairs.csv`
-   (Machine 통제 GROUP 기준 결과)와 교차검증 — 이 문서 작성 시점엔 로컬에 해당 파일이 없어
-   대조하지 못함, Goal2 최종 제출 전 반드시 재확인
+3. ~~`03_impact_factor_ranking.csv` 교차검증~~ — **완료 (10번 참고), CLN_Pressure 1위 재확인됨**
 4. **SOP 설계 방향 수정**: `CLN_Pressure`를 "서서히 나빠지는 추세 감시"가 아니라 **"스트립
    처리 순간의 순간적 압력 하락을 실시간 알람"** 방식으로 설계할 것 — 9번 검증 결과 반영
 5. `CLN_Pressure`가 스트립마다 실시간으로 변하는 순간값인지, 장비 세팅처럼 천천히 바뀌는
