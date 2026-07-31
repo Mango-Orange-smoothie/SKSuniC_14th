@@ -8,6 +8,67 @@ Jun 브랜치의 [`26.07.30_2055_Goal2_PARTICLE_유효인자_분석`](../26.07.3
 통계 규약(Mann-Whitney U + BH-FDR, Cliff's delta 임계값 0.2)은 1차 분석과 동일하게 유지해
 숫자를 직접 비교할 수 있게 했다.
 
+---
+
+# 최종 답 — Particle의 영향인자
+
+인자 40개 전체를 세 가지 방법에 동시에 태운 결과다.
+표: [`06_particle_influence_factors_FINAL.csv`](./06_particle_influence_factors_FINAL.csv)
+
+| 인자 | 성격 | 효과크기 | 트리 순위 | 선행신호 잔존율 | 판정 |
+|---|---|---|---|---|---|
+| **Vibration** | **조작가능(FDC)** | 0.220 | 1위 | 33.5% | **영향인자 — 원인 후보** |
+| Surface_Roughness | 관측지표(response) | 0.717 | 1위 | 7.5% | 영향인자 — 동시 관측만 (원인 아님) |
+| Focus / CLN_Flow / Cleaning_Capacity / Cleaning_Load_Ratio | — | 0.001~0.007 | 4~10위 | — | 약한 신호 (사실상 잡음) |
+| 나머지 34개 | — | — | — | — | 근거 부족 |
+
+## 이 표를 읽는 법
+
+**결론은 하나입니다. Particle 불량의 조치 가능한 원인 인자는 `Vibration` 하나입니다.**
+
+- **Vibration** — 유일하게 세 방법을 모두 통과했다. 효과크기 0.220(기준 0.2 충족),
+  트리 중요도 1위, 그리고 **직전 50장 이력만으로도 판별이 되는 유일한 인자**다
+  (잔존율 33.5%). 도메인 가설(기계적 진동이 디브리를 비산·재부착시킴)과도 맞고,
+  장비를 통제해도 효과가 2.3%밖에 안 줄어든다(검증 5). 조작 가능한 FDC 인자이므로
+  Goal 6(SOP)에서 조치 항목이 될 수 있다.
+
+- **Surface_Roughness** — 효과크기 0.717로 압도적 1위지만 **원인이 아니다.**
+  직전 이력에는 신호가 7.5%밖에 안 남는다. particle이 표면에 남아 거칠기를 높인
+  결과다. 조치 대상이 아니라 **탐지 지표**로 쓸 것(Goal 4 이상탐지, Goal 5 Health Index).
+
+- **약한 신호 4건** — 팀 판정 규칙(방법 1개 통과 + 도메인 가설 있음)은 형식적으로
+  충족하지만, 효과크기가 0.001~0.007로 기준(0.2)의 3% 미만이다. **실질적으로는 잡음이며
+  추적할 가치가 없다.** 트리 상위 10위에 든 것은 Surface_Roughness를 뺀 모델에서
+  남은 인자들 사이의 미세한 순위 차이일 뿐이다.
+
+## 방법론에서 짚고 넘어갈 두 가지
+
+**① 라벨 정의를 데이터로 확인했다.**
+`NG_Code=='PARTICLE'`(6,455건)은 `Particle==1 AND Remain_Coat==0`과 **완전히 일치**한다
+(불일치 0건, 코드에 `assert`로 고정). 즉 이 주 라벨에는 REM_COAT 동시발생이 애초에
+섞여 있지 않다. REM_COAT 오염은 보조 라벨 `Particle==1`(7,792건)에만 있다.
+표의 `cliffs_delta_strict` / `cliffs_delta_broad` 두 열을 비교하면 오염 크기가 보인다 —
+예를 들어 `CLN_Pressure`는 −0.002 → −0.096으로 **44배** 뛴다.
+
+**② permutation importance는 강한 인자 하나에 가려진다.**
+전체 모델에서 Vibration은 32위로 나왔다. 효과크기 2위(0.220)인 인자가 32위일 리 없다.
+원인은 Surface_Roughness(0.717)가 모델을 지배해서, 다른 인자를 뒤섞어도 예측 성능이
+떨어지지 않았기 때문이다(당시 2~5위가 효과크기 0.0001~0.03짜리였다).
+그래서 **결과 공변으로 판정된 인자를 뺀 모델을 따로 돌려** 나머지를 비교했고,
+거기서 Vibration이 1위가 됐다. 표에 `tree_rank_all`과 `tree_rank_excl`을 모두 남겼다.
+
+## 실행 방법
+
+```bash
+python "26.07.31_2058_Goal2_PARTICLE_후속검증/particle_influence_factors_final.py" --data "원본CSV경로"
+```
+
+---
+
+# 근거가 된 5가지 검증
+
+아래는 위 결론을 뒷받침하는 검증 과정이다.
+
 ## 실행 방법
 
 ```bash
@@ -162,6 +223,9 @@ particle이 늘어난다**는 뜻이다. 공정 인자로서 조치 대상이 �
 
 | 파일 | 내용 |
 |---|---|
+| **`06_particle_influence_factors_FINAL.csv`** | **최종 답표 — 인자 40개 판정** |
+| `06_particle_influence_factors_FINAL.json` | 최종 요약 |
+| `particle_influence_factors_final.py` | 최종 도출 스크립트 |
 | `00_followup_summary.json` | 실행 메타데이터 + 검증별 결론 |
 | `01_surface_roughness_temporal.csv` | 검증1: 동시점 vs 선행(lag) 판별력 |
 | `02_dose_response_particle_die.csv` | 검증2: Die 수 용량-반응 + REM_COAT 오염 검사 |

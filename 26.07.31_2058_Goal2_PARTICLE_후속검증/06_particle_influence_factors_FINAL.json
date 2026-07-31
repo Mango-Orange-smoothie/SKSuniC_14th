@@ -1,0 +1,49 @@
+{
+  "analysis": "PARTICLE 영향인자 최종 도출",
+  "generated_at": "2026-07-31T13:29:58.110546+00:00",
+  "label_definition": "NG_Code=='PARTICLE' (== Particle==1 AND Remain_Coat==0, 검증됨)",
+  "n_defect": 6455,
+  "n_normal_control": 90783,
+  "n_features": 40,
+  "stratum": [
+    "Product_ID",
+    "Recipe_ID"
+  ],
+  "criteria": {
+    "cliffs_delta_min": 0.2,
+    "fdr_alpha": 0.05,
+    "tree_top_n": 10,
+    "lag_window_strips": 50,
+    "signal_retention_floor": 0.15
+  },
+  "excluded_from_tree_as_consequence": [
+    "Surface_Roughness"
+  ],
+  "verdict_counts": {
+    "근거 부족": 34,
+    "약한 신호 — 후보 보류": 4,
+    "영향인자 — 동시 관측만 (원인 아님, 탐지지표로 활용)": 1,
+    "영향인자 — 원인 후보 (선행 신호 있음)": 1
+  },
+  "influence_factors": [
+    {
+      "column": "Surface_Roughness",
+      "FINAL_VERDICT": "영향인자 — 동시 관측만 (원인 아님, 탐지지표로 활용)",
+      "action_type": "관측지표(response)",
+      "cliffs_delta_strict": 0.7171691608763291,
+      "signal_retention": 0.07505450911914567
+    },
+    {
+      "column": "Vibration",
+      "FINAL_VERDICT": "영향인자 — 원인 후보 (선행 신호 있음)",
+      "action_type": "조작가능(FDC)",
+      "cliffs_delta_strict": 0.2201801261634162,
+      "signal_retention": 0.3353829501158753
+    }
+  ],
+  "notes": [
+    "인과관계 확정이 아니라 후속 검증 후보의 우선순위다.",
+    "시간 선행성은 인과 증명이 아니라 '결과 공변 해석을 반증할 수 있는가'를 보는 검사다.",
+    "1차 스크리닝은 Jun 브랜치 26.07.30_2055에서 수행됨. 도메인 가설표는 그것을 그대로 사용."
+  ]
+}
