@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-07-31T17:48:54.881986+00:00",
+  "method": "daeho 브랜치 particle_followup_validation.py 검증1과 동일 규약 (lag window 5/20/50, retention floor 0.15)",
+  "targets": [
+    "CLN_Pressure",
+    "CLN_Time",
+    "Coating_Thickness"
+  ],
+  "by_column_50strip_window": {
+    "CLN_Pressure": "선행신호 소멸 — 결과 공변(동반증상) 해석 지지",
+    "CLN_Time": "선행신호 약함 — 판단 보류",
+    "Coating_Thickness": "선행신호 소멸 — 결과 공변(동반증상) 해석 지지"
+  }
+}
