@@ -56,5 +56,40 @@
     "Edge_Burn을 최종 제외하는가?",
     "Bottom_Kerf가 다른 kerf 컬럼과 값이 중복인가?",
     "블레이드 관련 파라미터(마모/드레싱/런아웃)를 추가로 받을 수 있는가?"
-  ]
+  ],
+  "shap_layer": {
+    "added_at": "2026-07-31T18:06:12.875669+00:00",
+    "models": {
+      "Chipping|A_cause_FDConly": {
+        "roc_auc": 0.9647,
+        "pr_auc": 0.5646,
+        "n_features": 26,
+        "scale_pos_weight": 11.66
+      },
+      "Chipping|B_monitor_full": {
+        "roc_auc": 0.9686,
+        "pr_auc": 0.6159,
+        "n_features": 39,
+        "scale_pos_weight": 11.66
+      },
+      "Micro_Crack|A_cause_FDConly": {
+        "roc_auc": 0.8031,
+        "pr_auc": 0.0943,
+        "n_features": 16,
+        "scale_pos_weight": 27.32
+      },
+      "Micro_Crack|B_monitor_full": {
+        "roc_auc": 0.8986,
+        "pr_auc": 0.207,
+        "n_features": 24,
+        "scale_pos_weight": 27.32
+      }
+    },
+    "design": "모델 A(FDC 전용, 원인) / 모델 B(FDC+Response, 감시)로 분리 — Laser_Power<->Kerf_Width_Profile(r=-0.58) 등 다중공선성으로 SHAP 기여도가 하류 Response에 흡수되는 것을 방지",
+    "explainer": "shap.TreeExplainer (TreeSHAP, 트리 모델에 대해 정확해)",
+    "model": "XGBClassifier(n=400, depth=5, lr=0.08, scale_pos_weight=불균형보정)",
+    "label": "pure (상대 결함 동시발생 행 제외)",
+    "controls": "Machine_ID 더미 + source_dataset 더미",
+    "note": "기존 Jun 방법론 결과를 대체하지 않고 3번째 독립 방법으로 병기"
+  }
 }

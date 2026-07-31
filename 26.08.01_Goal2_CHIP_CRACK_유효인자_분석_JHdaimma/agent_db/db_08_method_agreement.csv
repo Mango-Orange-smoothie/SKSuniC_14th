@@ -1,0 +1,106 @@
+﻿target,model,factor,layer,role,verdict_existing,rank_statistic,rank_permutation,rank_shap,delta_pure,perm_importance,mean_abs_shap,shap_direction,n_methods_in_top10,agreement
+Chipping,A_cause_FDConly,Head_Temp,FDC,원인후보,confirmed,5,9,1,0.8867,0.03284,2.064985,high_is_risky,3,3방법 모두 상위
+Chipping,A_cause_FDConly,Laser_Power,FDC,원인후보,confirmed,6,1,2,-0.8724,0.094424,0.947988,low_is_risky,3,3방법 모두 상위
+Chipping,A_cause_FDConly,Power_Efficiency,FDC,원인후보,confirmed,4,2,3,-0.8989,0.092247,0.827136,low_is_risky,3,3방법 모두 상위
+Chipping,A_cause_FDConly,Laser_Cleaning_Demand,Engineered,원인후보,confirmed,7,3,5,-0.8622,0.085106,0.207746,low_is_risky,3,3방법 모두 상위
+Chipping,A_cause_FDConly,Laser_Centering_Position,FDC,원인후보,confirmed,11,7,4,0.6067,0.056658,0.216368,high_is_risky,2,2방법 상위
+Chipping,A_cause_FDConly,Vibration,FDC,원인후보,confirmed,8,13,6,0.8443,0.008578,0.186289,high_is_risky,2,2방법 상위
+Chipping,A_cause_FDConly,CLN_Flow,FDC,-,insufficient_evidence,21,16,7,0.1293,0.004129,0.13548,high_is_risky,1,1방법만 상위
+Chipping,A_cause_FDConly,Cleaning_Load_Ratio,Engineered,-,insufficient_evidence,18,15,8,-0.4789,0.006143,0.119202,low_is_risky,1,1방법만 상위
+Chipping,A_cause_FDConly,Frequency,FDC,-,insufficient_evidence,23,21,9,-0.0162,0.001541,0.109772,low_is_risky,1,1방법만 상위
+Chipping,A_cause_FDConly,Alignment_Time,FDC,-,insufficient_evidence,32,25,10,-0.0021,1e-05,0.086705,low_is_risky,1,1방법만 상위
+Chipping,A_cause_FDConly,Cooling_Thermal_Load,Engineered,-,insufficient_evidence,20,29,11,0.3151,-0.00011,0.085405,high_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Cooling_Flow,FDC,-,insufficient_evidence,17,19,12,-0.48,0.00341,0.080464,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Feed_Speed,FDC,-,insufficient_evidence,29,30,13,0.0028,-0.000122,0.079932,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Process_Time,FDC,-,insufficient_evidence,27,20,14,0.0034,0.001964,0.079607,nonlinear_or_none,0,모두 하위
+Chipping,A_cause_FDConly,CLN_Pressure,FDC,-,insufficient_evidence,26,22,15,-0.0054,0.001235,0.077775,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Cutting_X_Index,FDC,-,insufficient_evidence,28,33,16,-0.003,-0.000402,0.077254,high_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Laser_Current,FDC,-,insufficient_evidence,24,24,17,0.0083,0.000495,0.070917,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Cutting_Y_Index,FDC,-,insufficient_evidence,25,26,18,-0.007,-2.9e-05,0.07038,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Maintenance_Count,Engineered,-,insufficient_evidence,30,28,19,-0.0026,-9.7e-05,0.07,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Laser_Voltage,FDC,-,insufficient_evidence,39,37,20,-0.0002,-0.001685,0.068543,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Coating_Flow,FDC,-,insufficient_evidence,38,32,21,-0.0004,-0.000338,0.065426,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Beam_Diameter,FDC,-,insufficient_evidence,32,38,22,0.0021,-0.001827,0.061303,nonlinear_or_none,0,모두 하위
+Chipping,A_cause_FDConly,Cooling_Water_Temp,FDC,-,insufficient_evidence,35,36,23,-0.0005,-0.000789,0.059893,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,CLN_Time,FDC,-,insufficient_evidence,31,39,24,0.0022,-0.00184,0.059535,low_is_risky,0,모두 하위
+Chipping,A_cause_FDConly,Laser_Head_Remain_Time,FDC,-,insufficient_evidence,35,27,25,0.0005,-6.7e-05,0.056773,nonlinear_or_none,0,모두 하위
+Chipping,A_cause_FDConly,Cleaning_Capacity,Engineered,-,insufficient_evidence,22,23,26,0.0762,0.000549,0.051939,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Kerf_Width_Profile,Response,감시지표,confirmed,1,4,1,0.9306,0.082423,6.141639,high_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Top_Kerf,Response,감시지표,confirmed,3,6,2,0.926,0.060226,0.4024,high_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Bottom_Kerf,Response,감시지표,confirmed,2,5,3,0.9272,0.074477,0.215969,high_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Head_Temp,FDC,원인후보,confirmed,5,9,4,0.8867,0.03284,0.150405,high_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Laser_Cleaning_Demand,Engineered,원인후보,confirmed,7,3,5,-0.8622,0.085106,0.147128,low_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Power_Efficiency,FDC,원인후보,confirmed,4,2,6,-0.8989,0.092247,0.140574,low_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Laser_Power,FDC,원인후보,confirmed,6,1,7,-0.8724,0.094424,0.127484,low_is_risky,3,3방법 모두 상위
+Chipping,B_monitor_full,Surface_Roughness,Response,감시지표,confirmed,19,8,8,0.3982,0.048923,0.115644,low_is_risky,2,2방법 상위
+Chipping,B_monitor_full,Kerf_Angle,Response,감시지표,candidate_weak_signal,9,18,9,0.7811,0.003481,0.111727,high_is_risky,2,2방법 상위
+Chipping,B_monitor_full,Vibration,FDC,원인후보,confirmed,8,13,10,0.8443,0.008578,0.094899,high_is_risky,2,2방법 상위
+Chipping,B_monitor_full,Groove_Depth,Response,감시지표,confirmed,10,10,12,-0.7504,0.01909,0.080347,low_is_risky,2,2방법 상위
+Chipping,B_monitor_full,Laser_Centering_Position,FDC,원인후보,confirmed,11,7,27,0.6067,0.056658,0.056678,high_is_risky,1,1방법만 상위
+Chipping,B_monitor_full,Package_Size_4,Response,감시지표,candidate_weak_signal,14,11,11,0.5959,0.018738,0.081824,nonlinear_or_none,0,모두 하위
+Chipping,B_monitor_full,CLN_Flow,FDC,-,insufficient_evidence,21,16,13,0.1293,0.004129,0.073316,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Cleaning_Load_Ratio,Engineered,-,insufficient_evidence,18,15,14,-0.4789,0.006143,0.071853,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Beam_Diameter,FDC,-,insufficient_evidence,32,38,15,0.0021,-0.001827,0.071495,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,CLN_Pressure,FDC,-,insufficient_evidence,26,22,16,-0.0054,0.001235,0.069518,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Feed_Speed,FDC,-,insufficient_evidence,29,30,17,0.0028,-0.000122,0.066332,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Alignment_Time,FDC,-,insufficient_evidence,32,25,18,-0.0021,1e-05,0.062036,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Coating_Flow,FDC,-,insufficient_evidence,38,32,19,-0.0004,-0.000338,0.061191,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Process_Time,FDC,-,insufficient_evidence,27,20,20,0.0034,0.001964,0.060753,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Cutting_Y_Index,FDC,-,insufficient_evidence,25,26,21,-0.007,-2.9e-05,0.060514,nonlinear_or_none,0,모두 하위
+Chipping,B_monitor_full,Cooling_Thermal_Load,Engineered,-,insufficient_evidence,20,29,22,0.3151,-0.00011,0.060021,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Laser_Current,FDC,-,insufficient_evidence,24,24,23,0.0083,0.000495,0.059137,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Package_Size_1,Response,감시지표,candidate_weak_signal,13,12,24,-0.5988,0.013633,0.058894,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Package_Size_Asymmetry,Response,감시지표,confirmed,12,14,25,0.6005,0.00695,0.058311,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Package_Size_2,Response,감시지표,candidate_weak_signal,15,17,26,-0.5287,0.00412,0.058308,nonlinear_or_none,0,모두 하위
+Chipping,B_monitor_full,Cutting_X_Index,FDC,-,insufficient_evidence,28,33,28,-0.003,-0.000402,0.05648,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,CLN_Time,FDC,-,insufficient_evidence,31,39,29,0.0022,-0.00184,0.056388,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Coating_Thickness,Response,-,insufficient_evidence,35,34,30,-0.0005,-0.000452,0.05636,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Laser_Voltage,FDC,-,insufficient_evidence,39,37,31,-0.0002,-0.001685,0.055174,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Cooling_Water_Temp,FDC,-,insufficient_evidence,35,36,32,-0.0005,-0.000789,0.054893,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Frequency,FDC,-,insufficient_evidence,23,21,33,-0.0162,0.001541,0.053189,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Cleaning_Capacity,Engineered,-,insufficient_evidence,22,23,34,0.0762,0.000549,0.051256,nonlinear_or_none,0,모두 하위
+Chipping,B_monitor_full,Package_Size_3,Response,감시지표,candidate_weak_signal,16,35,35,0.5253,-0.000539,0.051112,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Coating_Uniformity,Response,-,insufficient_evidence,34,31,36,-0.0007,-0.000153,0.047681,high_is_risky,0,모두 하위
+Chipping,B_monitor_full,Laser_Head_Remain_Time,FDC,-,insufficient_evidence,35,27,37,0.0005,-6.7e-05,0.046053,nonlinear_or_none,0,모두 하위
+Chipping,B_monitor_full,Cooling_Flow,FDC,-,insufficient_evidence,17,19,38,-0.48,0.00341,0.044987,low_is_risky,0,모두 하위
+Chipping,B_monitor_full,Maintenance_Count,Engineered,-,insufficient_evidence,30,28,39,-0.0026,-9.7e-05,0.033542,low_is_risky,0,모두 하위
+Micro_Crack,A_cause_FDConly,Vibration,FDC,원인후보,shared_cause_with_Chipping,3,3,1,0.1242,0.006959,0.249362,high_is_risky,3,3방법 모두 상위
+Micro_Crack,A_cause_FDConly,CLN_Flow,FDC,-,insufficient_evidence,5,2,10,-0.1126,0.044682,0.09359,low_is_risky,3,3방법 모두 상위
+Micro_Crack,A_cause_FDConly,Cleaning_Load_Ratio,Engineered,-,contaminated_by_Chipping,2,23,2,0.1377,-0.004636,0.150052,high_is_risky,2,2방법 상위
+Micro_Crack,A_cause_FDConly,Process_Time,FDC,원인후보,candidate_weak_signal,15,7,5,-0.0094,0.000558,0.103189,low_is_risky,2,2방법 상위
+Micro_Crack,A_cause_FDConly,Cleaning_Capacity,Engineered,-,insufficient_evidence,4,24,6,-0.1138,-0.005578,0.099138,high_is_risky,2,2방법 상위
+Micro_Crack,A_cause_FDConly,CLN_Pressure,FDC,-,insufficient_evidence,20,9,9,0.0039,0.0003,0.095114,high_is_risky,2,2방법 상위
+Micro_Crack,A_cause_FDConly,CLN_Time,FDC,-,insufficient_evidence,24,20,3,0.0005,-0.001311,0.132231,high_is_risky,1,1방법만 상위
+Micro_Crack,A_cause_FDConly,Cutting_Y_Index,FDC,-,insufficient_evidence,23,16,4,0.0008,-0.000501,0.104103,low_is_risky,1,1방법만 상위
+Micro_Crack,A_cause_FDConly,Coating_Flow,FDC,-,insufficient_evidence,17,15,7,0.0057,-0.000467,0.097816,low_is_risky,1,1방법만 상위
+Micro_Crack,A_cause_FDConly,Cutting_X_Index,FDC,-,insufficient_evidence,16,22,8,0.0071,-0.002574,0.097018,low_is_risky,1,1방법만 상위
+Micro_Crack,A_cause_FDConly,Cooling_Flow,FDC,원인후보,shared_cause_with_Chipping,11,5,12,-0.018,0.001795,0.082041,low_is_risky,1,1방법만 상위
+Micro_Crack,A_cause_FDConly,Cooling_Water_Temp,FDC,-,insufficient_evidence,22,21,11,-0.0025,-0.002067,0.089852,low_is_risky,0,모두 하위
+Micro_Crack,A_cause_FDConly,Feed_Speed,FDC,-,insufficient_evidence,13,11,13,0.0109,-5.2e-05,0.081885,high_is_risky,0,모두 하위
+Micro_Crack,A_cause_FDConly,Cooling_Thermal_Load,Engineered,-,insufficient_evidence,14,18,14,0.0108,-0.000898,0.081116,low_is_risky,0,모두 하위
+Micro_Crack,A_cause_FDConly,Alignment_Time,FDC,-,insufficient_evidence,12,12,15,0.0148,-0.000209,0.08093,high_is_risky,0,모두 하위
+Micro_Crack,A_cause_FDConly,Maintenance_Count,Engineered,-,insufficient_evidence,19,14,16,-0.0045,-0.000368,0.062773,nonlinear_or_none,0,모두 하위
+Micro_Crack,B_monitor_full,Surface_Roughness,Response,감시지표,confirmed,1,1,1,0.4919,0.077777,1.261279,high_is_risky,3,3방법 모두 상위
+Micro_Crack,B_monitor_full,Package_Size_Asymmetry,Response,-,contaminated_by_Chipping,9,6,5,-0.0467,0.001309,0.103858,low_is_risky,3,3방법 모두 상위
+Micro_Crack,B_monitor_full,Vibration,FDC,원인후보,shared_cause_with_Chipping,3,3,7,0.1242,0.006959,0.101416,low_is_risky,3,3방법 모두 상위
+Micro_Crack,B_monitor_full,Package_Size_3,Response,-,contaminated_by_Chipping,8,17,2,-0.0468,-0.000814,0.126276,high_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,Cleaning_Load_Ratio,Engineered,-,contaminated_by_Chipping,2,23,3,0.1377,-0.004636,0.120215,high_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,Process_Time,FDC,원인후보,candidate_weak_signal,15,7,8,-0.0094,0.000558,0.091722,low_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,CLN_Pressure,FDC,-,insufficient_evidence,20,9,9,0.0039,0.0003,0.091419,low_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,Package_Size_2,Response,-,contaminated_by_Chipping,6,8,11,0.0586,0.000518,0.082797,high_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,Package_Size_1,Response,-,contaminated_by_Chipping,7,4,12,0.0475,0.002902,0.081511,high_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,CLN_Flow,FDC,-,insufficient_evidence,5,2,15,-0.1126,0.044682,0.075713,low_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,Package_Size_4,Response,-,contaminated_by_Chipping,10,10,21,-0.0463,-1.7e-05,0.068001,low_is_risky,2,2방법 상위
+Micro_Crack,B_monitor_full,CLN_Time,FDC,-,insufficient_evidence,24,20,4,0.0005,-0.001311,0.111516,low_is_risky,1,1방법만 상위
+Micro_Crack,B_monitor_full,Coating_Uniformity,Response,-,insufficient_evidence,21,13,6,-0.0033,-0.000328,0.1029,low_is_risky,1,1방법만 상위
+Micro_Crack,B_monitor_full,Cutting_X_Index,FDC,-,insufficient_evidence,16,22,10,0.0071,-0.002574,0.090445,low_is_risky,1,1방법만 상위
+Micro_Crack,B_monitor_full,Cleaning_Capacity,Engineered,-,insufficient_evidence,4,24,18,-0.1138,-0.005578,0.072363,high_is_risky,1,1방법만 상위
+Micro_Crack,B_monitor_full,Cooling_Flow,FDC,원인후보,shared_cause_with_Chipping,11,5,20,-0.018,0.001795,0.069063,nonlinear_or_none,1,1방법만 상위
+Micro_Crack,B_monitor_full,Cutting_Y_Index,FDC,-,insufficient_evidence,23,16,13,0.0008,-0.000501,0.08136,low_is_risky,0,모두 하위
+Micro_Crack,B_monitor_full,Cooling_Water_Temp,FDC,-,insufficient_evidence,22,21,14,-0.0025,-0.002067,0.080526,nonlinear_or_none,0,모두 하위
+Micro_Crack,B_monitor_full,Coating_Thickness,Response,-,insufficient_evidence,18,19,16,0.0053,-0.000937,0.07488,nonlinear_or_none,0,모두 하위
+Micro_Crack,B_monitor_full,Coating_Flow,FDC,-,insufficient_evidence,17,15,17,0.0057,-0.000467,0.074742,low_is_risky,0,모두 하위
+Micro_Crack,B_monitor_full,Feed_Speed,FDC,-,insufficient_evidence,13,11,19,0.0109,-5.2e-05,0.070264,high_is_risky,0,모두 하위
+Micro_Crack,B_monitor_full,Alignment_Time,FDC,-,insufficient_evidence,12,12,22,0.0148,-0.000209,0.066054,high_is_risky,0,모두 하위
+Micro_Crack,B_monitor_full,Cooling_Thermal_Load,Engineered,-,insufficient_evidence,14,18,23,0.0108,-0.000898,0.060672,high_is_risky,0,모두 하위
+Micro_Crack,B_monitor_full,Maintenance_Count,Engineered,-,insufficient_evidence,19,14,24,-0.0045,-0.000368,0.054681,high_is_risky,0,모두 하위

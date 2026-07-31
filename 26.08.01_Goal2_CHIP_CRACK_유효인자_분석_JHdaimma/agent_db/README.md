@@ -17,6 +17,8 @@
 | "이 공정 단계가 뭐 하는 거야?" | `db_04_domain_knowledge.csv` |
 | "구간별로 위험도가 어떻게 달라져?" | `db_05_binning.csv` |
 | "이 결론 믿어도 돼?" | `db_00_metadata.json` (limitations) |
+| **"이 LOT은 왜 불량이 났어?"** | **`db_07_shap_local.csv`** (개별 건 SHAP 분해) |
+| "여러 방법이 같은 답을 내나?" | `db_08_method_agreement.csv` |
 
 ---
 
@@ -102,9 +104,95 @@ Jun님의 **C유형 방식**(결정트리 스텀프)으로 구한 경계값입�
 
 `lift_vs_overall`이 **1보다 크면 그 구간이 평균보다 위험**합니다.
 
+### `db_06_shap_global.csv` — SHAP 전역 중요도 (XGBoost + TreeSHAP)
+
+기존 방법(통계검정 + permutation importance)을 **대체하지 않고 3번째 방법으로 병기**합니다.
+
+#### ⭐ 모델을 2개로 나눈 이유 (가장 중요한 설계)
+
+이 데이터는 다중공선성이 심합니다 (`Laser_Power` ↔ `Kerf_Width_Profile` r = **-0.58**).
+SHAP은 상관 높은 변수끼리 기여도를 나눠 갖기 때문에, **하나의 모델로 돌리면
+하류 측정값이 상류 원인의 공을 가로챕니다.**
+
+| 모델 | 피처 | 답하는 질문 |
+|---|---|---|
+| **`A_cause_FDConly`** | **FDC만** (Response 제외) | "어느 손잡이를 돌려야 하나?" → **원인** |
+| `B_monitor_full` | FDC + Response 전체 | "뭘 모니터링해야 하나?" → **감시지표** |
+
+**실제로 이 함정이 확인됐습니다** (Chipping):
+
+| 인자 | 모델 A \|SHAP\| | 모델 B \|SHAP\| | 변화 |
+|---|---|---|---|
+| `Head_Temp` | **2.065** | 0.150 | **1/14로 급락** |
+| `Laser_Power` | **0.948** | 0.128 | **1/7로 급락** |
+| `Kerf_Width_Profile` | (제외) | **6.142** | — |
+
+한 모델로만 돌렸다면 **"Chipping 원인 = 절단 폭"**이라는 실행 불가능한 결론이 나왔을 것입니다.
+
+| 컬럼 | 설명 |
+|---|---|
+| `model` | `A_cause_FDConly` / `B_monitor_full` — **반드시 구분해서 읽을 것** |
+| `mean_abs_shap` | 평균 절대 SHAP = 전역 중요도 |
+| `mean_signed_shap` | 평균 부호 SHAP = 전반적 방향 |
+| `shap_direction` | `high_is_risky` / `low_is_risky` / `nonlinear_or_none` |
+| `model_roc_auc`, `model_pr_auc` | 해당 모델 성능 |
+
+### `db_07_shap_local.csv` — 개별 건 설명 ⭐
+
+**⑤ Root Cause Analyzer를 가능하게 하는 파일.** 전역 중요도로는 답할 수 없는
+**"이 LOT은 왜?"**에 답합니다.
+
+실제 예시 (Chipping 위험 1위 케이스):
+
+| Lot_ID | 장비 | 예측위험 | 실제 | 기여인자 | SHAP | z-score | 원단위 |
+|---|---|---|---|---|---|---|---|
+| LOT003142 | DP02 | 0.979 | 불량✓ | `Head_Temp` | +0.872 | **+5.07** | 43.717 |
+| | | | | `Power_Efficiency` | +0.858 | **-14.69** | 92.559 |
+| | | | | `Laser_Power` | +0.446 | **-7.20** | 17.869 |
+
+→ Agent는 이렇게 답할 수 있습니다:
+> "LOT003142(DP02)는 위험도 0.979입니다. **헤드 온도가 정상 대비 5.1칸 높고**,
+> **파워 효율이 14.7칸 낮으며**, 레이저 출력도 7.2칸 낮습니다.
+> low-k가 충분히 승화되지 못해 블레이드가 잔류물을 타격했을 가능성이 높습니다."
+
+| 컬럼 | 설명 |
+|---|---|
+| `case_rank` | 예측 위험도 상위 순번 (1~5) |
+| `Lot_ID`, `Strip_ID`, `Machine_ID` | 추적 키 |
+| `predicted_risk` | 모델 예측 확률 |
+| `actual_defect` | 실제 불량 여부 (검증용) |
+| `contrib_rank`, `factor`, `shap_value` | 기여도 순위와 값 |
+| `factor_zscore`, `factor_raw` | 그 인자의 실제 값 (조건 대비 / 원단위) |
+| `interpretation` | `위험을 높임` / `위험을 낮춤` |
+
+### `db_08_method_agreement.csv` — 3방법 순위 대조
+
+김시우 `pipeline/README.md`가 Goal2에 요구한
+**"여러 방법에서 공통으로 상위권인 인자만 유효인자로 제출"** 원칙의 근거 자료입니다.
+
+| 방법 | 컬럼 |
+|---|---|
+| ① 통계 검정 (Cliff's delta) | `rank_statistic` |
+| ② RandomForest permutation | `rank_permutation` |
+| ③ XGBoost SHAP | `rank_shap` |
+
+`agreement` = `3방법 모두 상위` / `2방법 상위` / `1방법만 상위` / `모두 하위`
+
+**3방법 모두 top10 통과 항목:**
+
+| 대상 | 인자 |
+|---|---|
+| Chipping | `Head_Temp`, `Laser_Power`, `Power_Efficiency`, `Laser_Cleaning_Demand`, `Kerf_Width_Profile`, `Top_Kerf`, `Bottom_Kerf` |
+| Micro_Crack | **`Vibration`**, `Surface_Roughness`, `CLN_Flow`, `Package_Size_Asymmetry` |
+
+> 💡 `Vibration`은 단변량 검정에서 delta 0.124로 기준(0.2) 미달이라
+> `db_01`에서 `shared_cause`로만 분류됐지만, **SHAP에서 Micro_Crack 원인 1위**이고
+> 3방법 모두 통과했습니다. **`db_08`을 함께 보면 등급이 올라갑니다.**
+
 ### `db_00_metadata.json` — 실행 정보 및 한계
 
 **Agent는 보고 전에 반드시 `known_limitations`를 확인해야 합니다.**
+`shap_layer` 키에 XGBoost/SHAP 설정이 별도로 기록돼 있습니다.
 
 ---
 
@@ -118,8 +206,13 @@ Jun님의 **C유형 방식**(결정트리 스텀프)으로 구한 경계값입�
 | 비선형 | \|z편차\| 기준 검정 (U자형 탐지) | 멘토 지시 |
 | 위험선 | DecisionTree stump (depth=1) | Jun C유형 |
 | 오염검증 | primary / broad / **pure** 삼중 라벨 대조 | 본인 확장 |
+| 통계 ③ | **XGBoost + TreeSHAP** (모델 A/B 분리) | 본인 아키텍처 ③ 설계 |
 
 **미사용**: 전성재 브랜치 방법론(L1 로지스틱 / HistGradientBoosting / Machine 통제 다변량)
+
+> **SHAP 구현 참고**: `shap 0.49` ↔ `xgboost 3.2` 버전 비호환(base_score 파싱 오류)이 있어
+> **XGBoost 내장 TreeSHAP**(`booster.predict(pred_contribs=True)`)을 사용했습니다.
+> `shap.TreeExplainer`와 **동일한 알고리즘·동일한 값**입니다(둘 다 근사가 아닌 정확해).
 
 ---
 

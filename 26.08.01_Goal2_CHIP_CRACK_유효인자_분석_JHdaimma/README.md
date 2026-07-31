@@ -39,11 +39,31 @@ Jun 브랜치가 "n=4는 패턴 탐지가 아니라 4개 사례 기록에 가깝
 | 전처리 | OPCOND 층 **OK-baseline** median/MAD 강건 z-score | 김시우 `pipeline/` (d39bbff) |
 | 통계 ① | Mann-Whitney U + BH-FDR + Cliff's delta (≥0.2) | Jun Goal2 |
 | 통계 ② | RandomForest(200, depth8, balanced) permutation importance | Jun Goal2 |
+| **통계 ③** | **XGBoost + TreeSHAP** (모델 A/B 분리) | 아키텍처 ③ 원설계 |
 | 위험선 | DecisionTree stump — **Jun이 표본 부족으로 포기했던 C유형** | Jun Goal2 |
 | 비선형 | \|z편차\| 검정 (U자형 탐지) | 멘토 지시 |
 | 오염검증 | primary / broad / **pure** 삼중 라벨 | 본인 확장 |
 
 **미사용**: 전성재 브랜치 방법론(L1 로지스틱 / HistGradientBoosting / Machine 통제 다변량)
+
+**세 방법은 서로를 대체하지 않고 병기합니다.** 김시우 `pipeline/README.md`의
+"여러 방법에서 공통으로 상위권인 인자만 유효인자로 제출" 원칙에 따른 것이며,
+대조 결과는 `agent_db/db_08_method_agreement.csv`에 있습니다.
+
+### ⭐ SHAP 모델을 2개로 나눈 이유 (핵심 설계)
+
+이 데이터는 다중공선성이 심합니다(`Laser_Power` ↔ `Kerf_Width_Profile` r=**-0.58**).
+SHAP은 상관 높은 변수끼리 기여도를 나눠 갖기 때문에 **하나의 모델로 돌리면
+하류 측정값이 상류 원인의 공을 가로챕니다.** 실제로 확인됐습니다(Chipping):
+
+| 인자 | 모델 A(FDC만) | 모델 B(전체) | 변화 |
+|---|---|---|---|
+| `Head_Temp` | **2.065** | 0.150 | **1/14로 급락** |
+| `Laser_Power` | **0.948** | 0.128 | **1/7로 급락** |
+| `Kerf_Width_Profile` | (제외) | **6.142** | — |
+
+한 모델로만 돌렸다면 **"Chipping 원인 = 절단 폭"**이라는 실행 불가능한 결론이 나왔을 것입니다.
+→ **모델 A = 원인 규명 / 모델 B = 감시지표 선정**으로 분리했습니다.
 
 ---
 
@@ -81,8 +101,44 @@ Vibration ↑ ──drives(0.424)──> Surface_Roughness ↑ ──(0.492)─�
 | 역할 | 인자 | 판정 |
 |---|---|---|
 | 감시 | `Surface_Roughness` | **confirmed** (4개 장비 전부 재현) |
-| 원인 | `Vibration` | `shared_cause_with_Chipping` |
+| 원인 | `Vibration` | `shared_cause` → **SHAP 추가 후 원인 1위** |
 | 원인 | `Cooling_Flow` | `shared_cause_with_Chipping` |
+
+### 3방법 합의 결과 (`db_08_method_agreement.csv`)
+
+통계검정 · permutation importance · SHAP **세 방법 모두 top10**을 통과한 인자:
+
+| 대상 | 인자 |
+|---|---|
+| **Chipping** | `Head_Temp`, `Laser_Power`, `Power_Efficiency`, `Laser_Cleaning_Demand`, `Kerf_Width_Profile`, `Top_Kerf`, `Bottom_Kerf` |
+| **Micro_Crack** | **`Vibration`**, `Surface_Roughness`, `CLN_Flow`, `Package_Size_Asymmetry` |
+
+**SHAP 원인 모델(A) 순위**
+
+| Chipping | \|SHAP\| | 방향 | | Micro_Crack | \|SHAP\| | 방향 |
+|---|---|---|---|---|---|---|
+| `Head_Temp` | **2.065** | 높으면 위험 | | `Vibration` | **0.249** | 높으면 위험 |
+| `Laser_Power` | 0.948 | 낮으면 위험 | | `Cleaning_Load_Ratio` | 0.150 | 높으면 위험 |
+| `Power_Efficiency` | 0.827 | 낮으면 위험 | | `CLN_Time` | 0.132 | 높으면 위험 |
+| `Laser_Centering_Position` | 0.216 | 높으면 위험 | | | | |
+| `Vibration` | 0.186 | 높으면 위험 | | | | |
+
+모델 성능: Chipping ROC-AUC **0.965** / Micro_Crack **0.803**
+(Micro_Crack이 낮은 것은 **블레이드 파라미터가 데이터에 없기 때문**으로 추정 — 아래 요청사항 4 참고)
+
+> 💡 **`Vibration` 등급 상향 근거**: 단변량 delta 0.124로 기준(0.2) 미달이라
+> `db_01`에서는 `shared_cause`로만 분류됐으나, **SHAP에서 Micro_Crack 원인 1위**이고
+> 3방법 모두 통과했습니다. 멘토가 언급한 실제 스크랩 사고 사례와도 일치합니다.
+
+### 개별 건 설명 (`db_07_shap_local.csv`) — ⑤ Root Cause Analyzer 연결점
+
+전역 중요도로는 못 하는 **"이 LOT은 왜?"**에 답합니다. 실제 예시:
+
+| Lot_ID | 장비 | 예측위험 | 실제 | 기여인자 | SHAP | z-score |
+|---|---|---|---|---|---|---|
+| LOT003142 | DP02 | 0.979 | 불량✓ | `Head_Temp` | +0.872 | **+5.07** |
+| | | | | `Power_Efficiency` | +0.858 | **-14.69** |
+| | | | | `Laser_Power` | +0.446 | **-7.20** |
 
 ---
 
