@@ -556,30 +556,93 @@ STAGE_DESC = {
     "4_blade_dicing": "블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태)",
     "4R_dicing_result": "다이싱 결과 측정값 (절단면 품질/다이 치수)",
 }
-DEFECT_STAGE = {
-    "Chipping": ("2_laser_grooving + 4_blade_dicing",
-                 "모서리 파손. Front-side는 레이저 그루빙 불충분(홈 깊이/폭 부족)으로 블레이드가 "
-                 "잔류 low-k를 타격해 발생. Back-side는 블레이드 마모/이송속도/진동 등 다이싱 요인.",
-                 "레이저 홈 폭 < 블레이드 폭이면 블레이드가 low-k 가장자리를 침범 -> Chipping"),
-    "Micro_Crack": ("4_blade_dicing",
-                    "미세균열. 레이저 HAZ는 scribe lane 내부에 국한되고 블레이드가 그 자리를 "
-                    "제거하므로 그루빙 기여가 작다(현업 확인). 블레이드 절삭 응력/진동 채터/"
-                    "백그라인딩 잔류 손상에 의한 표면하 손상층이 주 원인.",
-                    "HBM은 박형화+적층 본딩이라 die break strength 저하가 치명적 — "
-                    "다이싱 시 균열이 본딩 단계에서 전파되어 스택 전체 불량으로 확대"),
-}
+# ---------------------------------------------------------------------------
+# 근거 유형(evidence_type) 분류 규약 — 확정된 사실과 추론을 절대 섞지 않는다.
+#
+#   현업_확정   : 현업/담당자가 명시적으로 확인해준 사실
+#   멘토_확정   : 멘토 피드백으로 확정된 사항
+#   팀문서      : 팀 HealthIndex 설계서 / 회의록에 명시된 내용
+#   데이터_실증 : 이 분석의 데이터로 직접 검증한 관찰 결과 (수치 병기)
+#   작성자_추론 : 일반 공정 물리에서 도출한 작성자의 해석. **검증되지 않았음.**
+#                 틀릴 수 있으며, 현업 확인 전까지 사실로 인용하면 안 된다.
+#
+# reliability: 확정 / 검증됨 / 미검증(추론)
+# ---------------------------------------------------------------------------
+DEFECT_KNOWLEDGE = [
+    # ---- Chipping
+    ("Chipping", "2_laser_grooving + 4_blade_dicing",
+     "모서리 파손 — 절단 경계에서 재질이 매끈하게 제거되지 못하고 깨져나가는 현상",
+     "팀문서", "확정", "HealthIndex 설계서에 Chipping 관련 명시적 서술 다수"),
+    ("Chipping", "2_laser_grooving",
+     "Groove_Depth 부족 시 low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생",
+     "팀문서", "확정", "HealthIndex 설계서 C유형 명시 인용"),
+    ("Chipping", "2_laser_grooving",
+     "Beam_Diameter 협소 시 Width 감소로 Chipping 증가, 과다 시 Die 영역 침범",
+     "팀문서", "확정", "HealthIndex 설계서 B유형 명시 인용"),
+    ("Chipping", "4_blade_dicing",
+     "장비 노후로 스테이지 축 이동 시 진동 발생 -> 나이프 자국 형태의 대형 불량",
+     "팀문서", "확정", "HealthIndex 설계서 회의록 명시. 멘토도 실제 스크랩 사고 사례로 재확인"),
+    ("Chipping", "2_laser_grooving",
+     "Head_Temp -> 크리스탈 스팟 온도 -> 굴절률 -> Laser_Centering_Position -> Chipping/Kerf 불균일",
+     "멘토_확정", "확정", "멘토가 제시한 인과사슬 (26.07.31)"),
+    ("Chipping", "2_laser_grooving",
+     "Laser_Power / Power_Efficiency 저하가 Chipping 상위 인자로 확인됨 "
+     "(3방법 모두 top10, SHAP 모델A 2·3위, Groove_Depth R2=0.606 / Kerf_Width_Profile R2=0.954의 주 드라이버)",
+     "데이터_실증", "검증됨", "Jun 브랜치는 이 둘을 'Burn 전용'으로 무관 처리했으나 데이터가 반박"),
+    ("Chipping", "2_laser_grooving",
+     "[추론] 레이저 홈 폭이 블레이드 폭보다 좁으면 블레이드가 안 파인 low-k 가장자리를 "
+     "침범해 Chipping이 난다 — 레이저 다이싱 일반 물리에서 도출한 해석",
+     "작성자_추론", "미검증(추론)",
+     "⚠ 검증되지 않은 해석. 실제 블레이드 폭 데이터가 없어 확인 불가. 현업 확인 필요"),
+
+    # ---- Micro_Crack
+    ("Micro_Crack", "4_blade_dicing",
+     "Micro_Crack은 레이저 그루빙 공정의 문제가 아니다",
+     "현업_확정", "확정",
+     "현업이 명시적으로 확인해준 제약. 이 분석의 그루빙 계열 15개 컬럼 제외 근거"),
+    ("Micro_Crack", "4_blade_dicing",
+     "그루빙 계열 변수는 Chipping 동시발생 행에서만 신호가 나오고, 해당 행을 제거하면 "
+     "효과크기가 0으로 소멸 (예: Kerf_Width_Profile broad +0.534 -> pure -0.023, "
+     "Focus +0.511 -> -0.014, Head_Temp +0.512 -> -0.001). "
+     "그루빙 15개를 전부 제외해도 모델 성능은 AUC 0.9152 -> 0.9056으로 거의 불변",
+     "데이터_실증", "검증됨", "현업 확정 사항을 데이터가 독립적으로 뒷받침한 결과"),
+    ("Micro_Crack", "4_blade_dicing",
+     "Vibration이 Micro_Crack 원인 1위 (SHAP 모델A 1위, 3방법 모두 top10, 4개 장비 중 3대 재현). "
+     "Surface_Roughness의 압도적 1위 드라이버이기도 함(perm. imp 0.424)",
+     "데이터_실증", "검증됨", "멘토가 언급한 실제 스크랩 사고 사례와도 일치"),
+    ("Micro_Crack", "4_blade_dicing",
+     "[추론] 레이저 HAZ는 scribe lane 내부에 국한되고 블레이드가 그 자리를 제거하므로 "
+     "그루빙 기여가 작다 — 현업 확정 사항('그루빙 문제 아님')을 설명하기 위해 작성자가 붙인 해석",
+     "작성자_추론", "미검증(추론)",
+     "⚠ 검증되지 않은 해석. 이 설명이 틀려도 위의 현업_확정·데이터_실증 항목은 영향받지 않음"),
+    ("Micro_Crack", "4_blade_dicing",
+     "[추론] 블레이드 절삭 응력/진동 채터/백그라인딩 잔류 손상이 표면하 손상층을 만들고 "
+     "그것이 미세균열이 된다 — 레이저 다이싱 일반 물리에서 도출",
+     "작성자_추론", "미검증(추론)",
+     "⚠ 데이터에 블레이드 파라미터(마모/드레싱/런아웃)가 없어 직접 검증 불가"),
+    ("Micro_Crack", "4_blade_dicing",
+     "[추론] HBM은 박형화+적층 본딩이라 die break strength 저하가 치명적 — "
+     "다이싱 시 균열이 본딩 단계에서 전파되어 스택 전체 불량으로 확대될 수 있음",
+     "작성자_추론", "미검증(추론)",
+     "⚠ 이 데이터셋으로는 후공정 전파 여부를 확인할 수 없음"),
+]
+
 dk_rows = []
-for d, (stage, mech, note) in DEFECT_STAGE.items():
-    dk_rows.append({"kind": "defect_mechanism", "item": d, "process_stage": stage,
-                    "description": mech, "note": note,
-                    "source": "현업 도메인지식 + HBM DP 공정지식"})
+for item, stage, desc, ev, rel, note in DEFECT_KNOWLEDGE:
+    dk_rows.append({"kind": "defect_mechanism", "item": item, "process_stage": stage,
+                    "description": desc, "evidence_type": ev, "reliability": rel,
+                    "note": note, "source": ev})
 for s, desc in STAGE_DESC.items():
     dk_rows.append({"kind": "process_stage", "item": s, "process_stage": s,
-                    "description": desc, "note": "", "source": "HBM DP(LGBD) 공정 흐름"})
+                    "description": desc, "evidence_type": "현업_확정", "reliability": "확정",
+                    "note": "현업이 알려준 HBM DP 공정 흐름", "source": "현업_확정"})
 for c, (stage, conf) in PROCESS_STAGE.items():
+    ev = "작성자_추론" if ("추정" in conf or "미확정" in conf) else "팀문서"
+    rel = "미검증(추론)" if ev == "작성자_추론" else "확정"
     dk_rows.append({"kind": "column_stage_mapping", "item": c, "process_stage": stage,
-                    "description": STAGE_DESC.get(stage, ""), "note": "매핑 확신도: " + conf,
-                    "source": "김시우 subsystem 분류 + 공정 흐름 대조"})
+                    "description": STAGE_DESC.get(stage, ""),
+                    "evidence_type": ev, "reliability": rel,
+                    "note": "매핑 확신도: " + conf, "source": ev})
 
 MENTOR_NOTES = {
     "Focus": "멘토: 분석에 활용하지 않아도 됨 -> 제외 (26.07.31)",
@@ -600,10 +663,13 @@ MENTOR_NOTES = {
     "Package_Size_Asymmetry": "멘토 힌트(센터링 이상->4방향 비대칭)를 김시우가 신규 피처로 수식화",
 }
 for c, n in MENTOR_NOTES.items():
+    pending = c in MENTOR_PENDING
     dk_rows.append({"kind": "mentor_feedback", "item": c,
                     "process_stage": PROCESS_STAGE.get(c, ("-", ""))[0],
                     "description": n,
-                    "note": "재확인 대기" if c in MENTOR_PENDING else "확정",
+                    "evidence_type": "멘토_미확정" if pending else "멘토_확정",
+                    "reliability": "재확인 대기" if pending else "확정",
+                    "note": "멘토 재확인 전까지 결과 해석 주의" if pending else "",
                     "source": "멘토 피드백 26.07.31"})
 pd.DataFrame(dk_rows).to_csv(OUT / "db_04_domain_knowledge.csv",
                              index=False, encoding="utf-8-sig")
