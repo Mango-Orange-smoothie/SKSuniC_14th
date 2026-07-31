@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-07-31T11:42:47.750149+00:00",
+  "n_rows": 200000,
+  "n_normal": 149673,
+  "method": "김시우 pipeline 전처리 + Jun 유효인자 방법론 (전성재 방법론 미사용)",
+  "targets": {
+    "CHIP": {
+      "n_primary": 24175,
+      "n_broad": 24175,
+      "confirmed": [
+        "Laser_Centering_Position",
+        "Kerf_Width_Profile",
+        "Top_Kerf",
+        "Bottom_Kerf",
+        "Vibration",
+        "Groove_Depth",
+        "Focus"
+      ],
+      "needs_domain_review": [
+        "Laser_Power",
+        "Power_Efficiency",
+        "Laser_Cleaning_Demand"
+      ]
+    },
+    "CRACK": {
+      "n_primary": 4921,
+      "n_broad": 15413,
+      "confirmed": [
+        "Surface_Roughness",
+        "Vibration"
+      ],
+      "needs_domain_review": [
+        "Bottom_Kerf",
+        "Kerf_Width_Profile",
+        "Laser_Cleaning_Demand",
+        "Power_Efficiency",
+        "Top_Kerf",
+        "Laser_Power",
+        "Head_Temp",
+        "Focus"
+      ]
+    }
+  }
+}

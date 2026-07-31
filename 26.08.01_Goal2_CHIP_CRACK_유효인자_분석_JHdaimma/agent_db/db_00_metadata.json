@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-07-31T17:37:06.513015+00:00",
+  "purpose": "AI Agent(3 Relationship Analyzer / 5 Root Cause Analyzer)용 관계 DB",
+  "datasets": {
+    "original": {
+      "rows": 100000,
+      "chipping": 4,
+      "micro_crack": 41
+    },
+    "r1": {
+      "rows": 100000,
+      "chipping": 24171,
+      "micro_crack": 15372
+    },
+    "combined_rows": 200000,
+    "normal_rows": 149673,
+    "key_overlap_note": "Lot_ID+Strip_ID 기준 8,597건(8.6%)만 중복 — 독립 표본으로 간주해 통합"
+  },
+  "feature_set": {
+    "n_features": 39,
+    "excluded_by_mentor": [
+      "Focus",
+      "Cutting_Offset"
+    ],
+    "pending_mentor_review": [
+      "Edge_Burn",
+      "Bottom_Kerf",
+      "Surface_Roughness",
+      "Cooling_Flow",
+      "Cooling_Water_Temp"
+    ],
+    "new_team_feature": "Package_Size_Asymmetry"
+  },
+  "methodology": {
+    "preprocessing": "김시우 pipeline d39bbff — OPCOND층 OK-baseline median/MAD 강건 z-score",
+    "statistics": "Jun Goal2 — Mann-Whitney U + BH-FDR(a=0.05) + Cliffs delta(>=0.2), RandomForest(200,depth8,balanced) permutation importance(AP) top-10",
+    "labels": "primary(NG_Code) / broad(이진컬럼) / pure(상대 결함 동시발생 제외)",
+    "nonlinear": "멘토 U자형 지적 반영 — |z편차| 기준 Mann-Whitney 병행",
+    "thresholds": "Jun C유형 — DecisionTree stump(depth=1)로 위험 경계값 추정",
+    "not_used": "전성재 브랜치 방법론(L1 로지스틱/HistGradientBoosting/Machine 통제 다변량) 미사용"
+  },
+  "domain_constraints": [
+    "Micro_Crack은 레이저 그루빙 공정 문제가 아님(현업) -> 그루빙 단계 컬럼을 후보에서 제외",
+    "HBM DP 공정: 보호코팅 -> 레이저 그루빙(low-k 승화) -> 세정 -> 블레이드 다이싱",
+    "Response 계열은 원인이 아니라 감시지표로 분류 — 조치는 FDC에서"
+  ],
+  "known_limitations": [
+    "블레이드 관련 파라미터(마모도/드레싱/스핀들 런아웃) 컬럼이 데이터에 없음 — Chipping/Micro_Crack 모두 블레이드 단계 불량이라 Vibration이 유일한 프록시",
+    "Surface_Roughness는 멘토 drop 여부 미확정 — Micro_Crack 감시지표 결론이 이에 의존",
+    "Edge_Burn 제외 여부 미확정 — Jun BURN 분석 전체에 영향",
+    "r1은 DP02/DP03에 열화를 주입한 시나리오 데이터 — 실제 라인 재현 여부 별도 확인 필요",
+    "Cooling_Flow/Cooling_Water_Temp 설비-컬럼 매핑 미확정"
+  ],
+  "open_questions_for_mentor": [
+    "Surface_Roughness는 실제 측정값인가, 형식상 컬럼인가?",
+    "Edge_Burn을 최종 제외하는가?",
+    "Bottom_Kerf가 다른 kerf 컬럼과 값이 중복인가?",
+    "블레이드 관련 파라미터(마모/드레싱/런아웃)를 추가로 받을 수 있는가?"
+  ]
+}

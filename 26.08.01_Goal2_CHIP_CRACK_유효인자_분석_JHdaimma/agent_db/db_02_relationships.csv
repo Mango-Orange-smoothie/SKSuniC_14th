@@ -1,0 +1,46 @@
+﻿source,source_layer,target,target_layer,relation,strength,direction,method,verdict
+Kerf_Width_Profile,Response,Chipping,Defect,monitors,0.9306,up,Cliffs delta (pure label),confirmed
+Bottom_Kerf,Response,Chipping,Defect,monitors,0.9272,up,Cliffs delta (pure label),confirmed
+Top_Kerf,Response,Chipping,Defect,monitors,0.926,up,Cliffs delta (pure label),confirmed
+Power_Efficiency,FDC,Chipping,Defect,causes,0.8989,either,Cliffs delta (pure label),confirmed
+Head_Temp,FDC,Chipping,Defect,causes,0.8867,up,Cliffs delta (pure label),confirmed
+Laser_Power,FDC,Chipping,Defect,causes,0.8724,down,Cliffs delta (pure label),confirmed
+Laser_Cleaning_Demand,Engineered,Chipping,Defect,causes,0.8622,either,Cliffs delta (pure label),confirmed
+Vibration,FDC,Chipping,Defect,causes,0.8443,up,Cliffs delta (pure label),confirmed
+Kerf_Angle,Response,Chipping,Defect,monitors,0.7811,up,Cliffs delta (pure label),candidate_weak_signal
+Groove_Depth,Response,Chipping,Defect,monitors,0.7504,down,Cliffs delta (pure label),confirmed
+Laser_Centering_Position,FDC,Chipping,Defect,causes,0.6067,either,Cliffs delta (pure label),confirmed
+Package_Size_Asymmetry,Response,Chipping,Defect,monitors,0.6005,up,Cliffs delta (pure label),confirmed
+Package_Size_1,Response,Chipping,Defect,monitors,0.5988,down,Cliffs delta (pure label),candidate_weak_signal
+Package_Size_4,Response,Chipping,Defect,monitors,0.5959,up,Cliffs delta (pure label),candidate_weak_signal
+Package_Size_2,Response,Chipping,Defect,monitors,0.5287,down,Cliffs delta (pure label),candidate_weak_signal
+Package_Size_3,Response,Chipping,Defect,monitors,0.5253,up,Cliffs delta (pure label),candidate_weak_signal
+Surface_Roughness,Response,Chipping,Defect,monitors,0.3982,up,Cliffs delta (pure label),confirmed
+Surface_Roughness,Response,Micro_Crack,Defect,monitors,0.4919,up,Cliffs delta (pure label),confirmed
+Chipping,Defect,Micro_Crack,Defect,co_occurs,0.4042,up,"phi coefficient (동시발생 8,891건)",-
+Vibration,FDC,Micro_Crack,Defect,causes,0.1242,up,Cliffs delta (pure label),shared_cause_with_Chipping
+Cooling_Flow,FDC,Micro_Crack,Defect,causes,0.018,down,Cliffs delta (pure label),shared_cause_with_Chipping
+Process_Time,FDC,Micro_Crack,Defect,causes,0.0094,up,Cliffs delta (pure label),candidate_weak_signal
+Power_Efficiency,FDC,Bottom_Kerf,Response,drives,0.25045,down,RF permutation importance (model R2=0.981),-
+Head_Temp,FDC,Bottom_Kerf,Response,drives,0.19972,up,RF permutation importance (model R2=0.981),-
+Laser_Power,FDC,Bottom_Kerf,Response,drives,0.15776,down,RF permutation importance (model R2=0.981),-
+Laser_Centering_Position,FDC,Bottom_Kerf,Response,drives,0.03191,up,RF permutation importance (model R2=0.981),-
+Laser_Power,FDC,Groove_Depth,Response,drives,0.7388,up,RF permutation importance (model R2=0.606),-
+Power_Efficiency,FDC,Groove_Depth,Response,drives,0.06087,up,RF permutation importance (model R2=0.606),-
+Laser_Centering_Position,FDC,Groove_Depth,Response,drives,0.00104,down,RF permutation importance (model R2=0.606),-
+Head_Temp,FDC,Kerf_Angle,Response,drives,1.17897,up,RF permutation importance (model R2=0.664),-
+Power_Efficiency,FDC,Kerf_Angle,Response,drives,0.06144,down,RF permutation importance (model R2=0.664),-
+Laser_Centering_Position,FDC,Kerf_Angle,Response,drives,0.00169,up,RF permutation importance (model R2=0.664),-
+Vibration,FDC,Kerf_Angle,Response,drives,0.00132,up,RF permutation importance (model R2=0.664),-
+Laser_Power,FDC,Kerf_Angle,Response,drives,0.00132,down,RF permutation importance (model R2=0.664),-
+Power_Efficiency,FDC,Kerf_Width_Profile,Response,drives,0.55084,down,RF permutation importance (model R2=0.954),-
+Head_Temp,FDC,Kerf_Width_Profile,Response,drives,0.24788,up,RF permutation importance (model R2=0.954),-
+Laser_Power,FDC,Kerf_Width_Profile,Response,drives,0.09571,down,RF permutation importance (model R2=0.954),-
+Laser_Centering_Position,FDC,Kerf_Width_Profile,Response,drives,0.01183,up,RF permutation importance (model R2=0.954),-
+Laser_Centering_Position,FDC,Package_Size_Asymmetry,Response,drives,1.65842,up,RF permutation importance (model R2=0.847),-
+Vibration,FDC,Surface_Roughness,Response,drives,0.42393,up,RF permutation importance (model R2=0.236),-
+Frequency,FDC,Surface_Roughness,Response,drives,0.06113,up,RF permutation importance (model R2=0.236),-
+Head_Temp,FDC,Top_Kerf,Response,drives,0.31549,up,RF permutation importance (model R2=0.971),-
+Power_Efficiency,FDC,Top_Kerf,Response,drives,0.27727,down,RF permutation importance (model R2=0.971),-
+Laser_Power,FDC,Top_Kerf,Response,drives,0.13921,down,RF permutation importance (model R2=0.971),-
+Laser_Centering_Position,FDC,Top_Kerf,Response,drives,0.01217,up,RF permutation importance (model R2=0.971),-
