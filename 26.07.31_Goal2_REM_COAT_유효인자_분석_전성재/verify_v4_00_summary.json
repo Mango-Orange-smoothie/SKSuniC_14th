@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-31T18:21:41.532490+00:00",
+  "lag_window_strips": 50,
+  "signal_retention_floor": 0.15,
+  "n_candidates_scanned": 40,
+  "n_concurrent_meaningful": 2,
+  "trend_type_columns": [],
+  "instant_type_columns": [
+    "CLN_Pressure",
+    "Coating_Thickness"
+  ]
+}
