@@ -367,9 +367,88 @@
     </div>
   </section>
 
+  <!-- ============ Relationship DB 저장 형태 ============ -->
+  <section>
+    <h2><span>Relationship DB 저장 형태 — Target × Top Variables</span><span class="n">04</span></h2>
+    <p class="sub" style="margin-bottom:18px">아키텍처 설계도의
+      <b>③ Relationship Analyzer</b> 산출 형태입니다. <b>불량(Defect)뿐 아니라 측정값(Response)도
+      Target으로</b> 넣어, ⑤ Root Cause Analyzer가 원인을 거슬러 올라갈 수 있게 했습니다.
+      괄호 안 숫자는 기여도, 화살표는 위험 방향입니다.</p>
+
+    <div class="tw">
+      <table style="min-width:820px">
+        <thead><tr>
+          <th>Target</th><th>종류</th>
+          <th>Top Variables — 원인 (조절 대상)</th>
+          <th>감시지표</th>
+          <th style="text-align:right">설명력</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="v"><b>Chipping</b></td><td>Defect</td>
+            <td class="v" style="font-size:12px">Head_Temp↑(1.979), Laser_Power↓(1.180),
+              Power_Efficiency↓(0.842), Laser_Centering_Position↑(0.228), Vibration↑(0.212)</td>
+            <td class="v" style="font-size:12px">Kerf_Width_Profile↑(0.931), Bottom_Kerf↑,
+              Top_Kerf↑, Groove_Depth↓, Package_Size_Asymmetry↑</td>
+            <td class="n">AUC 0.965</td>
+          </tr>
+          <tr>
+            <td class="v"><b>Micro_Crack</b></td><td>Defect</td>
+            <td class="v" style="font-size:12px"><b>Vibration↑(0.255)</b>, Cooling_Flow↓(0.081)</td>
+            <td class="v" style="font-size:12px">Surface_Roughness↑(0.492)</td>
+            <td class="n">AUC 0.803</td>
+          </tr>
+          <tr><td class="v">Bottom_Kerf</td><td>Response</td>
+            <td class="v" style="font-size:12px">Power_Efficiency↓(0.250), Head_Temp↑(0.200),
+              Laser_Power↓(0.158)</td>
+            <td>—</td><td class="n rk">R² 0.981</td></tr>
+          <tr><td class="v">Top_Kerf</td><td>Response</td>
+            <td class="v" style="font-size:12px">Head_Temp↑(0.315), Power_Efficiency↓(0.277),
+              Laser_Power↓(0.139)</td>
+            <td>—</td><td class="n rk">R² 0.971</td></tr>
+          <tr><td class="v"><b>Kerf_Width_Profile</b></td><td>Response</td>
+            <td class="v" style="font-size:12px"><b>Power_Efficiency↓(0.551)</b>,
+              Head_Temp↑(0.248), Laser_Power↓(0.096)</td>
+            <td>—</td><td class="n rk">R² 0.954</td></tr>
+          <tr><td class="v">Package_Size_Asymmetry</td><td>Response</td>
+            <td class="v" style="font-size:12px"><b>Laser_Centering_Position↑(1.658)</b></td>
+            <td>—</td><td class="n">R² 0.847</td></tr>
+          <tr><td class="v">Kerf_Angle</td><td>Response</td>
+            <td class="v" style="font-size:12px"><b>Head_Temp↑(1.179)</b></td>
+            <td>—</td><td class="n">R² 0.664</td></tr>
+          <tr><td class="v">Groove_Depth</td><td>Response</td>
+            <td class="v" style="font-size:12px"><b>Laser_Power↑(0.739)</b></td>
+            <td>—</td><td class="n">R² 0.606</td></tr>
+          <tr><td class="v">Surface_Roughness</td><td>Response</td>
+            <td class="v" style="font-size:12px"><b>Vibration↑(0.424)</b>, Frequency↑(0.061)</td>
+            <td>—</td><td class="n">R² 0.236</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two" style="margin-top:18px">
+      <div class="note">
+        <h4>설계도와 대조하면</h4>
+        <p>설계도 예시는 <code>Kerf Width → Laser, Gas, Focus</code>였습니다.
+          실제 데이터가 답한 것은 <code>Kerf Width → Power_Efficiency↓, Head_Temp↑, Laser_Power↓</code>
+          (R²=0.95)로, <b>레이저 계열이 주 원인이라는 방향은 맞았습니다.</b>
+          <code>Gas</code>는 이 데이터에 없고 <code>Focus</code>는 멘토가 제외했습니다.</p>
+      </div>
+      <div class="note b">
+        <h4>설계도보다 추가한 것</h4>
+        <p><b>① 방향(↑↓)</b> — Chipping은 <code>Laser_Power↓</code>인데
+          <code>Groove_Depth</code>는 <code>Laser_Power↑</code>입니다.
+          방향이 없으면 <b>정반대로 조치</b>할 수 있습니다.</p>
+        <p><b>② 원인/감시지표 분리</b> — 절단 폭은 감시 1위지만 조절 불가입니다.</p>
+        <p><b>③ 신뢰도 보존</b> — 확정과 후보를 다른 컬럼에 두고
+          멘토 재확인 대기 항목을 <code>caution</code>에 남겼습니다.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ 교차검증 ============ -->
   <section>
-    <h2><span>세 방법 교차검증</span><span class="n">04</span></h2>
+    <h2><span>세 방법 교차검증</span><span class="n">05</span></h2>
     <p class="sub" style="margin-bottom:18px">김시우 <code>pipeline/README.md</code>가 Goal2에
       요구한 <b>“여러 방법에서 공통으로 상위권인 인자만 유효인자로 제출”</b> 원칙에 따라
       세 방법을 병기하고 순위를 대조했습니다.</p>
@@ -422,7 +501,7 @@
 
   <!-- ============ 위험선 ============ -->
   <section>
-    <h2><span>위험선 — 어느 값부터 위험한가</span><span class="n">05</span></h2>
+    <h2><span>위험선 — 어느 값부터 위험한가</span><span class="n">06</span></h2>
     <p class="sub" style="margin-bottom:18px">Jun 브랜치가 <b>Chipping 표본 4건 때문에 포기했던</b>
       C유형 위험선을 r1 데이터로 산출했습니다. 조건별 정상 범위 대비 몇 칸 벗어났는지(z)가 기준입니다.</p>
     <div class="tw">
@@ -467,7 +546,7 @@
 
   <!-- ============ 팀 ============ -->
   <section>
-    <h2><span>팀 요청사항</span><span class="n">06</span></h2>
+    <h2><span>팀 요청사항</span><span class="n">07</span></h2>
     <div class="two">
       <div>
         <div class="glabel" style="margin-bottom:14px">브랜치 간 정합</div>
@@ -507,7 +586,7 @@
 
   <!-- ============ 방법 ============ -->
   <section>
-    <h2><span>사용한 방법</span><span class="n">07</span></h2>
+    <h2><span>사용한 방법</span><span class="n">08</span></h2>
     <div class="tw">
       <table>
         <thead><tr><th>단계</th><th>방법</th><th>출처</th></tr></thead>

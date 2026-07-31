@@ -25,7 +25,7 @@ Jun 브랜치가 "n=4는 패턴 탐지가 아니라 4개 사례 기록에 가깝
 | 폴더/파일 | 내용 |
 |---|---|
 | **`SUMMARY.html`** | **한눈에 보기** — 결과 요약 페이지 (브라우저로 열어보세요) |
-| **`agent_db/`** | **메인 산출물** — AI Agent(③ Relationship Analyzer)용 관계 DB 9종 |
+| **`agent_db/`** | **메인 산출물** — AI Agent(③ Relationship Analyzer)용 관계 DB 10종 |
 | `analysis_v2_kimsiwoo_jun/` | 김시우 전처리 + Jun 방법론 재현 분석 및 검증 |
 | `Goal2_Chipping_MicroCrack_도메인지식_정리.md` | 초기 도메인 지식 정리 |
 
@@ -133,6 +133,23 @@ Vibration ↑ ──drives(0.424)──> Surface_Roughness ↑ ──(0.492)─�
 | 감시 | `Surface_Roughness` | **confirmed** (4개 장비 전부 재현) |
 | 원인 | `Vibration` | `shared_cause` → **SHAP 추가 후 원인 1위** |
 | 원인 | `Cooling_Flow` | `shared_cause_with_Chipping` |
+
+### Relationship DB 저장 형태 (`db_09_target_top_variables.csv`)
+
+설계도의 `Target → Top Variables` 형태. **Defect 2개 + Response 7개**를 모두 Target으로 담았습니다.
+
+| Target | 종류 | Top Variables (원인) | 감시지표 | 설명력 |
+|---|---|---|---|---|
+| **Chipping** | Defect | `Head_Temp`↑(1.979), `Laser_Power`↓(1.180), `Power_Efficiency`↓(0.842) | `Kerf_Width_Profile`↑(0.931) 외 | AUC 0.965 |
+| **Micro_Crack** | Defect | **`Vibration`↑(0.255)**, `Cooling_Flow`↓ | `Surface_Roughness`↑(0.492) | AUC 0.803 |
+| `Kerf_Width_Profile` | Response | `Power_Efficiency`↓(0.551), `Head_Temp`↑, `Laser_Power`↓ | — | **R² 0.954** |
+| `Groove_Depth` | Response | **`Laser_Power`↑(0.739)** | — | R² 0.606 |
+| `Surface_Roughness` | Response | **`Vibration`↑(0.424)** | — | R² 0.236 |
+| `Package_Size_Asymmetry` | Response | **`Laser_Centering_Position`↑(1.658)** | — | R² 0.847 |
+| `Kerf_Angle` | Response | **`Head_Temp`↑(1.179)** | — | R² 0.664 |
+
+**방향 표기가 중요합니다** — Chipping은 `Laser_Power`↓(낮으면 위험)인데
+`Groove_Depth`는 `Laser_Power`↑입니다. 방향 없이 보면 **정반대로 조치**할 수 있습니다.
 
 ### 3방법 합의 결과 (`db_08_method_agreement.csv`)
 

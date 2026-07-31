@@ -19,6 +19,7 @@
 | "이 결론 믿어도 돼?" | `db_00_metadata.json` (limitations) |
 | **"이 LOT은 왜 불량이 났어?"** | **`db_07_shap_local.csv`** (개별 건 SHAP 분해) |
 | "여러 방법이 같은 답을 내나?" | `db_08_method_agreement.csv` |
+| **"한눈에 요약해줘"** | **`db_09_target_top_variables.csv`** (Target × Top Variables) |
 
 ---
 
@@ -217,6 +218,38 @@ SHAP은 상관 높은 변수끼리 기여도를 나눠 갖기 때문에, **하�
 > 💡 `Vibration`은 단변량 검정에서 delta 0.124로 기준(0.2) 미달이라
 > `db_01`에서 `shared_cause`로만 분류됐지만, **SHAP에서 Micro_Crack 원인 1위(0.255)**이고
 > 3방법 모두 통과했습니다. **`db_08`을 함께 보면 등급이 올라갑니다.**
+
+### `db_09_target_top_variables.csv` — Target × Top Variables 요약본 ⭐
+
+아키텍처 설계도의 **Relationship DB 저장 형태**입니다. `db_01`(Long, 63행)에서 파생한 **뷰**로,
+사람이 한눈에 보거나 Agent가 1차 조회할 때 씁니다. **상세 근거는 `db_01`을 봐야 합니다.**
+
+**Defect뿐 아니라 Response도 Target으로 담습니다** — ⑤ Root Cause Analyzer가 원인을
+거슬러 올라갈 수 있도록.
+
+| target_type | target | 답하는 질문 |
+|---|---|---|
+| `Defect` | Chipping, Micro_Crack | "이 불량의 원인은?" |
+| `Response` | Kerf_Width_Profile, Groove_Depth, Surface_Roughness 등 7개 | "이 측정값은 무엇이 만드나?" |
+
+**표기 규칙**: `Head_Temp↑(1.979)` = 변수명 + 방향 + 기여도
+`↑` 높을수록 위험 · `↓` 낮을수록 위험 · `~` 비선형/방향 불명
+
+| 컬럼 | 내용 |
+|---|---|
+| `top_causes_confirmed` | **확정 원인** (조절 대상) — SHAP 크기순 |
+| `top_causes_candidate` | 약한 신호 (참고용) |
+| `top_monitors_confirmed` | **확정 감시지표** — Cliff's delta 순 |
+| `top_monitors_candidate` | 약한 신호 |
+| `n_methods_agree_all3` | 3방법 모두 top10 통과한 인자 |
+| `model_performance` | Defect는 ROC-AUC, Response는 R² |
+| `top_thresholds` | 위험선 상위 3개 |
+| `score_meaning` | 괄호 안 숫자가 무슨 값인지 |
+| `caution` | 멘토 재확인 대기 등 |
+| `detail_ref` | **상세 근거가 있는 파일** |
+
+> ⚠️ **요약본만 보고 판단하지 마십시오.** 방향·신뢰도는 담았지만
+> 재현성·근거 유형·오염 검증 결과는 `db_01`/`db_04`에만 있습니다.
 
 ### `db_00_metadata.json` — 실행 정보 및 한계
 
