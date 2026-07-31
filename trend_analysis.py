@@ -3,6 +3,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,6 +27,7 @@ GROUP_KEYS = ["Machine_ID", "Product_ID", "Recipe_ID"]
 WINDOW = 10
 Z_THRESHOLD = 2.0
 VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
+KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
@@ -167,11 +169,6 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
     df = pd.read_csv(path)
     n_input_rows = len(df)
 
-    # 00_machine_column_trend.csv는 원본 데이터(HealthIndex_Dataset.csv) 기준으로 만들어진
-    # 산출물이므로, 교차검증용 집계도 같은 소스에서만 수행한다.
-    is_reference_source = (source_name == RAW_INPUT_FILES[0][0])
-    machine_trend_tally = state.setdefault("machine_trend_tally", {})
-
     # 공통 분석 가능 컬럼만 사용 (두 파일 컬럼이 다를 경우 대비)
     usable_columns = [c for c in analysis_columns if c in df.columns]
     if len(usable_columns) != len(analysis_columns):
@@ -248,14 +245,10 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             )
             normalized_deviation[z_base] = rolling_mean[z_base] - baseline_arr[z_base]
 
+            # 조기경보(A/B/E의 persistent 판정)용 로컬 추세 방향. 10개 단위 로컬 slope는
+            # 장기 drift 신호와 스케일이 달라(뒤 compute_reference_style_trend 참고)
+            # 여기서는 단순 부호 기준을 그대로 쓴다.
             trend_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
-
-            # 00_machine_column_trend.csv 교차검증용 집계 (Machine_ID x column 단위 방향 누적)
-            if is_reference_source:
-                tally = machine_trend_tally.setdefault((machine_id, col), {"up": 0, "down": 0, "flat": 0})
-                labels, label_counts = np.unique(trend_direction, return_counts=True)
-                for label, cnt in zip(labels, label_counts):
-                    tally[label] += int(cnt)
 
             # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
             std_slope = compute_std_trend(rolling_std)
@@ -394,11 +387,40 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
 
 # ----------------------------------------------------------------------
-# 7. 기존 00_machine_column_trend.csv(Kendall/OLS 기반)와의 교차검증
-#    Machine_ID x column 단위로, 이번 분석에서 나온 다수결 추세 방향과
-#    기존 산출물의 trend_class가 일치하는지 비교한다.
+# 7. 기존 00_machine_column_trend.csv(일별 집계 + Kendall tau 기반)와의 교차검증
+#
+#    처음에는 본 스크립트가 이미 계산해 둔 10개 단위 로컬 rolling slope의
+#    방향(up/down)을 그룹 전체에서 다수결로 집계해 비교했으나, 실제로 확인해보니
+#    강한 장기 drift 컬럼(DP02 Vibration)과 no_trend 컬럼(DP01 Laser_Current)의
+#    로컬 slope 비율 분포가 통계적으로 거의 동일했다(median 0.73 vs 0.71).
+#    즉 10개 단위 로컬 rolling window는 90일치 장기 drift 신호를 애초에
+#    분리해내지 못하는 스케일이라, 임계값을 조정해도 해결되지 않는 구조적
+#    한계였다. 그래서 교차검증만큼은 조기경보 로직과 별개로, 참조 파일과
+#    동일한 방법론(Machine_ID별 일별 평균 집계 -> Kendall tau)으로 다시 계산한다.
 # ----------------------------------------------------------------------
-def cross_validate_machine_trend(machine_trend_tally):
+def compute_reference_style_trend(path, columns):
+    df = pd.read_csv(path, usecols=["DateTime", "Machine_ID"] + columns)
+    df["DateTime"] = pd.to_datetime(df["DateTime"])
+    df["date"] = df["DateTime"].dt.date
+
+    result = {}
+    for machine_id, g in df.groupby("Machine_ID"):
+        daily = g.groupby("date")[columns].mean().sort_index().reset_index(drop=True)
+        day_idx = np.arange(len(daily))
+        for col in columns:
+            series = daily[col]
+            if series.nunique() < 2 or len(series) < 3:
+                result[(machine_id, col)] = "flat"
+                continue
+            tau, p_value = stats.kendalltau(day_idx, series)
+            if pd.isna(tau) or pd.isna(p_value) or p_value >= KENDALL_P_THRESHOLD:
+                result[(machine_id, col)] = "flat"
+            else:
+                result[(machine_id, col)] = "up" if tau > 0 else "down"
+    return result
+
+
+def cross_validate_machine_trend(reference_source_path, analysis_columns):
     ref = pd.read_csv(MACHINE_TREND_CSV)
 
     trend_class_direction_map = {
@@ -409,32 +431,30 @@ def cross_validate_machine_trend(machine_trend_tally):
         "not_applicable": None,
     }
 
+    my_trend = compute_reference_style_trend(reference_source_path, analysis_columns)
+
     rows = []
     for row in ref.itertuples(index=False):
         key = (row.Machine_ID, row.column)
-        tally = machine_trend_tally.get(key)
-        if not tally or sum(tally.values()) == 0:
+        my_direction = my_trend.get(key)
+        if my_direction is None:
             continue
         ref_direction = trend_class_direction_map.get(row.trend_class)
         if ref_direction is None:
             continue
-        my_direction = max(tally, key=tally.get)
         rows.append({
             "Machine_ID": row.Machine_ID,
             "column": row.column,
-            "my_majority_direction": my_direction,
+            "my_direction": my_direction,
             "reference_trend_class": row.trend_class,
             "reference_direction": ref_direction,
             "agree": my_direction == ref_direction,
-            "up_count": tally.get("up", 0),
-            "down_count": tally.get("down", 0),
-            "flat_count": tally.get("flat", 0),
         })
 
     result = pd.DataFrame(rows)
     result.to_csv(CROSS_VALIDATION_CSV, index=False, encoding="utf-8-sig")
 
-    print(f"\n===== 00_machine_column_trend.csv 교차검증 =====")
+    print(f"\n===== 00_machine_column_trend.csv 교차검증 (일별 집계 + Kendall tau 방식) =====")
     if len(result) == 0:
         print("비교 가능한 항목이 없습니다.")
     else:
@@ -494,7 +514,7 @@ def main():
     if total_warn == 0:
         print("[점검] early_warning이 0건입니다. 임계값(Z_THRESHOLD) 또는 Baseline 매핑 로직을 점검해야 합니다.")
 
-    cross_validate_machine_trend(state.get("machine_trend_tally", {}))
+    cross_validate_machine_trend(RAW_INPUT_FILES[0][1], analysis_columns)
 
     for source_name, v in summary.items():
         print(f"\n===== {source_name} early_warning 샘플 (최대 10개) =====")
