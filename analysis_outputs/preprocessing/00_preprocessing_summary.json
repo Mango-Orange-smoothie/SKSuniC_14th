@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T10:13:22.880774+00:00",
+  "generated_at": "2026-07-31T13:45:16.257993+00:00",
   "row_count": 100000,
   "unique_key_count": 100000,
   "normal_count": 90783,
@@ -13,7 +13,6 @@
     "Laser_Centering_Position",
     "Frequency",
     "Feed_Speed",
-    "Focus",
     "Head_Temp",
     "Vibration",
     "Laser_Current",
@@ -41,7 +40,6 @@
     "Package_Size_4",
     "Coating_Thickness",
     "Coating_Uniformity",
-    "Cutting_Offset",
     "Surface_Roughness",
     "Chipping",
     "Chipping_Die",
@@ -61,8 +59,8 @@
     "Maintenance_Count"
   ],
   "subsystem_column_counts": {
-    "fdc_laser": 6,
-    "fdc_motion": 6,
+    "fdc_laser": 7,
+    "fdc_motion": 5,
     "fdc_thermal": 4,
     "fdc_cleaning": 5,
     "fdc_mechanical": 1,

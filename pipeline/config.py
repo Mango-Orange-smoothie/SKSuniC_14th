@@ -32,6 +32,24 @@ def NORMAL(frame):
 # 원본 데이터프레임에는 남기되(추적성 보존), 피처셋 구성 시 기본 제외한다.
 EXCLUDED_IDENTIFIERS = ["Shift", "Lot_ID", "Strip_ID", "Operator_ID"]
 
+# 멘토 피드백(26.07.31): 데이터 제공 시 "분석에 활용하지 않아도 되는 변수"로 명시적으로
+# 지정됨. FDC/response 값이라 원본 데이터프레임에는 남기되, 피처셋에서는 제외한다.
+# 주의: Focus는 Jun의 BURN 분석(Goal2)에서 이미 도메인 후보로 포함돼 있었으므로
+# 이 변경 이후 재실행이 필요할 수 있다 — Jun에게 공유할 것.
+MENTOR_EXCLUDED_VARS = ["Focus", "Cutting_Offset"]
+MENTOR_EXCLUDED_VARS_NOTE = "멘토가 데이터 제공 시 분석에 활용하지 않아도 된다고 명시적으로 지정한 변수 (26.07.31 피드백)."
+
+# 멘토 피드백(26.07.31) — 제외가 아니라 "참고" 성격의 도메인 지식. 통계 분석 시
+# 단순 선형/단조 상관만 보지 말고 임계값 효과 가능성을 염두에 둘 것.
+MENTOR_DOMAIN_NOTES = {
+    "Frequency": "멘토 피드백: 레이저 변수로 확인됨 (fdc_laser로 재분류).",
+    "Laser_Head_Remain_Time": (
+        "멘토 피드백: 잔여시간이 적게 남거나 특정 시점(교체/오버 시점)을 지날 때 "
+        "불량이 발생하는 임계값성 패턴이 있을 수 있음 — 선형 상관보다 구간별/임계값 "
+        "기반 분석(예: 잔여시간 구간화 후 불량률 비교)을 함께 검토할 것."
+    ),
+}
+
 ID_PRODUCTION_COLS = [
     "DateTime", "Machine_ID", "Product_ID", "Shift",
     "Lot_ID", "Strip_ID", "Recipe_ID", "Operator_ID",
@@ -42,9 +60,10 @@ SUBSYSTEMS = {
     "fdc_laser": [
         "Laser_Power", "Power_Efficiency", "Laser_Centering_Position",
         "Laser_Current", "Laser_Voltage", "Beam_Diameter",
+        "Frequency",  # 멘토 피드백(26.07.31): 레이저 변수로 확인됨 — fdc_motion에서 이동
     ],
     "fdc_motion": [
-        "Feed_Speed", "Frequency", "Alignment_Time", "Process_Time",
+        "Feed_Speed", "Alignment_Time", "Process_Time",
         "Cutting_X_Index", "Cutting_Y_Index",
     ],
     "fdc_thermal": ["Head_Temp", "Cooling_Flow", "Cooling_Water_Temp", "Focus"],

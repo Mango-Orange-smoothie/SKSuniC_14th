@@ -280,6 +280,8 @@ def _analysis_role_of(col: str) -> str:
         return "datetime"
     if col in config.EXCLUDED_IDENTIFIERS:
         return "identifier_excluded"
+    if col in config.MENTOR_EXCLUDED_VARS:
+        return "mentor_excluded"
     if col in ("Machine_ID", "Product_ID", "Recipe_ID"):
         return "context_stratum"
     if col in ("Yield", "NG_Code"):
@@ -324,12 +326,18 @@ def build_column_classification(
         if not decision_note:
             if role == "identifier_excluded":
                 decision_note = "멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
+            elif role == "mentor_excluded":
+                decision_note = config.MENTOR_EXCLUDED_VARS_NOTE
             elif role == "context_stratum":
                 decision_note = "장비/제품/레시피 층 정의 및 범주형 통제변수로 사용."
             elif role == "target_outcome":
                 decision_note = "공정 결과 라벨 — 피처가 아니라 타깃/검증값(Goal2 타깃, Goal5 검증)."
             elif role == "target_defect":
                 decision_note = "defect 타깃 — Goal2/4의 예측 대상."
+
+        mentor_note = config.MENTOR_DOMAIN_NOTES.get(col)
+        if mentor_note:
+            decision_note = f"{decision_note} {mentor_note}".strip() if decision_note else mentor_note
 
         include_default = role in (
             "predictor", "context_stratum", "target_defect", "target_outcome", "undocumented_retained",
@@ -351,6 +359,7 @@ def build_column_classification(
                 "flatline_fault_rate": float(f["flatline_flagged_rate"]) if f is not None else np.nan,
                 "is_operation_condition_key": col in config.OPCOND,
                 "is_excluded_identifier": col in config.EXCLUDED_IDENTIFIERS,
+                "is_mentor_excluded": col in config.MENTOR_EXCLUDED_VARS,
                 "include_in_downstream_default": include_default,
                 "decision_note": decision_note,
             }

@@ -59,6 +59,19 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
 
 두 grain의 baseline 파일이 모두 존재하는 이유가 이것이다 — 질문 성격에 맞는 쪽을 골라 쓴다.
 
+## 멘토 피드백 반영 (26.07.31)
+
+- **분석 제외 변수 추가**: `Focus`, `Cutting_Offset`은 멘토가 "분석에 활용하지 않아도 된다"고
+  명시적으로 지정한 변수. `00_column_classification.csv`에서 `analysis_role=mentor_excluded`,
+  `include_in_downstream_default=False`로 반영됨. **주의**: Jun의 BURN 분석(Goal2)은 이 변경
+  이전에 실행되어 `Focus`를 도메인 후보로 이미 포함하고 있음 — 재실행 여부 판단 필요.
+- **`Frequency` 재분류**: `fdc_motion` → `fdc_laser`로 이동 (멘토가 레이저 변수로 확인). 후보
+  컬럼 목록 자체(FDC_COLS)는 안 바뀌므로 기존 분석 결과에 영향 없음, 분류만 정정됨.
+- **`Laser_Head_Remain_Time` 참고사항**: 잔여시간이 적거나 특정 시점(교체/오버 시점)을 지날 때
+  불량이 나는 **임계값성 패턴**이 있을 수 있다는 멘토 코멘트. 단순 선형 상관(Mann-Whitney 등)만
+  보지 말고, 잔여시간을 구간화(binning)해서 구간별 불량률을 비교하는 방법도 함께 검토할 것 —
+  `00_column_classification.csv`의 해당 행 `decision_note`에도 남겨둠.
+
 ## Goal별 활용법
 
 - **Goal 1 (장비/제품 비교)**: `00_stratum_baseline_stats_by_machine_opcond.csv`의
