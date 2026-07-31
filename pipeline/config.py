@@ -1,0 +1,144 @@
+"""파이프라인 전역 상수.
+
+모든 Step0/Goal 모듈은 KEY/GROUP/OPCOND/NORMAL 등을 여기서만 import한다.
+각자 재정의하면 층(stratum) 정의가 모듈마다 미묘하게 어긋날 수 있다.
+"""
+
+from pathlib import Path
+
+ROOT = Path(__file__).parent.parent
+INPUT_CSV = ROOT / "data" / "raw" / "DP_HealthIndex_Dataset.csv"
+OUTPUT_DIR = ROOT / "analysis_outputs"
+PREPROCESSING_DIR = OUTPUT_DIR / "preprocessing"
+
+# 분석키: Lot_ID+Strip_ID만 유일. Strip_ID 단독은 다른 Lot에서 재사용되므로
+# 분석키·조인키로 절대 단독 사용 금지 (기존 analysis_step_by_step.py와 동일 규약).
+KEY = ["Lot_ID", "Strip_ID"]
+
+# 기존 03_impact_factor_ranking.csv와 동일한 층: Machine을 통제변수로 두는 분석용.
+GROUP = ["Machine_ID", "Product_ID", "Recipe_ID"]
+
+# 멘토 피드백: Strip_ID/Lot_ID는 로트 추적용 식별자일 뿐 "운전조건"이 아니다.
+# 장비를 비교 대상으로 두거나 Machine-무관 baseline이 필요할 때는 GROUP 대신 OPCOND를 쓴다.
+OPCOND = ["Product_ID", "Recipe_ID"]
+
+
+def NORMAL(frame):
+    """정상군 정의: Yield=100 그리고 NG_Code='OK' (기존 스크립트와 동일)."""
+    return (frame["Yield"] == 100) & (frame["NG_Code"] == "OK")
+
+
+# 멘토 피드백: 아래 4개는 로트 추적/작업자 식별용으로, 분석 피처로는 부적합하다고 판단됨.
+# 원본 데이터프레임에는 남기되(추적성 보존), 피처셋 구성 시 기본 제외한다.
+EXCLUDED_IDENTIFIERS = ["Shift", "Lot_ID", "Strip_ID", "Operator_ID"]
+
+ID_PRODUCTION_COLS = [
+    "DateTime", "Machine_ID", "Product_ID", "Shift",
+    "Lot_ID", "Strip_ID", "Recipe_ID", "Operator_ID",
+]
+
+# fdc_response_defect_parameter_discription.docx 기준 서브시스템 분류.
+SUBSYSTEMS = {
+    "fdc_laser": [
+        "Laser_Power", "Power_Efficiency", "Laser_Centering_Position",
+        "Laser_Current", "Laser_Voltage", "Beam_Diameter",
+    ],
+    "fdc_motion": [
+        "Feed_Speed", "Frequency", "Alignment_Time", "Process_Time",
+        "Cutting_X_Index", "Cutting_Y_Index",
+    ],
+    "fdc_thermal": ["Head_Temp", "Cooling_Flow", "Cooling_Water_Temp", "Focus"],
+    "fdc_cleaning": [
+        "CLN_Flow", "CLN_Pressure", "CLN_Time", "Coating_Flow",
+        "Laser_Head_Remain_Time",
+    ],
+    "fdc_mechanical": ["Vibration"],
+    "response": [
+        "Kerf_Width_Profile", "Top_Kerf", "Bottom_Kerf", "Kerf_Angle",
+        "Groove_Depth", "Package_Size_1", "Package_Size_2", "Package_Size_3",
+        "Package_Size_4", "Coating_Thickness", "Coating_Uniformity",
+        "Cutting_Offset", "Surface_Roughness",
+    ],
+    "defect_binary": [
+        "Chipping", "Remain_Coat", "Particle", "Micro_Crack",
+        "Laser_Paim", "Edge_Burn",
+    ],
+    "defect_count": [
+        "Chipping_Die", "Remain_Coat_Die", "Particle_Die", "Micro_Crack_Die",
+        "Laser_Paim_Die", "Edge_Burn_Die", "Fail_Die",
+    ],
+    # 공정 결과 라벨: Yield(연속 %), NG_Code(범주형) — 피처가 아니라 결과이므로 별도 취급.
+    "outcome": ["Yield", "NG_Code"],
+    "undocumented_env_or_infra": [
+        "PLC_CPU_Load", "PLC_Memory", "Network_Latency", "LED_Brightness",
+        "Room_Noise", "Door_Open_Count", "Fan_RPM", "Vision_Exposure",
+        "Maintenance_Count", "Factory_Power",
+    ],
+}
+
+RESPONSES = SUBSYSTEMS["response"]
+DEFECTS_BINARY = SUBSYSTEMS["defect_binary"]
+DEFECTS_COUNT = SUBSYSTEMS["defect_count"]
+FDC_COLS = (
+    SUBSYSTEMS["fdc_laser"] + SUBSYSTEMS["fdc_motion"] + SUBSYSTEMS["fdc_thermal"]
+    + SUBSYSTEMS["fdc_cleaning"] + SUBSYSTEMS["fdc_mechanical"]
+)
+
+# 미문서화 컬럼별 판단 근거. 전부 "1차 제외"가 아니라 컬럼별로 근거를 남긴다.
+UNDOCUMENTED_COL_NOTES = {
+    "PLC_CPU_Load": "설비 IT 인프라 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외.",
+    "PLC_Memory": "설비 IT 인프라 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Network_Latency": "네트워크 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외.",
+    "LED_Brightness": "비전검사 조명 조건으로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Room_Noise": "환경 텔레메트리로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Door_Open_Count": "환경/보안 이벤트 카운트로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Fan_RPM": "설비 냉각팬 등 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Vision_Exposure": "비전검사 카메라 노출값으로 추정, 공정 물리량 아님 — 1차 제외.",
+    "Maintenance_Count": (
+        "정비 이력 프록시로 추정 — 정비 직후/직전 열화 패턴과 연관될 수 있어 "
+        "Goal2(유효인자 발굴)/Goal4(이상탐지)에서 후속 확인 가치 있음. 1차 제외하지 않고 보류."
+    ),
+    "Factory_Power": "공장 전력 인프라 지표로 추정, 공정 물리량 아님 — 1차 제외.",
+}
+
+# 미문서화 컬럼 중 1차 제외 대상 (Maintenance_Count 제외).
+UNDOCUMENTED_EXCLUDED = [
+    c for c in SUBSYSTEMS["undocumented_env_or_infra"] if c != "Maintenance_Count"
+]
+
+# 물리적으로 0이 나올 수 없는(0=센서 드롭아웃 의심) 연속형 FDC 컬럼만 큐레이션.
+# 전체 컬럼에 일괄 적용하지 않는다 (예: Cutting_Offset은 부호있는 값이라 0이 정상일 수 있음).
+ZERO_IMPLAUSIBLE_COLS = [
+    "Cooling_Flow", "CLN_Flow", "CLN_Pressure", "Laser_Power",
+    "Feed_Speed", "Coating_Flow", "CLN_Time", "Vibration",
+]
+
+# 연속형 변동성 분류 임계값 (median CV 기준). config에서 관리해 매직넘버를 피한다.
+CV_STABLE_THRESHOLD = 0.02   # 이 미만이면 '거의 고정값' (stable, 센서 고착 의심 후보)
+CV_VARIABLE_THRESHOLD = 0.10  # 이 이상이면 '변동성 큼' (variable)
+# [STABLE_THRESHOLD, VARIABLE_THRESHOLD) 구간은 'moderate'.
+
+FLATLINE_RUN_LENGTH = 5  # 동일값이 이 길이 이상 연속되면 flatline(고착) 의심
+
+# 추세검정 유의수준
+TREND_ALPHA = 0.05
+
+# 정규화 시 MAD -> 표준편차 근사 스케일 상수 (정규분포 가정 시 1.4826)
+MAD_SCALE = 1.4826
+
+# 기존 analysis_step_by_step.py의 4개 도메인 비율 피처와 동일 정의 (재사용, 재구현 금지).
+def add_domain_features(df):
+    result = df.copy()
+    result["Cooling_Thermal_Load"] = result["Cooling_Water_Temp"] / result["Cooling_Flow"]
+    result["Laser_Cleaning_Demand"] = result["Laser_Power"] * result["Groove_Depth"]
+    result["Cleaning_Capacity"] = result["CLN_Flow"] * result["CLN_Pressure"] * result["CLN_Time"]
+    result["Cleaning_Load_Ratio"] = result["Laser_Cleaning_Demand"] / result["Cleaning_Capacity"]
+    return result
+
+
+DOMAIN_FEATURES = [
+    "Cooling_Thermal_Load", "Laser_Cleaning_Demand", "Cleaning_Capacity", "Cleaning_Load_Ratio",
+]
+
+EXPECTED_ROW_COUNT = 100_000
+EXPECTED_NORMAL_COUNT = 90_783

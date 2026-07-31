@@ -1,0 +1,96 @@
+{
+  "analysis": "PARTICLE 유효인자 후속 검증",
+  "builds_on": "26.07.30_2055_Goal2_PARTICLE_유효인자_분석 (Jun 브랜치)",
+  "generated_at": "2026-07-31T12:10:05.118555+00:00",
+  "n_rows": 100000,
+  "n_primary_label": 6455,
+  "n_broad_label": 7792,
+  "criteria": {
+    "effect_size_min_cliffs_delta": 0.2,
+    "fdr_alpha": 0.05
+  },
+  "검증1_시간선행성": {
+    "Surface_Roughness_lag5": "선행신호 소멸 — 결과 공변(동반증상) 해석 지지",
+    "Surface_Roughness_lag20": "선행신호 소멸 — 결과 공변(동반증상) 해석 지지",
+    "Surface_Roughness_lag50": "선행신호 소멸 — 결과 공변(동반증상) 해석 지지",
+    "Vibration_lag5": "선행신호 약함 — 판단 보류",
+    "Vibration_lag20": "선행신호 약함 — 판단 보류",
+    "Vibration_lag50": "선행신호 약함 — 판단 보류"
+  },
+  "검증2_용량반응_오염검사": [
+    {
+      "column": "Cleaning_Capacity",
+      "spearman_rho_vs_die_count": 0.02609211734481963,
+      "bucket_median_monotonicity": 0.23076923076923078,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "Vibration",
+      "spearman_rho_vs_die_count": 0.025049083035285892,
+      "bucket_median_monotonicity": 0.7622377622377624,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "Cleaning_Load_Ratio",
+      "spearman_rho_vs_die_count": -0.021417398250919626,
+      "bucket_median_monotonicity": 0.04895104895104895,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "CLN_Time",
+      "spearman_rho_vs_die_count": 0.020291835802233132,
+      "bucket_median_monotonicity": 0.4055944055944056,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "Laser_Cleaning_Demand",
+      "spearman_rho_vs_die_count": 0.019018223745708652,
+      "bucket_median_monotonicity": -0.02097902097902098,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "CLN_Flow",
+      "spearman_rho_vs_die_count": 0.01794704537450593,
+      "bucket_median_monotonicity": -0.04195804195804196,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    },
+    {
+      "column": "CLN_Pressure",
+      "spearman_rho_vs_die_count": 0.007964004622381999,
+      "bucket_median_monotonicity": 0.31468531468531474,
+      "contamination_check": "REM_COAT 동시발생 제거 시 소멸 — particle 고유 신호 아님"
+    },
+    {
+      "column": "Surface_Roughness",
+      "spearman_rho_vs_die_count": 0.006078030115708829,
+      "bucket_median_monotonicity": 0.3916083916083916,
+      "contamination_check": "REM_COAT 동시발생 제거 시 소멸 — particle 고유 신호 아님"
+    },
+    {
+      "column": "Coating_Flow",
+      "spearman_rho_vs_die_count": 0.0008127347579550472,
+      "bucket_median_monotonicity": 0.18881118881118883,
+      "contamination_check": "양쪽 모두 무신호 — 심각도와 무관"
+    }
+  ],
+  "검증3_최적_비율정의": {
+    "variant": "clr_rank_diff = 층내 순위차",
+    "cliffs_delta": -0.011742382899840753,
+    "passes_jun_criteria": false
+  },
+  "검증4_동시발생_판정": {
+    "CLN_Flow": "세 그룹 모두 효과크기 미달",
+    "CLN_Pressure": "REM_COAT 전용 인자 — particle 단독 그룹에서는 무신호",
+    "CLN_Time": "세 그룹 모두 효과크기 미달",
+    "Coating_Flow": "세 그룹 모두 효과크기 미달",
+    "Cleaning_Capacity": "세 그룹 모두 효과크기 미달",
+    "Laser_Cleaning_Demand": "세 그룹 모두 효과크기 미달",
+    "Cleaning_Load_Ratio": "세 그룹 모두 효과크기 미달"
+  },
+  "검증5_층민감도_결론바뀐인자": [],
+  "notes": [
+    "인과관계 확정이 아니라 후속 검증 후보의 우선순위를 좁히는 과정이다.",
+    "검증1은 인과 증명이 아니라 '결과 공변 해석을 반증할 수 있는가'를 보는 검사다.",
+    "통계 기준(Cliff's delta 0.2, BH-FDR)은 Jun의 1차 분석과 동일하게 유지했다."
+  ]
+}
