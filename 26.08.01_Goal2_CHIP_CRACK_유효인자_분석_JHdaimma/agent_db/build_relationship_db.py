@@ -82,56 +82,108 @@ for c in DOMAIN_FEATURES:
     SUBSYSTEM_OF[c] = "engineered"
 SUBSYSTEM_OF["Maintenance_Count"] = "undocumented_env_or_infra"
 
-# ==================================================================== HBM DP 공정 단계 매핑
-# 공정: ①보호코팅 -> ②레이저 그루빙(low-k 승화) -> ③세정(debris/코팅 제거) -> ④블레이드 다이싱
-PROCESS_STAGE = {
-    # ① 보호 코팅
-    "Coating_Flow": ("1_coating", "확실"), "Coating_Thickness": ("1_coating", "확실"),
-    "Coating_Uniformity": ("1_coating", "확실"),
-    # ② 레이저 그루빙 (제어)
-    "Laser_Power": ("2_laser_grooving", "확실"), "Power_Efficiency": ("2_laser_grooving", "확실"),
-    "Laser_Current": ("2_laser_grooving", "확실"), "Laser_Voltage": ("2_laser_grooving", "확실"),
-    "Beam_Diameter": ("2_laser_grooving", "확실"),
-    "Laser_Centering_Position": ("2_laser_grooving", "확실"),
-    "Frequency": ("2_laser_grooving", "확실(멘토확인)"),
-    "Head_Temp": ("2_laser_grooving", "확실"),
-    "Laser_Head_Remain_Time": ("2_laser_grooving", "확실(멘토: 11스팟x2000h)"),
-    # ② 레이저 그루빙 결과
-    "Groove_Depth": ("2R_grooving_result", "확실"),
-    "Kerf_Width_Profile": ("2R_grooving_result", "확실"),
-    "Top_Kerf": ("2R_grooving_result", "확실"), "Bottom_Kerf": ("2R_grooving_result", "확실"),
-    "Kerf_Angle": ("2R_grooving_result", "확실"),
-    # ③ 세정
-    "CLN_Flow": ("3_cleaning", "확실"), "CLN_Pressure": ("3_cleaning", "확실"),
-    "CLN_Time": ("3_cleaning", "확실"),
-    # ④ 블레이드 다이싱 (제어)
-    "Vibration": ("4_blade_dicing", "확실(멘토: 열화 대표신호)"),
-    "Feed_Speed": ("4_blade_dicing", "추정(레이저 이송일 가능성)"),
-    "Cutting_X_Index": ("4_blade_dicing", "확실"), "Cutting_Y_Index": ("4_blade_dicing", "확실"),
-    "Alignment_Time": ("4_blade_dicing", "추정"), "Process_Time": ("4_blade_dicing", "추정"),
-    "Cooling_Flow": ("4_blade_dicing", "미확정(멘토 재확인 예정)"),
-    "Cooling_Water_Temp": ("4_blade_dicing", "미확정(멘토 재확인 예정)"),
-    # ④ 블레이드 결과
-    "Surface_Roughness": ("4R_dicing_result", "추정(멘토 drop여부 미확정)"),
-    "Package_Size_1": ("4R_dicing_result", "확실"), "Package_Size_2": ("4R_dicing_result", "확실"),
-    "Package_Size_3": ("4R_dicing_result", "확실"), "Package_Size_4": ("4R_dicing_result", "확실"),
-    # 파생/기타
-    "Cooling_Thermal_Load": ("4_blade_dicing", "파생"),
-    "Laser_Cleaning_Demand": ("2_laser_grooving", "파생"),
-    "Cleaning_Capacity": ("3_cleaning", "파생"), "Cleaning_Load_Ratio": ("3_cleaning", "파생"),
-    "Package_Size_Asymmetry": ("4R_dicing_result", "파생(김시우 신규)"),
-    "Maintenance_Count": ("0_equipment", "프록시"),
+# ==================================================================== 공정 단계 매핑
+# 원칙(26.08.01 정정):
+#   1) 컬럼의 계통 분류는 **김시우 00_column_classification.csv의 subsystem이 기준**이다.
+#      (위 SUBSYSTEM_OF 딕셔너리가 그 사본)
+#   2) 공정 단계(stage)는 팀문서·멘토 근거가 있을 때만 배정한다.
+#      근거 없이 작성자가 추측한 배정은 "unassigned"로 두고 근거 유형을 명시한다.
+#
+# [정정 이력] 초판에서 Vibration을 "4_blade_dicing / 확실"로 배정했으나 근거가 없었다.
+#   팀 설계서 회의록: "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태로
+#                     잘려 나가는 대형 불량 원인"
+#   멘토 피드백:      "설비 열화의 대표 신호. 노후 장비 Y축 이동 시 진동으로 빔 라인 어긋남"
+#   -> 두 근거 모두 **장비/스테이지 레벨 진동**이며 블레이드를 특정하지 않는다.
+#      멘토 사례는 오히려 레이저 빔 라인 영향이다. 특정 단계에 배정하지 않는다.
+#   초판의 "블레이드 채터/스핀들 런아웃" 서술은 작성자 추론이었으므로 삭제한다.
+#
+# stage_evidence: 팀문서 / 멘토_확정 / 김시우분류 / 작성자_추론 / 멘토_미확정
+PROCESS_STAGE_FULL = {
+    # ---- 보호 코팅
+    "Coating_Flow": ("1_coating", "팀문서", ""),
+    "Coating_Thickness": ("1_coating", "팀문서", ""),
+    "Coating_Uniformity": ("1_coating", "팀문서", ""),
+    # ---- 레이저 그루빙 (제어) : 김시우 fdc_laser와 일치
+    "Laser_Power": ("2_laser_grooving", "팀문서", ""),
+    "Power_Efficiency": ("2_laser_grooving", "팀문서", ""),
+    "Laser_Current": ("2_laser_grooving", "팀문서", ""),
+    "Laser_Voltage": ("2_laser_grooving", "팀문서", ""),
+    "Beam_Diameter": ("2_laser_grooving", "팀문서", ""),
+    "Laser_Centering_Position": ("2_laser_grooving", "팀문서", ""),
+    "Frequency": ("2_laser_grooving", "멘토_확정", "멘토가 레이저 변수로 확정"),
+    "Head_Temp": ("2_laser_grooving", "멘토_확정",
+                  "멘토 인과사슬(헤드온도->굴절률->센터링) 근거. 김시우 subsystem은 fdc_thermal"),
+    "Laser_Head_Remain_Time": ("2_laser_grooving", "멘토_확정",
+                               "멘토: 헤드 내 11스팟x약2000h. 김시우 subsystem은 fdc_cleaning"),
+    # ---- 레이저 그루빙 결과 (김시우 response)
+    "Groove_Depth": ("2R_grooving_result", "팀문서", ""),
+    "Kerf_Width_Profile": ("2R_grooving_result", "팀문서", ""),
+    "Top_Kerf": ("2R_grooving_result", "팀문서", ""),
+    "Bottom_Kerf": ("2R_grooving_result", "팀문서", ""),
+    "Kerf_Angle": ("2R_grooving_result", "팀문서", ""),
+    # ---- 세정
+    "CLN_Flow": ("3_cleaning", "팀문서", ""), "CLN_Pressure": ("3_cleaning", "팀문서", ""),
+    "CLN_Time": ("3_cleaning", "팀문서", ""),
+    # ---- 장비 레벨 (특정 단계에 속하지 않음)
+    "Vibration": ("0_equipment_mechanical", "팀문서+멘토_확정",
+                  "장비/스테이지 레벨 진동. 김시우 subsystem=fdc_mechanical. "
+                  "레이저·다이싱 양쪽에 영향(멘토 사례는 빔 라인 어긋남)"),
+    "Maintenance_Count": ("0_equipment_mechanical", "김시우분류", "정비 이력 프록시"),
+    # ---- 단계 미배정 (작성자가 근거 없이 배정했던 항목 — 김시우 subsystem만 신뢰)
+    "Feed_Speed": ("unassigned", "작성자_추론", "김시우 subsystem=fdc_motion. 레이저 이송인지 다이싱 이송인지 불명"),
+    "Alignment_Time": ("unassigned", "작성자_추론", "김시우 subsystem=fdc_motion"),
+    "Process_Time": ("unassigned", "작성자_추론", "김시우 subsystem=fdc_motion"),
+    "Cutting_X_Index": ("unassigned", "작성자_추론", "김시우 subsystem=fdc_motion. 정렬 계통"),
+    "Cutting_Y_Index": ("unassigned", "작성자_추론", "김시우 subsystem=fdc_motion. 정렬 계통"),
+    "Cooling_Flow": ("unassigned", "멘토_미확정", "멘토가 설비-컬럼 매핑 재확인 예정"),
+    "Cooling_Water_Temp": ("unassigned", "멘토_미확정", "멘토가 설비-컬럼 매핑 재확인 예정"),
+    "Surface_Roughness": ("unassigned", "멘토_미확정",
+                          "멘토가 drop 여부 미확정. 절단면 품질 지표로 추정되나 어느 단계인지 미확인"),
+    "Package_Size_1": ("unassigned", "작성자_추론", "김시우 subsystem=response. 정렬 동반지표"),
+    "Package_Size_2": ("unassigned", "작성자_추론", "김시우 subsystem=response"),
+    "Package_Size_3": ("unassigned", "작성자_추론", "김시우 subsystem=response"),
+    "Package_Size_4": ("unassigned", "작성자_추론", "김시우 subsystem=response"),
+    # ---- 파생 피처 (구성 원료의 단계를 상속)
+    "Laser_Cleaning_Demand": ("2R_grooving_result", "팀문서", "Laser_Power x Groove_Depth"),
+    "Cleaning_Capacity": ("3_cleaning", "팀문서", "CLN_Flow x Pressure x Time"),
+    "Cleaning_Load_Ratio": ("3_cleaning", "팀문서", "세정 수요/능력 비율"),
+    "Cooling_Thermal_Load": ("unassigned", "멘토_미확정", "Cooling_* 매핑 미확정 상속"),
+    "Package_Size_Asymmetry": ("unassigned", "작성자_추론", "김시우 신규 피처. Package_Size 계열 상속"),
 }
+# 기존 코드 호환용 (stage, evidence) 튜플
+PROCESS_STAGE = {c: (v[0], v[1]) for c, v in PROCESS_STAGE_FULL.items()}
+STAGE_NOTE = {c: v[2] for c, v in PROCESS_STAGE_FULL.items()}
+
+# Micro_Crack 후보에서 제외할 "레이저 그루빙 계열" — 현업 확정 제약의 적용 대상.
+# 단계 미배정(unassigned) 컬럼은 제외 대상이 아니다.
 GROOVING_STAGES = {"2_laser_grooving", "2R_grooving_result"}
 
-# 조치 가능성: FDC = 손잡이(원인 후보), Response = 측정 결과(감시 지표)
+# ==================================================================== 조치 가능성(layer)
+# FDC      = 설비에서 직접 돌릴 수 있는 손잡이 -> "원인 후보"
+# Response = 가공 후 측정된 결과값, 직접 조절 불가 -> "감시 지표"
+#
+# [정정 26.08.01] 초판은 layer를 공정 단계 이름(stage.endswith("_result"))으로 판정했다.
+#   단계 배정이 바뀌자 파생 피처의 역할까지 흔들리는 버그가 있었다
+#   (Package_Size_Asymmetry가 감시지표 -> 원인후보로 잘못 이동).
+#   layer는 **컬럼이 무엇으로 만들어졌는지**로만 결정하며 단계 라벨과 무관하다.
+#
+# 파생 피처: 구성 원료 중 Response가 하나라도 섞이면 직접 조절할 수 없으므로 Response.
+DERIVED_LAYER = {
+    "Cooling_Thermal_Load": "FDC",         # Cooling_Water_Temp / Cooling_Flow — 둘 다 FDC
+    "Cleaning_Capacity": "FDC",            # CLN_Flow x CLN_Pressure x CLN_Time — 전부 FDC
+    "Laser_Cleaning_Demand": "Response",   # Laser_Power(FDC) x Groove_Depth(Response) 포함
+    "Cleaning_Load_Ratio": "Response",     # Laser_Cleaning_Demand(Response) 포함
+    "Package_Size_Asymmetry": "Response",  # Package_Size_1~4 — 전부 Response
+}
+
+
 def layer_of(col):
-    if col in RESPONSES or SUBSYSTEM_OF.get(col) == "engineered" and "Package" in col:
+    if col in DERIVED_LAYER:
+        return DERIVED_LAYER[col]
+    if col in RESPONSES:
         return "Response"
     if col in FDC_COLS:
         return "FDC"
-    if col in DOMAIN_FEATURES:
-        return "Engineered"
     return "Other"
 
 # ==================================================================== 도메인 가설 (출처 명시)
@@ -146,7 +198,7 @@ DOMAIN_HYPO = {
   "Power_Efficiency": ("실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)", "either", "공정지식+멘토"),
   "Head_Temp": ("헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일", "up", "멘토 인과사슬"),
   "Laser_Centering_Position": ("Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단", "either", "멘토 인과사슬"),
-  "Vibration": ("블레이드 채터/스테이지 흔들림 -> 나이프 자국형 대형 불량", "up", "팀설계서회의록+멘토사고사례"),
+  "Vibration": ("장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생", "up", "팀설계서 회의록 명시 + 멘토 사고사례"),
   "Kerf_Angle": ("홈 단면 형상 이상 -> 응력 집중", "either", "팀설계서E유형"),
   "Package_Size_Asymmetry": ("센터링 이상 시 4방향 다이 크기 비대칭 발생", "up", "멘토+김시우신규피처"),
   "Package_Size_1": ("정렬 불량 동반지표", "either", "팀설계서E유형"),
@@ -161,14 +213,14 @@ DOMAIN_HYPO = {
  },
  "CRACK": {
   # 현업: Micro_Crack은 레이저 그루빙 문제가 아님 -> 블레이드/기계 계열만 가설로 인정
-  "Vibration": ("블레이드 채터/스핀들 런아웃 -> 반복 응력 -> 피로 균열 (멘토 실제 스크랩 사고사례)", "up", "현업+멘토사고사례"),
-  "Feed_Speed": ("이송속도 과다 -> 절삭 응력 증가 -> 표면하 손상층 확대", "either", "공정지식"),
-  "Cooling_Flow": ("절삭열 제거 부족 -> 열충격 (⚠멘토 매핑 재확인)", "down", "공정지식+주의"),
-  "Cooling_Water_Temp": ("냉각수 온도 상승 -> 열충격 (⚠멘토 매핑 재확인)", "up", "공정지식+주의"),
+  "Vibration": ("장비/스테이지 진동(김시우 subsystem=fdc_mechanical). 멘토가 설비 열화 대표신호로 지목, 노후 장비 Y축 이동 시 진동으로 빔 라인 어긋나 대량 스크랩 발생 사례 있음. [추론] 반복 응력에 의한 피로 균열 경로는 미검증", "up", "멘토_확정(변수 중요성) + 작성자_추론(균열 경로)"),
+  "Feed_Speed": ("[추론] 이송속도가 응력에 영향 — 김시우 subsystem=fdc_motion, 레이저/다이싱 어느 쪽 이송인지 미확인", "either", "작성자_추론"),
+  "Cooling_Flow": ("[추론] 냉각 부족 -> 열충격. ⚠멘토가 설비-컬럼 매핑 재확인 예정이라 어느 계통 냉각인지 미확정", "down", "작성자_추론+멘토_미확정"),
+  "Cooling_Water_Temp": ("[추론] 냉각수 온도 상승 -> 열충격. ⚠멘토 매핑 재확인 예정", "up", "작성자_추론+멘토_미확정"),
   "Cooling_Thermal_Load": ("냉각 부담 종합 지표", "up", "팀공용피처"),
-  "Process_Time": ("누적 절삭 응력 노출", "up", "추론"),
-  "Alignment_Time": ("누적 응력 노출", "up", "추론"),
-  "Surface_Roughness": ("블레이드 절삭 품질 지표 — 균열과 '형제 관계'(공통원인=진동), 원인 아닐 수 있음", "up", "공정지식+Jun주의"),
+  "Process_Time": ("[추론] 누적 응력 노출 — 김시우 subsystem=fdc_motion", "up", "작성자_추론"),
+  "Alignment_Time": ("[추론] 누적 응력 노출 — 김시우 subsystem=fdc_motion", "up", "작성자_추론"),
+  "Surface_Roughness": ("절단면 거칠기. Vibration이 압도적 1위 드라이버(perm.imp 0.424)라 균열과 공통 원인을 공유하는 동반지표로 보임. Jun도 '결과 공변, 원인 아닐 수 있음'으로 표기. ⚠멘토 drop 여부 미확정", "up", "데이터_실증 + 멘토_미확정"),
   "Maintenance_Count": ("정비 이력 프록시 — 블레이드 교체/드레싱 주기 간접 반영 가능", "either", "김시우decision_note"),
  },
 }
@@ -378,8 +430,7 @@ for tname, spec in TARGETS.items():
         else:
             verdict = "insufficient_evidence"
 
-        layer = "Response" if (c in RESPONSES or stage.endswith("_result")) else (
-            "FDC" if c in FDC_COLS else "Engineered")
+        layer = layer_of(c)
         role = ("감시지표" if layer == "Response" else "원인후보") if verdict.startswith(
             ("confirmed", "candidate", "shared_cause")) else "-"
 
@@ -548,6 +599,8 @@ for _, x in th.head(8).iterrows():
 # ==================================================================== db_04 도메인 지식
 print("[5/7] 공정 도메인 지식 테이블")
 STAGE_DESC = {
+    "0_equipment_mechanical": "장비 기계계통 — 특정 공정 단계에 속하지 않고 레이저·다이싱 양쪽에 영향",
+    "unassigned": "공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것",
     "0_equipment": "설비 상태/정비 이력",
     "1_coating": "보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지",
     "2_laser_grooving": "레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거",
@@ -637,12 +690,15 @@ for s, desc in STAGE_DESC.items():
                     "description": desc, "evidence_type": "현업_확정", "reliability": "확정",
                     "note": "현업이 알려준 HBM DP 공정 흐름", "source": "현업_확정"})
 for c, (stage, conf) in PROCESS_STAGE.items():
-    ev = "작성자_추론" if ("추정" in conf or "미확정" in conf) else "팀문서"
-    rel = "미검증(추론)" if ev == "작성자_추론" else "확정"
+    rel = ("미검증(추론)" if "작성자_추론" in conf else
+           "재확인 대기" if "미확정" in conf else "확정")
+    note = STAGE_NOTE.get(c, "")
     dk_rows.append({"kind": "column_stage_mapping", "item": c, "process_stage": stage,
                     "description": STAGE_DESC.get(stage, ""),
-                    "evidence_type": ev, "reliability": rel,
-                    "note": "매핑 확신도: " + conf, "source": ev})
+                    "evidence_type": conf, "reliability": rel,
+                    "note": f"김시우 subsystem={SUBSYSTEM_OF.get(c,'-')}"
+                            + (f" / {note}" if note else ""),
+                    "source": conf})
 
 MENTOR_NOTES = {
     "Focus": "멘토: 분석에 활용하지 않아도 됨 -> 제외 (26.07.31)",

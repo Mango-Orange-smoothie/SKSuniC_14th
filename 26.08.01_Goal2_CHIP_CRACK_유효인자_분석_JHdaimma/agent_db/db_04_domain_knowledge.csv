@@ -12,6 +12,8 @@ defect_mechanism,Micro_Crack,4_blade_dicing,"Vibration이 Micro_Crack 원인 1�
 defect_mechanism,Micro_Crack,4_blade_dicing,[추론] 레이저 HAZ는 scribe lane 내부에 국한되고 블레이드가 그 자리를 제거하므로 그루빙 기여가 작다 — 현업 확정 사항('그루빙 문제 아님')을 설명하기 위해 작성자가 붙인 해석,작성자_추론,미검증(추론),⚠ 검증되지 않은 해석. 이 설명이 틀려도 위의 현업_확정·데이터_실증 항목은 영향받지 않음,작성자_추론
 defect_mechanism,Micro_Crack,4_blade_dicing,[추론] 블레이드 절삭 응력/진동 채터/백그라인딩 잔류 손상이 표면하 손상층을 만들고 그것이 미세균열이 된다 — 레이저 다이싱 일반 물리에서 도출,작성자_추론,미검증(추론),⚠ 데이터에 블레이드 파라미터(마모/드레싱/런아웃)가 없어 직접 검증 불가,작성자_추론
 defect_mechanism,Micro_Crack,4_blade_dicing,[추론] HBM은 박형화+적층 본딩이라 die break strength 저하가 치명적 — 다이싱 시 균열이 본딩 단계에서 전파되어 스택 전체 불량으로 확대될 수 있음,작성자_추론,미검증(추론),⚠ 이 데이터셋으로는 후공정 전파 여부를 확인할 수 없음,작성자_추론
+process_stage,0_equipment_mechanical,0_equipment_mechanical,장비 기계계통 — 특정 공정 단계에 속하지 않고 레이저·다이싱 양쪽에 영향,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
+process_stage,unassigned,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
 process_stage,0_equipment,0_equipment,설비 상태/정비 이력,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
 process_stage,1_coating,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
 process_stage,2_laser_grooving,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
@@ -19,50 +21,50 @@ process_stage,2R_grooving_result,2R_grooving_result,레이저 그루빙 결과 �
 process_stage,3_cleaning,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
 process_stage,4_blade_dicing,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
 process_stage,4R_dicing_result,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),현업_확정,확정,현업이 알려준 HBM DP 공정 흐름,현업_확정
-column_stage_mapping,Coating_Flow,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Coating_Thickness,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Coating_Uniformity,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Laser_Power,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Power_Efficiency,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Laser_Current,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Laser_Voltage,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Beam_Diameter,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Laser_Centering_Position,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Frequency,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실(멘토확인),팀문서
-column_stage_mapping,Head_Temp,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Laser_Head_Remain_Time,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 확실(멘토: 11스팟x2000h),팀문서
-column_stage_mapping,Groove_Depth,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Kerf_Width_Profile,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Top_Kerf,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Bottom_Kerf,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Kerf_Angle,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,CLN_Flow,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,CLN_Pressure,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,CLN_Time,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Vibration,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),팀문서,확정,매핑 확신도: 확실(멘토: 열화 대표신호),팀문서
-column_stage_mapping,Feed_Speed,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),작성자_추론,미검증(추론),매핑 확신도: 추정(레이저 이송일 가능성),작성자_추론
-column_stage_mapping,Cutting_X_Index,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Cutting_Y_Index,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Alignment_Time,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),작성자_추론,미검증(추론),매핑 확신도: 추정,작성자_추론
-column_stage_mapping,Process_Time,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),작성자_추론,미검증(추론),매핑 확신도: 추정,작성자_추론
-column_stage_mapping,Cooling_Flow,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),작성자_추론,미검증(추론),매핑 확신도: 미확정(멘토 재확인 예정),작성자_추론
-column_stage_mapping,Cooling_Water_Temp,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),작성자_추론,미검증(추론),매핑 확신도: 미확정(멘토 재확인 예정),작성자_추론
-column_stage_mapping,Surface_Roughness,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),작성자_추론,미검증(추론),매핑 확신도: 추정(멘토 drop여부 미확정),작성자_추론
-column_stage_mapping,Package_Size_1,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Package_Size_2,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Package_Size_3,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Package_Size_4,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),팀문서,확정,매핑 확신도: 확실,팀문서
-column_stage_mapping,Cooling_Thermal_Load,4_blade_dicing,블레이드 다이싱 — 벌크 실리콘 절단 (low-k는 이미 제거된 상태),팀문서,확정,매핑 확신도: 파생,팀문서
-column_stage_mapping,Laser_Cleaning_Demand,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,매핑 확신도: 파생,팀문서
-column_stage_mapping,Cleaning_Capacity,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,매핑 확신도: 파생,팀문서
-column_stage_mapping,Cleaning_Load_Ratio,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,매핑 확신도: 파생,팀문서
-column_stage_mapping,Package_Size_Asymmetry,4R_dicing_result,다이싱 결과 측정값 (절단면 품질/다이 치수),팀문서,확정,매핑 확신도: 파생(김시우 신규),팀문서
-column_stage_mapping,Maintenance_Count,0_equipment,설비 상태/정비 이력,팀문서,확정,매핑 확신도: 프록시,팀문서
+column_stage_mapping,Coating_Flow,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,김시우 subsystem=fdc_cleaning,팀문서
+column_stage_mapping,Coating_Thickness,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Coating_Uniformity,1_coating,보호 코팅 도포 — 레이저 debris가 웨이퍼 표면에 붙는 것을 방지,팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Laser_Power,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Power_Efficiency,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Laser_Current,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Laser_Voltage,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Beam_Diameter,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Laser_Centering_Position,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,팀문서,확정,김시우 subsystem=fdc_laser,팀문서
+column_stage_mapping,Frequency,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,멘토_확정,확정,김시우 subsystem=fdc_laser / 멘토가 레이저 변수로 확정,멘토_확정
+column_stage_mapping,Head_Temp,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,멘토_확정,확정,김시우 subsystem=fdc_thermal / 멘토 인과사슬(헤드온도->굴절률->센터링) 근거. 김시우 subsystem은 fdc_thermal,멘토_확정
+column_stage_mapping,Laser_Head_Remain_Time,2_laser_grooving,레이저 그루빙 — scribe lane의 low-k+금속층을 승화(ablation)로 제거,멘토_확정,확정,김시우 subsystem=fdc_cleaning / 멘토: 헤드 내 11스팟x약2000h. 김시우 subsystem은 fdc_cleaning,멘토_확정
+column_stage_mapping,Groove_Depth,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Kerf_Width_Profile,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Top_Kerf,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Bottom_Kerf,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,Kerf_Angle,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=response,팀문서
+column_stage_mapping,CLN_Flow,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,김시우 subsystem=fdc_cleaning,팀문서
+column_stage_mapping,CLN_Pressure,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,김시우 subsystem=fdc_cleaning,팀문서
+column_stage_mapping,CLN_Time,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,김시우 subsystem=fdc_cleaning,팀문서
+column_stage_mapping,Vibration,0_equipment_mechanical,장비 기계계통 — 특정 공정 단계에 속하지 않고 레이저·다이싱 양쪽에 영향,팀문서+멘토_확정,확정,김시우 subsystem=fdc_mechanical / 장비/스테이지 레벨 진동. 김시우 subsystem=fdc_mechanical. 레이저·다이싱 양쪽에 영향(멘토 사례는 빔 라인 어긋남),팀문서+멘토_확정
+column_stage_mapping,Maintenance_Count,0_equipment_mechanical,장비 기계계통 — 특정 공정 단계에 속하지 않고 레이저·다이싱 양쪽에 영향,김시우분류,확정,김시우 subsystem=undocumented_env_or_infra / 정비 이력 프록시,김시우분류
+column_stage_mapping,Feed_Speed,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=fdc_motion / 김시우 subsystem=fdc_motion. 레이저 이송인지 다이싱 이송인지 불명,작성자_추론
+column_stage_mapping,Alignment_Time,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=fdc_motion / 김시우 subsystem=fdc_motion,작성자_추론
+column_stage_mapping,Process_Time,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=fdc_motion / 김시우 subsystem=fdc_motion,작성자_추론
+column_stage_mapping,Cutting_X_Index,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=fdc_motion / 김시우 subsystem=fdc_motion. 정렬 계통,작성자_추론
+column_stage_mapping,Cutting_Y_Index,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=fdc_motion / 김시우 subsystem=fdc_motion. 정렬 계통,작성자_추론
+column_stage_mapping,Cooling_Flow,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,멘토_미확정,재확인 대기,김시우 subsystem=fdc_thermal / 멘토가 설비-컬럼 매핑 재확인 예정,멘토_미확정
+column_stage_mapping,Cooling_Water_Temp,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,멘토_미확정,재확인 대기,김시우 subsystem=fdc_thermal / 멘토가 설비-컬럼 매핑 재확인 예정,멘토_미확정
+column_stage_mapping,Surface_Roughness,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,멘토_미확정,재확인 대기,김시우 subsystem=response / 멘토가 drop 여부 미확정. 절단면 품질 지표로 추정되나 어느 단계인지 미확인,멘토_미확정
+column_stage_mapping,Package_Size_1,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=response / 김시우 subsystem=response. 정렬 동반지표,작성자_추론
+column_stage_mapping,Package_Size_2,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=response / 김시우 subsystem=response,작성자_추론
+column_stage_mapping,Package_Size_3,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=response / 김시우 subsystem=response,작성자_추론
+column_stage_mapping,Package_Size_4,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=response / 김시우 subsystem=response,작성자_추론
+column_stage_mapping,Laser_Cleaning_Demand,2R_grooving_result,레이저 그루빙 결과 측정값 (홈 깊이/폭/각도),팀문서,확정,김시우 subsystem=engineered / Laser_Power x Groove_Depth,팀문서
+column_stage_mapping,Cleaning_Capacity,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,김시우 subsystem=engineered / CLN_Flow x Pressure x Time,팀문서
+column_stage_mapping,Cleaning_Load_Ratio,3_cleaning,세정 — 레이저 debris 및 보호 코팅 제거,팀문서,확정,김시우 subsystem=engineered / 세정 수요/능력 비율,팀문서
+column_stage_mapping,Cooling_Thermal_Load,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,멘토_미확정,재확인 대기,김시우 subsystem=engineered / Cooling_* 매핑 미확정 상속,멘토_미확정
+column_stage_mapping,Package_Size_Asymmetry,unassigned,공정 단계 미배정 — 근거 부족. 김시우 subsystem 분류만 신뢰할 것,작성자_추론,미검증(추론),김시우 subsystem=engineered / 김시우 신규 피처. Package_Size 계열 상속,작성자_추론
 mentor_feedback,Focus,-,멘토: 분석에 활용하지 않아도 됨 -> 제외 (26.07.31),멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Cutting_Offset,-,멘토: 분석에 활용하지 않아도 됨 -> 제외 (26.07.31),멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Frequency,2_laser_grooving,멘토: 레이저 변수로 확인 -> fdc_laser 재분류. Micro_Crack 그루빙 제외 대상,멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Power_Efficiency,2_laser_grooving,멘토: U자형 비선형 — 단조 상관만으로 판단 금지,멘토_확정,확정,,멘토 피드백 26.07.31
-mentor_feedback,Vibration,4_blade_dicing,멘토: 설비 열화 대표신호. 실제 사고사례(노후장비 Y축 진동->빔라인 어긋남->대량 스크랩),멘토_확정,확정,,멘토 피드백 26.07.31
+mentor_feedback,Vibration,0_equipment_mechanical,멘토: 설비 열화 대표신호. 실제 사고사례(노후장비 Y축 진동->빔라인 어긋남->대량 스크랩),멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Laser_Head_Remain_Time,2_laser_grooving,"멘토: 헤드 내 11스팟, 스팟당 기준수명 약 2000h. 임계값성 패턴 가능",멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Head_Temp,2_laser_grooving,멘토 인과사슬: Head_Temp->크리스탈 스팟온도->굴절률->Laser_Centering_Position->Chipping/Kerf,멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Kerf_Width_Profile,2R_grooving_result,"멘토: 7um 기준점이 합성데이터에서 물리상수 아닐 수 있음 — 하드코딩 금지, baseline 역산",멘토_확정,확정,,멘토 피드백 26.07.31
@@ -70,7 +72,7 @@ mentor_feedback,Top_Kerf,2R_grooving_result,멘토: 7um 기준점 주의사항 �
 mentor_feedback,Groove_Depth,2R_grooving_result,멘토: 7um 기준 편차값이나 물리상수 아닐 수 있음 — baseline 역산,멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Edge_Burn,-,[재확인대기] 멘토가 무시해도 된다 시사했으나 미확정. Jun BURN 분석 전체 영향,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Bottom_Kerf,2R_grooving_result,[재확인대기] 다른 kerf 컬럼과 값 중복 여부,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
-mentor_feedback,Surface_Roughness,4R_dicing_result,[재확인대기] drop 여부 미확정 (필요상 넣어놓은 컬럼이라고만 언급),멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
-mentor_feedback,Cooling_Flow,4_blade_dicing,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
-mentor_feedback,Cooling_Water_Temp,4_blade_dicing,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
-mentor_feedback,Package_Size_Asymmetry,4R_dicing_result,멘토 힌트(센터링 이상->4방향 비대칭)를 김시우가 신규 피처로 수식화,멘토_확정,확정,,멘토 피드백 26.07.31
+mentor_feedback,Surface_Roughness,unassigned,[재확인대기] drop 여부 미확정 (필요상 넣어놓은 컬럼이라고만 언급),멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
+mentor_feedback,Cooling_Flow,unassigned,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
+mentor_feedback,Cooling_Water_Temp,unassigned,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
+mentor_feedback,Package_Size_Asymmetry,unassigned,멘토 힌트(센터링 이상->4방향 비대칭)를 김시우가 신규 피처로 수식화,멘토_확정,확정,,멘토 피드백 26.07.31

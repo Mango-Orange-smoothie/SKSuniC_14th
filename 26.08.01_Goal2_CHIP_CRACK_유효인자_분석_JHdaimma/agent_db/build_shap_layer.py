@@ -74,8 +74,8 @@ for tname, tcol in TARGETS.items():
     else:
         base_feats = FEATURES
 
-    fdc_only = [c for c in base_feats
-                if not (c in RESPONSES or PROCESS_STAGE[c][0].endswith("_result"))]
+    # 원인 모델 = 직접 조절 가능한 FDC만. 단계 라벨이 아니라 layer_of()로 판정한다.
+    fdc_only = [c for c in base_feats if layer_of(c) == "FDC"]
     all_feats = base_feats
 
     MODELS = {
@@ -138,8 +138,7 @@ for tname, tcol in TARGETS.items():
                          "nonlinear_or_none")
             global_rows.append({
                 "target": tname, "model": mname, "factor": c,
-                "layer": "Response" if (c in RESPONSES or stage.endswith("_result")) else (
-                    "FDC" if c in FDC_COLS else "Engineered"),
+                "layer": layer_of(c),
                 "process_stage": stage, "is_laser_grooving": stage in GROOVING_STAGES,
                 "shap_rank": int(x.shap_rank),
                 "mean_abs_shap": round(float(x.mean_abs_shap), 6),

@@ -5,7 +5,7 @@ Top_Kerf,Response,Chipping,Defect,monitors,0.926,up,Cliffs delta (pure label),co
 Power_Efficiency,FDC,Chipping,Defect,causes,0.8989,either,Cliffs delta (pure label),confirmed
 Head_Temp,FDC,Chipping,Defect,causes,0.8867,up,Cliffs delta (pure label),confirmed
 Laser_Power,FDC,Chipping,Defect,causes,0.8724,down,Cliffs delta (pure label),confirmed
-Laser_Cleaning_Demand,Engineered,Chipping,Defect,causes,0.8622,either,Cliffs delta (pure label),confirmed
+Laser_Cleaning_Demand,Response,Chipping,Defect,monitors,0.8622,down,Cliffs delta (pure label),confirmed
 Vibration,FDC,Chipping,Defect,causes,0.8443,up,Cliffs delta (pure label),confirmed
 Kerf_Angle,Response,Chipping,Defect,monitors,0.7811,up,Cliffs delta (pure label),candidate_weak_signal
 Groove_Depth,Response,Chipping,Defect,monitors,0.7504,down,Cliffs delta (pure label),confirmed

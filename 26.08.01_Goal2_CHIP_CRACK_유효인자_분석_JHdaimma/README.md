@@ -47,7 +47,7 @@ Jun 브랜치가 "n=4는 패턴 탐지가 아니라 4개 사례 기록에 가깝
 | **`작성자_추론`** | 일반 공정 물리에서 도출한 해석 | ❌ **미검증 — "추정"으로만 표현** |
 | `멘토_미확정` | 멘토가 시사했으나 확정 안 됨 | ❌ 결론 반영 금지 |
 
-**분포**: 팀문서 37 · 멘토_확정 12 · **작성자_추론 10** · 현업_확정 8 · 멘토_미확정 5 · 데이터_실증 3
+**분포**(총 77행): 팀문서 24 · 멘토_확정 15 · **작성자_추론 14** · 현업_확정 10 · 멘토_미확정 9 · 데이터_실증 3 · 기타 2
 
 ### 이 구분이 중요한 이유 — Micro_Crack 그루빙 제외 사례
 
@@ -88,8 +88,8 @@ SHAP은 상관 높은 변수끼리 기여도를 나눠 갖기 때문에 **하나
 
 | 인자 | 모델 A(FDC만) | 모델 B(전체) | 변화 |
 |---|---|---|---|
-| `Head_Temp` | **2.065** | 0.150 | **1/14로 급락** |
-| `Laser_Power` | **0.948** | 0.128 | **1/7로 급락** |
+| `Head_Temp` | **1.979** | 0.150 | **1/13로 급락** |
+| `Laser_Power` | **1.180** | 0.128 | **1/9로 급락** |
 | `Kerf_Width_Profile` | (제외) | **6.142** | — |
 
 한 모델로만 돌렸다면 **"Chipping 원인 = 절단 폭"**이라는 실행 불가능한 결론이 나왔을 것입니다.
@@ -147,17 +147,17 @@ Vibration ↑ ──drives(0.424)──> Surface_Roughness ↑ ──(0.492)─�
 
 | Chipping | \|SHAP\| | 방향 | | Micro_Crack | \|SHAP\| | 방향 |
 |---|---|---|---|---|---|---|
-| `Head_Temp` | **2.065** | 높으면 위험 | | `Vibration` | **0.249** | 높으면 위험 |
-| `Laser_Power` | 0.948 | 낮으면 위험 | | `Cleaning_Load_Ratio` | 0.150 | 높으면 위험 |
-| `Power_Efficiency` | 0.827 | 낮으면 위험 | | `CLN_Time` | 0.132 | 높으면 위험 |
-| `Laser_Centering_Position` | 0.216 | 높으면 위험 | | | | |
-| `Vibration` | 0.186 | 높으면 위험 | | | | |
+| `Head_Temp` | **1.979** | 높으면 위험 | | `Vibration` | **0.255** | 높으면 위험 |
+| `Laser_Power` | 1.180 | 낮으면 위험 | | `CLN_Time` | 0.133 | 낮으면 위험 |
+| `Power_Efficiency` | 0.842 | 낮으면 위험 | | `CLN_Flow` | 0.125 | 낮으면 위험 |
+| `Laser_Centering_Position` | 0.228 | 높으면 위험 | | | | |
+| `Vibration` | 0.212 | 높으면 위험 | | | | |
 
-모델 성능: Chipping ROC-AUC **0.965** / Micro_Crack **0.803**
-(Micro_Crack이 낮은 것은 **블레이드 파라미터가 데이터에 없기 때문**으로 추정 — 아래 요청사항 4 참고)
+모델 성능: Chipping ROC-AUC **0.965**(피처 23개) / Micro_Crack **0.803**(피처 14개)
+(Micro_Crack이 낮은 이유는 **다이싱 단계를 직접 나타내는 컬럼이 없기 때문으로 추정**되나 확인된 바 아님 — 요청사항 4 참고)
 
 > 💡 **`Vibration` 등급 상향 근거**: 단변량 delta 0.124로 기준(0.2) 미달이라
-> `db_01`에서는 `shared_cause`로만 분류됐으나, **SHAP에서 Micro_Crack 원인 1위**이고
+> `db_01`에서는 `shared_cause`로만 분류됐으나, **SHAP에서 Micro_Crack 원인 1위(0.255)**이고
 > 3방법 모두 통과했습니다. 멘토가 언급한 실제 스크랩 사고 사례와도 일치합니다.
 
 ### 개별 건 설명 (`db_07_shap_local.csv`) — ⑤ Root Cause Analyzer 연결점
@@ -209,7 +209,8 @@ Jun 브랜치 README가 스스로 경고한 대로 소표본 착시였습니다.
 | `Surface_Roughness` 실제 측정값 여부 | **Micro_Crack의 유일한 confirmed** — 무효화 시 감시지표 소멸 |
 | `Edge_Burn` 최종 제외 여부 | Jun BURN 분석 전체에 영향 |
 | `Bottom_Kerf` 값 중복 여부 | Chipping confirmed 항목 |
-| **블레이드 파라미터 추가 제공 가능 여부** | Chipping/Micro_Crack 둘 다 블레이드 단계 불량인데 **블레이드 정보가 데이터에 전혀 없음**. `Vibration`이 유일한 프록시 |
+| **`Vibration` 세분화 데이터 유무** | 현재는 **장비 레벨 단일 값**이라 레이저 단계 영향인지 다이싱 단계 영향인지 구분 불가. 축별·시점별 데이터가 있으면 Micro_Crack 규명이 크게 개선됨 |
+| 다이싱 단계 파라미터 유무 | 다이싱 단계를 직접 나타내는 컬럼이 데이터에 없음 |
 
 ### 5. 멘토 지시 검증 결과 보고
 
@@ -217,7 +218,7 @@ Jun 브랜치 README가 스스로 경고한 대로 소표본 착시였습니다.
 |---|---|
 | `Power_Efficiency` U자형 | ✅ 구간별 lift **0.01~6.97** — 단조 검정으론 못 잡는 패턴 확인 |
 | `Head_Temp` 인과사슬 | ✅ `Kerf_Angle` 1위 드라이버(1.179), Kerf 3종 상위 — 가설대로 확인 |
-| `Vibration` 열화 대표신호 | ✅ 두 결함 **공통 원인**으로 확인 |
+| `Vibration` 열화 대표신호 | ✅ 두 결함 **공통 원인**으로 확인 (장비 레벨 진동 — 특정 단계 아님) |
 | `Laser_Head_Remain_Time` 임계값성 | ❌ **lift 0.98~1.01, 신호 없음** — 합성 데이터에 수명 로직 미반영 추정 |
 | `Package_Size_Asymmetry`(김시우 신규) | ✅ `Laser_Centering_Position` 하나로 **R²=0.847** — 피처 설계 타당 |
 
@@ -226,7 +227,7 @@ Jun 브랜치 README가 스스로 경고한 대로 소표본 착시였습니다.
 ## ⚠️ 한계 (해석 시 주의)
 
 1. **`Vibration`의 Micro_Crack 직접 효과는 약함** (pure delta 0.124, 기준 0.2 미달).
-   트리 3위·3/4 장비 재현·`Surface_Roughness` 경로로는 살아있어 `shared_cause`로 분류했으나
+   트리 3위·3/4 장비 재현·SHAP 원인 1위(0.255)로 살아있어 `shared_cause`로 분류했으나
    **`confirmed`가 아님** — 보고 시 등급 구분 필요.
 2. **`Process_Time`(Micro_Crack, candidate_weak_signal)은 신뢰하지 말 것.**
    delta -0.009인데 트리 순위만으로 통과. Micro_Crack 후보가 24개뿐이라 top-10 기준이 느슨함.

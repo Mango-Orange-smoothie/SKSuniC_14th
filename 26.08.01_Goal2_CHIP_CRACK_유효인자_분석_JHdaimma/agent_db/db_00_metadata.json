@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-31T17:37:06.513015+00:00",
+  "generated_at": "2026-07-31T19:07:49.394584+00:00",
   "purpose": "AI Agent(3 Relationship Analyzer / 5 Root Cause Analyzer)용 관계 DB",
   "datasets": {
     "original": {
@@ -58,12 +58,12 @@
     "블레이드 관련 파라미터(마모/드레싱/런아웃)를 추가로 받을 수 있는가?"
   ],
   "shap_layer": {
-    "added_at": "2026-07-31T18:06:12.875669+00:00",
+    "added_at": "2026-07-31T19:08:44.256955+00:00",
     "models": {
       "Chipping|A_cause_FDConly": {
-        "roc_auc": 0.9647,
-        "pr_auc": 0.5646,
-        "n_features": 26,
+        "roc_auc": 0.9649,
+        "pr_auc": 0.5712,
+        "n_features": 23,
         "scale_pos_weight": 11.66
       },
       "Chipping|B_monitor_full": {
@@ -73,9 +73,9 @@
         "scale_pos_weight": 11.66
       },
       "Micro_Crack|A_cause_FDConly": {
-        "roc_auc": 0.8031,
-        "pr_auc": 0.0943,
-        "n_features": 16,
+        "roc_auc": 0.8028,
+        "pr_auc": 0.0959,
+        "n_features": 14,
         "scale_pos_weight": 27.32
       },
       "Micro_Crack|B_monitor_full": {
