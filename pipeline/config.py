@@ -32,6 +32,79 @@ def NORMAL(frame):
 # 원본 데이터프레임에는 남기되(추적성 보존), 피처셋 구성 시 기본 제외한다.
 EXCLUDED_IDENTIFIERS = ["Shift", "Lot_ID", "Strip_ID", "Operator_ID"]
 
+# 멘토 피드백(26.07.31): 데이터 제공 시 "분석에 활용하지 않아도 되는 변수"로 명시적으로
+# 지정됨. FDC/response 값이라 원본 데이터프레임에는 남기되, 피처셋에서는 제외한다.
+# 주의: Focus는 Jun의 BURN 분석(Goal2)에서 이미 도메인 후보로 포함돼 있었으므로
+# 이 변경 이후 재실행이 필요할 수 있다 — Jun에게 공유할 것.
+MENTOR_EXCLUDED_VARS = ["Focus", "Cutting_Offset"]
+MENTOR_EXCLUDED_VARS_NOTE = "멘토가 데이터 제공 시 분석에 활용하지 않아도 된다고 명시적으로 지정한 변수 (26.07.31 피드백)."
+
+# 멘토 피드백(26.07.31) — 제외가 아니라 "참고" 성격의 도메인 지식. 통계 분석 시
+# 단순 선형/단조 상관만 보지 말고 임계값 효과 가능성을 염두에 둘 것.
+MENTOR_DOMAIN_NOTES = {
+    "Frequency": "멘토 피드백: 레이저 변수로 확인됨 (fdc_laser로 재분류).",
+    "Laser_Head_Remain_Time": (
+        "멘토 피드백: 헤드 내 11개 스팟, 스팟당 기준수명 약 2000시간(가상데이터라 그대로 "
+        "적용 안 될 수 있음). 잔여시간이 적게 남거나 특정 시점(교체/오버 시점)을 지날 때 "
+        "불량이 발생하는 임계값성 패턴이 있을 수 있음 — 선형 상관보다 구간별/임계값 "
+        "기반 분석(예: 잔여시간 구간화 후 불량률 비교)을 함께 검토할 것."
+    ),
+    "Power_Efficiency": (
+        "멘토 피드백: 비선형(U자형/최적구간) 특성 — 효율이 높아져도 낮아져도 불량과 "
+        "연관될 수 있음. 단순 선형/단조 상관(Mann-Whitney 등)으로만 해석하지 말 것, "
+        "|편차| 기준 검정이나 구간화 분석을 함께 검토할 것."
+    ),
+    "Vibration": (
+        "멘토 피드백: 설비 열화(degradation)의 대표 신호. 실제 사고 사례(노후 장비 Y축 "
+        "이동 시 진동으로 빔 라인 어긋남 → 대량 스크랩)가 있었음 — Health Index(Goal5) "
+        "핵심 후보 변수로 우선 고려할 것."
+    ),
+    "Kerf_Width_Profile": (
+        "멘토 피드백: '7㎛ 지점' 기준으로 정의된 값이지만, 이 합성 데이터에서는 생성 시 "
+        "정확히 7㎛로 고정되지 않고 임의 baseline을 썼을 수 있음 — 7㎛를 물리 상수로 "
+        "하드코딩하지 말고, baseline을 데이터 분포(정상군 median 등)에서 역산해서 쓸 것 "
+        "(Step0의 OK-baseline 방식이 이미 이 원칙을 따름)."
+    ),
+    "Top_Kerf": "멘토 피드백: Kerf_Width_Profile과 동일한 '7㎛ 기준점 아님' 주의사항 적용.",
+    "Groove_Depth": (
+        "멘토 피드백: 기준 깊이(7㎛) 대비 편차값이지만, 이 데이터에서 7㎛가 실제 물리 "
+        "상수가 아닐 수 있음 — Kerf_Width_Profile과 동일 주의사항, baseline은 데이터로 역산."
+    ),
+    "Package_Size_1": "멘토 피드백: 4방향(동서남북) 중 하나, 방향 특정 불필요. 센터링 이상 시 비대칭 패턴 발생 — Package_Size_Asymmetry(팀 공용 피처) 참고.",
+    "Package_Size_2": "멘토 피드백: Package_Size_1과 동일 — 센터링 이상 시 비대칭 패턴, Package_Size_Asymmetry 참고.",
+    "Package_Size_3": "멘토 피드백: Package_Size_1과 동일 — 센터링 이상 시 비대칭 패턴, Package_Size_Asymmetry 참고.",
+    "Package_Size_4": "멘토 피드백: Package_Size_1과 동일 — 센터링 이상 시 비대칭 패턴, Package_Size_Asymmetry 참고.",
+    "Head_Temp": (
+        "멘토 피드백: Head_Temp -> 크리스탈 스팟 온도 변화 -> 굴절률 변화 -> "
+        "Laser_Centering_Position 변화 -> Chipping/Kerf 불균일로 이어지는 인과사슬 가설. "
+        "Cooling_Flow/Cooling_Water_Temp/Laser_Centering_Position과 함께 묶어 다변량 분석 권장."
+    ),
+    "Laser_Centering_Position": "멘토 피드백: Head_Temp 인과사슬의 종착점 — 레이저 품질 이상의 핵심 원인 중 하나로 반복 언급됨.",
+}
+
+# 멘토 피드백(26.08.01) — 재확인 결과 최종 확정: Edge_Burn/Edge_Burn_Die는 유효한 실패모드가
+# 아니므로 defect 분석 대상에서 제외. Jun의 Goal2 BURN 분석(confirmed factors: Frequency,
+# Thermal_Load_Ratio, Top_Kerf, Kerf_Width_Profile, Surface_Roughness)은 이 라벨 자체를 쓴
+# 것이므로 전체가 무효화됨 — Jun에게 최우선으로 공유하고 BURN 분석 폴더 처리 방향(삭제 vs
+# "제외된 defect였음" 아카이브) 논의 필요.
+MENTOR_EXCLUDED_DEFECTS = ["Edge_Burn", "Edge_Burn_Die"]
+MENTOR_EXCLUDED_DEFECTS_NOTE = (
+    "멘토 확인 결과 유효한 실패모드가 아님이 확정되어 defect 분석 대상에서 제외 (26.08.01). "
+    "Jun의 Goal2 BURN 분석 전체가 이 라벨 기반이라 재검토 필요."
+)
+
+# 멘토 피드백(26.07.31) — 아직 최종 확정이 아니라 "재확인 예정"으로 남은 항목.
+# 함부로 제외하지 않고 include_in_downstream_default=True로 유지하되, 강한 경고를 남긴다.
+MENTOR_PENDING_REVIEW = {
+    "Bottom_Kerf": "멘토가 다른 kerf 컬럼과 값 중복 여부, 순수 샘플링 값인지 재확인 예정이라고 했음 — 결과 해석 시 주의.",
+    "Surface_Roughness": (
+        "멘토가 drop 여부를 확정하지 않음('필요상 넣어놓은 컬럼'이라고만 언급) — Jun의 "
+        "BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 최종 확정 전까지 결과 해석 시 주의."
+    ),
+    "Cooling_Flow": "멘토가 '컬럼을 다시 봐야겠다'며 설비-컬럼 매핑 재확인을 예고함 — 정확한 매핑 확정 전까지 결과 해석 시 주의.",
+    "Cooling_Water_Temp": "멘토가 '컬럼을 다시 봐야겠다'며 설비-컬럼 매핑 재확인을 예고함 — 정확한 매핑 확정 전까지 결과 해석 시 주의.",
+}
+
 ID_PRODUCTION_COLS = [
     "DateTime", "Machine_ID", "Product_ID", "Shift",
     "Lot_ID", "Strip_ID", "Recipe_ID", "Operator_ID",
@@ -42,9 +115,10 @@ SUBSYSTEMS = {
     "fdc_laser": [
         "Laser_Power", "Power_Efficiency", "Laser_Centering_Position",
         "Laser_Current", "Laser_Voltage", "Beam_Diameter",
+        "Frequency",  # 멘토 피드백(26.07.31): 레이저 변수로 확인됨 — fdc_motion에서 이동
     ],
     "fdc_motion": [
-        "Feed_Speed", "Frequency", "Alignment_Time", "Process_Time",
+        "Feed_Speed", "Alignment_Time", "Process_Time",
         "Cutting_X_Index", "Cutting_Y_Index",
     ],
     "fdc_thermal": ["Head_Temp", "Cooling_Flow", "Cooling_Water_Temp", "Focus"],
@@ -133,11 +207,17 @@ def add_domain_features(df):
     result["Laser_Cleaning_Demand"] = result["Laser_Power"] * result["Groove_Depth"]
     result["Cleaning_Capacity"] = result["CLN_Flow"] * result["CLN_Pressure"] * result["CLN_Time"]
     result["Cleaning_Load_Ratio"] = result["Laser_Cleaning_Demand"] / result["Cleaning_Capacity"]
+    # 멘토 피드백(26.07.31): Package_Size_1~4는 방향(동서남북) 특정 불필요하다고 확인됨.
+    # 센터링이 틀어지면 한쪽은 커지고 반대쪽은 작아지는 비대칭 패턴이 생긴다는 도메인 힌트를
+    # "4개 값의 행별 표준편차"로 수식화 — 어느 쌍이 마주보는 방향인지 몰라도 계산 가능하다.
+    package_cols = ["Package_Size_1", "Package_Size_2", "Package_Size_3", "Package_Size_4"]
+    result["Package_Size_Asymmetry"] = result[package_cols].std(axis=1)
     return result
 
 
 DOMAIN_FEATURES = [
     "Cooling_Thermal_Load", "Laser_Cleaning_Demand", "Cleaning_Capacity", "Cleaning_Load_Ratio",
+    "Package_Size_Asymmetry",
 ]
 
 EXPECTED_ROW_COUNT = 100_000

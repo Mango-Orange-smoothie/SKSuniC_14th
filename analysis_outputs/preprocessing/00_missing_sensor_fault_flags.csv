@@ -70,3 +70,4 @@ Cooling_Thermal_Load,0,0.0,0,0.0,0,0.0,flag_only
 Laser_Cleaning_Demand,0,0.0,0,0.0,0,0.0,flag_only
 Cleaning_Capacity,0,0.0,0,0.0,0,0.0,flag_only
 Cleaning_Load_Ratio,0,0.0,0,0.0,0,0.0,flag_only
+Package_Size_Asymmetry,0,0.0,0,0.0,0,0.0,flag_only

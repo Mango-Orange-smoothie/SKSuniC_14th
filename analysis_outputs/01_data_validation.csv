@@ -1,0 +1,6 @@
+﻿,value
+전체 행 수,100000
+Lot_ID + Strip_ID 고유 건수,100000
+Lot_ID + Strip_ID 중복 행 수,0
+Strip_ID 단독 중복 행 수 (분석키로 사용 금지),4765
+"정상군 수 (Yield=100, NG_Code=OK)",90783

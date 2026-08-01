@@ -59,6 +59,53 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
 
 두 grain의 baseline 파일이 모두 존재하는 이유가 이것이다 — 질문 성격에 맞는 쪽을 골라 쓴다.
 
+## 멘토 피드백 반영 (26.07.31)
+
+- **분석 제외 변수 추가**: `Focus`, `Cutting_Offset`은 멘토가 "분석에 활용하지 않아도 된다"고
+  명시적으로 지정한 변수. `00_column_classification.csv`에서 `analysis_role=mentor_excluded`,
+  `include_in_downstream_default=False`로 반영됨. **주의**: Jun의 BURN 분석(Goal2)은 이 변경
+  이전에 실행되어 `Focus`를 도메인 후보로 이미 포함하고 있음 — 재실행 여부 판단 필요.
+- **`Frequency` 재분류**: `fdc_motion` → `fdc_laser`로 이동 (멘토가 레이저 변수로 확인). 후보
+  컬럼 목록 자체(FDC_COLS)는 안 바뀌므로 기존 분석 결과에 영향 없음, 분류만 정정됨.
+- **`Laser_Head_Remain_Time` 참고사항**: 잔여시간이 적거나 특정 시점(교체/오버 시점)을 지날 때
+  불량이 나는 **임계값성 패턴**이 있을 수 있다는 멘토 코멘트. 단순 선형 상관(Mann-Whitney 등)만
+  보지 말고, 잔여시간을 구간화(binning)해서 구간별 불량률을 비교하는 방법도 함께 검토할 것 —
+  `00_column_classification.csv`의 해당 행 `decision_note`에도 남겨둠.
+
+## 멘토 피드백 2차 반영 (`FDC_전처리_멘토링_정리.md` 기준, 26.07.31)
+
+- **재확인 대기 중인 컬럼 4개** (`mentor_pending_review=True`, 제외하지 않고 경고만 추가):
+  `Bottom_Kerf`(다른 kerf 컬럼과 값 중복 가능성), `Surface_Roughness`(drop 여부 미확정 — Jun의
+  BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 주의), `Cooling_Flow`/`Cooling_Water_Temp`
+  (설비-컬럼 매핑 재확인 예정).
+- **`Power_Efficiency`**: 비선형(U자형/최적구간) 특성 — 단순 선형 상관만으로 판단 금지.
+- **`Vibration`**: 설비 열화의 대표 신호(실제 대형 스크랩 사고 사례 있음) — **Health Index(Goal5)
+  핵심 후보 변수**로 우선 고려할 것.
+- **`Kerf_Width_Profile`/`Top_Kerf`/`Groove_Depth`**: "7㎛ 기준점"이 이 합성 데이터에서는 실제
+  물리 상수가 아닐 수 있음 — 하드코딩 금지, baseline은 데이터 분포에서 역산 (Step0의 OK-baseline
+  방식이 이미 이 원칙을 따르고 있음).
+- **`Package_Size_1~4`**: 센터링 이상 시 비대칭 패턴이 생긴다는 도메인 힌트를 신규 팀 공용
+  피처 **`Package_Size_Asymmetry`**(4개 값의 행별 표준편차)로 수식화해서 `config.DOMAIN_FEATURES`
+  에 추가함 (어느 번호가 어느 방향인지 몰라도 계산 가능).
+- **`Head_Temp`/`Cooling_Flow`/`Cooling_Water_Temp`/`Laser_Centering_Position`**: 멘토가 설명한
+  인과사슬(Head_Temp→크리스탈 스팟 온도→굴절률→센터링 변화→Chipping/Kerf 불균일) 가설 —
+  Goal3(상호작용) 담당자는 이 4개를 묶어서 다변량으로 분석하는 것을 우선 고려할 것.
+
+## 멘토 피드백 3차 반영 — `Edge_Burn` 최종 제외 확정 (26.08.01)
+
+- **`Edge_Burn`, `Edge_Burn_Die`를 defect 분석 대상에서 최종 제외했다.** 멘토 재확인 결과
+  유효한 실패모드가 아님이 확정됨. `00_column_classification.csv`에서
+  `analysis_role=mentor_excluded_defect`, `is_mentor_excluded_defect=True`,
+  `include_in_downstream_default=False`로 반영됨.
+- **⚠️ 팀 전체 영향— 반드시 확인할 것**: Jun의 Goal2 BURN 분석
+  (`26.07.30_2001_Goal2_BURN_유효인자_분석/`)은 `NG_Code=='BURN'`/`Edge_Burn==1`을 라벨로
+  써서 만든 것이라 **이번 제외 결정으로 전체가 무효화된다.** confirmed factors였던
+  `Frequency`, `Thermal_Load_Ratio`, `Top_Kerf`, `Kerf_Width_Profile`, `Surface_Roughness`는
+  더 이상 "BURN 유효인자"로 제출하면 안 됨. Jun에게 최우선 공유 필요 — 해당 폴더를
+  삭제할지, "제외된 defect였음"으로 아카이브만 할지는 팀 논의로 결정할 것.
+- 원본 데이터의 `Edge_Burn`/`Edge_Burn_Die` 값 자체는 지우지 않았다(추적성 보존) — 분석
+  피처셋에서만 빠진다.
+
 ## Goal별 활용법
 
 - **Goal 1 (장비/제품 비교)**: `00_stratum_baseline_stats_by_machine_opcond.csv`의
@@ -72,6 +119,13 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
   `analysis_outputs/full_correlation/02b_process_parameter_correlation_pairs.csv`와
   교차검증** — 여러 방법에서 공통으로 상위권인 인자만 "유효인자"로 멘토에게 제출한다
   (`ANALYSIS_GUIDE.md`가 이미 경고했듯 상관/중요도 하나만으로는 가짜상관 위험이 있다).
+  **주의**: `03_impact_factor_ranking.csv`(`analysis_step_by_step.py` 산출물, 26.08.01
+  Edge_Burn 제외 반영 재작성됨)는 Particle/Remain_Coat/Micro_Crack/Chipping 4개 defect를
+  다루도록 갱신됐다. 단 **Micro_Crack/Chipping은 층별(Machine×Product×Recipe) 표본 부족
+  으로 실제 결과 행이 없다**(스크립트 실행 시 콘솔 경고 참고, 최대 층당 2건/1건뿐) —
+  이 두 defect는 이 파일로 교차검증할 수 없고, Jun/윤진혁의 행 단위 검정(Goal2 CRACK/CHIP
+  분석)을 참고할 것. **Particle/Remain_Coat 행만 실질적으로 교차검증에 쓸 수 있다.**
+  Laser_Paim은 이 데이터셋에서 발생 건수가 0건이라 애초에 대상이 아니다.
 - **Goal 3 (상호작용)**: Goal 2가 확정한 유효인자 목록을 받아서 실행 (Goal 2 이후 순서).
   `00_stratum_baseline_stats_by_opcond.csv`의 정규화 스케일 위에서 인자쌍 상호작용 분석.
 - **Goal 4 (이상치/열화 탐지)**: 먼저 `00_missing_sensor_fault_flags.csv`로 결측/센서고장
