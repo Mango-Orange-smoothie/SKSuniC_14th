@@ -89,7 +89,7 @@ Micro_Crack에서 Vibration이 원인이라는 주장은 이번 기준으로는 
 ## 실행 방법
 
 ```bash
-python "26.08.01_2128_Goal2_통합_전체방법론_4개defect/unified_full_methodology.py"
+python "26.08.01_2229_Goal2_통합_전체방법론_4개defect/unified_full_methodology.py"
 ```
 
 `reproducibility_check.py`는 방법 G가 본 스크립트에 흡수되면서 더 이상 필요 없다
