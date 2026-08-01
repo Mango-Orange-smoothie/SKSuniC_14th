@@ -101,10 +101,25 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
   (`26.07.30_2001_Goal2_BURN_유효인자_분석/`)은 `NG_Code=='BURN'`/`Edge_Burn==1`을 라벨로
   써서 만든 것이라 **이번 제외 결정으로 전체가 무효화된다.** confirmed factors였던
   `Frequency`, `Thermal_Load_Ratio`, `Top_Kerf`, `Kerf_Width_Profile`, `Surface_Roughness`는
-  더 이상 "BURN 유효인자"로 제출하면 안 됨. Jun에게 최우선 공유 필요 — 해당 폴더를
-  삭제할지, "제외된 defect였음"으로 아카이브만 할지는 팀 논의로 결정할 것.
+  더 이상 "BURN 유효인자"로 제출하면 안 됨.
+- **팀 결정(26.08.01)**: BURN 관련 폴더/코드는 삭제하지 않고 **그대로 두되 더 이상 사용하지
+  않는다** (아카이브 취급, 별도 정리 작업 불필요).
 - 원본 데이터의 `Edge_Burn`/`Edge_Burn_Die` 값 자체는 지우지 않았다(추적성 보존) — 분석
   피처셋에서만 빠진다.
+
+## r1(신규) 데이터셋 정책 (26.08.01)
+
+멘토가 준 `DP_HealthIndex_Dataset_r1.csv`(정상군 58.9%, 원본 대비 불량률 대폭 상향, `LASER`
+신규 NG_Code 포함)는 **`data/raw/`의 원본 데이터와 합치지 않는다.** 원본 기준 극희귀
+defect(예: Chipping 4건, Micro_Crack 41건)의 표본 부족을 보완하는 **학습/검증 전용
+데이터**로만 쓴다 — JHdaimma가 Chip/Crack confirmed factor를 원본·r1 양쪽에서 재현되는지
+교차검증하는 데 이미 이렇게 쓰고 있다(`analysis_v2_kimsiwoo_jun/` 폴더 참고).
+
+- `pipeline/`(Step0), `analysis_step_by_step.py`, 이 대시보드(`26.08.01_Goal5_...`)를 포함한
+  **팀 공용 산출물은 계속 원본 데이터 기준으로만 유지**한다.
+- r1을 쓰는 개인 분석은 결과에 "r1 기준"임을 명시하고, 원본 기준 결과와 나란히 놓고
+  "재현되는지"만 확인하는 용도로 한정할 것 — r1 결과 단독으로 팀 공식 유효인자를 바꾸지 않는다.
+- r1 원본 파일은 용량 때문에 git에 커밋하지 않는다(JHdaimma README와 동일 방침).
 
 ## Goal별 활용법
 
