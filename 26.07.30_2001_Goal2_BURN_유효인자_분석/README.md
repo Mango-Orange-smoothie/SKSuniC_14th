@@ -1,5 +1,22 @@
 # Goal 2 — NG_Code: BURN 유효인자 발굴
 
+> ## ⚠️⚠️⚠️ 폐기(DEPRECATED) — 2026-08-01
+>
+> **멘토 최종 확인 결과 `Edge_Burn`은 유효한 실패모드가 아닌 것으로 확정되어
+> defect 분석 대상에서 제외됐습니다** (김시우 브랜치 커밋 `7e2d73c`,
+> `analysis_outputs/preprocessing/00_column_classification.csv`의 `Edge_Burn`
+> decision_note 참고: "멘토 확인 결과 유효한 실패모드가 아님이 확정되어 defect 분석
+> 대상에서 제외 (26.08.01). Jun의 Goal2 BURN 분석 전체가 이 라벨 기반이라 재검토 필요.")
+>
+> **이 폴더의 모든 결과(confirmed 인자 포함)는 더 이상 유효하지 않습니다.**
+> `pipeline/config.py`의 `MENTOR_EXCLUDED_DEFECTS`를 따를 것 — Edge_Burn 대신
+> Particle/Remain_Coat/Micro_Crack/Chipping 4종만 Goal2 분석 대상입니다.
+> (참고: `pipeline/README.md` 최신본, `ANALYSIS_GUIDE.md`)
+>
+> 아래 내용은 **폐기 전 이력 기록용으로만** 남겨둡니다.
+
+---
+
 레이저 다이싱 공정의 Edge Burn(과열) 불량을 유발하는 FDC/Response 인자를
 ① 물리 메커니즘 기반 도메인 가설과 ② 통계적 교차검증(Mann-Whitney U + BH-FDR,
 RandomForest permutation importance)을 **모두** 통과한 것만 "유효인자"로 확정한다.
