@@ -70,9 +70,10 @@ mentor_feedback,Head_Temp,2_laser_grooving,멘토 인과사슬: Head_Temp->크�
 mentor_feedback,Kerf_Width_Profile,2R_grooving_result,"멘토: 7um 기준점이 합성데이터에서 물리상수 아닐 수 있음 — 하드코딩 금지, baseline 역산",멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Top_Kerf,2R_grooving_result,멘토: 7um 기준점 주의사항 동일,멘토_확정,확정,,멘토 피드백 26.07.31
 mentor_feedback,Groove_Depth,2R_grooving_result,멘토: 7um 기준 편차값이나 물리상수 아닐 수 있음 — baseline 역산,멘토_확정,확정,,멘토 피드백 26.07.31
-mentor_feedback,Edge_Burn,-,[재확인대기] 멘토가 무시해도 된다 시사했으나 미확정. Jun BURN 분석 전체 영향,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Bottom_Kerf,2R_grooving_result,[재확인대기] 다른 kerf 컬럼과 값 중복 여부,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Surface_Roughness,unassigned,[재확인대기] drop 여부 미확정 (필요상 넣어놓은 컬럼이라고만 언급),멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Cooling_Flow,unassigned,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Cooling_Water_Temp,unassigned,[재확인대기] 설비-컬럼 매핑 재확인 예정,멘토_미확정,재확인 대기,멘토 재확인 전까지 결과 해석 주의,멘토 피드백 26.07.31
 mentor_feedback,Package_Size_Asymmetry,unassigned,멘토 힌트(센터링 이상->4방향 비대칭)를 김시우가 신규 피처로 수식화,멘토_확정,확정,,멘토 피드백 26.07.31
+mentor_feedback,Edge_Burn,-,멘토 최종 확인(26.08.01): 유효한 실패모드 아님 -> defect 분석 대상에서 제외 확정 (원본 값은 보존),멘토_확정,확정,"우리 Chipping/Micro_Crack 분석에는 영향 없음(피처로 미사용, 동시발생 0건 검증)",멘토 피드백 26.08.01
+mentor_feedback,Edge_Burn_Die,-,멘토 최종 확인(26.08.01): 유효한 실패모드 아님 -> defect 분석 대상에서 제외 확정 (원본 값은 보존),멘토_확정,확정,"우리 Chipping/Micro_Crack 분석에는 영향 없음(피처로 미사용, 동시발생 0건 검증)",멘토 피드백 26.08.01

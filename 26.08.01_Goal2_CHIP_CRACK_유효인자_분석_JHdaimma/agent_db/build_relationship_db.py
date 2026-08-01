@@ -53,8 +53,16 @@ EFFECT_SIZE_MIN = 0.2
 TREE_TOP_N = 10
 
 MENTOR_EXCLUDED = ["Focus", "Cutting_Offset"]
-MENTOR_PENDING = ["Edge_Burn", "Bottom_Kerf", "Surface_Roughness",
+MENTOR_PENDING = ["Bottom_Kerf", "Surface_Roughness",
                   "Cooling_Flow", "Cooling_Water_Temp"]
+# 멘토 최종 확인(26.08.01, 김시우 브랜치 7e2d73c): Edge_Burn/Edge_Burn_Die는
+# "유효한 실패모드 아님"이 확정되어 defect 분석 대상에서 제외. 재확인 대기 목록에서 뺀다.
+# Jun의 Goal2 BURN 분석(confirmed: Frequency, Thermal_Load_Ratio, Top_Kerf,
+# Kerf_Width_Profile, Surface_Roughness)은 이 라벨 자체를 썼으므로 전체 무효화됨 —
+# 우리 Chipping/Micro_Crack 분석에는 Edge_Burn이 피처로 쓰인 적이 없어 영향 없음
+# (원본+r1 통합 200,000행 검증: NG_Code=='BURN' 608건(0.30%) 중 Chipping/Micro_Crack
+# 동시발생 0건 — 대조군에서 빠져도 표본 비율상 무의미).
+MENTOR_CONFIRMED_EXCLUDED_DEFECTS = ["Edge_Burn", "Edge_Burn_Die"]
 
 SUBSYSTEMS = {
     "fdc_laser": ["Laser_Power", "Power_Efficiency", "Laser_Centering_Position",
@@ -711,7 +719,7 @@ MENTOR_NOTES = {
     "Kerf_Width_Profile": "멘토: 7um 기준점이 합성데이터에서 물리상수 아닐 수 있음 — 하드코딩 금지, baseline 역산",
     "Top_Kerf": "멘토: 7um 기준점 주의사항 동일",
     "Groove_Depth": "멘토: 7um 기준 편차값이나 물리상수 아닐 수 있음 — baseline 역산",
-    "Edge_Burn": "[재확인대기] 멘토가 무시해도 된다 시사했으나 미확정. Jun BURN 분석 전체 영향",
+    # Edge_Burn/Edge_Burn_Die는 아래 MENTOR_CONFIRMED_EXCLUDED_DEFECTS 전용 루프에서 처리
     "Bottom_Kerf": "[재확인대기] 다른 kerf 컬럼과 값 중복 여부",
     "Surface_Roughness": "[재확인대기] drop 여부 미확정 (필요상 넣어놓은 컬럼이라고만 언급)",
     "Cooling_Flow": "[재확인대기] 설비-컬럼 매핑 재확인 예정",
@@ -720,13 +728,24 @@ MENTOR_NOTES = {
 }
 for c, n in MENTOR_NOTES.items():
     pending = c in MENTOR_PENDING
+    src_date = "26.08.01" if c in MENTOR_CONFIRMED_EXCLUDED_DEFECTS else "26.07.31"
     dk_rows.append({"kind": "mentor_feedback", "item": c,
                     "process_stage": PROCESS_STAGE.get(c, ("-", ""))[0],
                     "description": n,
                     "evidence_type": "멘토_미확정" if pending else "멘토_확정",
                     "reliability": "재확인 대기" if pending else "확정",
                     "note": "멘토 재확인 전까지 결과 해석 주의" if pending else "",
-                    "source": "멘토 피드백 26.07.31"})
+                    "source": f"멘토 피드백 {src_date}"})
+
+# Edge_Burn/Edge_Burn_Die 자체를 별도 행으로도 명시 (defect 컬럼 최종 상태)
+for c in MENTOR_CONFIRMED_EXCLUDED_DEFECTS:
+    dk_rows.append({"kind": "mentor_feedback", "item": c, "process_stage": "-",
+                    "description": "멘토 최종 확인(26.08.01): 유효한 실패모드 아님 -> "
+                                   "defect 분석 대상에서 제외 확정 (원본 값은 보존)",
+                    "evidence_type": "멘토_확정", "reliability": "확정",
+                    "note": "우리 Chipping/Micro_Crack 분석에는 영향 없음(피처로 미사용, "
+                            "동시발생 0건 검증)",
+                    "source": "멘토 피드백 26.08.01"})
 pd.DataFrame(dk_rows).to_csv(OUT / "db_04_domain_knowledge.csv",
                              index=False, encoding="utf-8-sig")
 print("    -> db_04_domain_knowledge.csv (%d행)" % len(dk_rows))
@@ -788,6 +807,7 @@ meta = {
     "feature_set": {"n_features": len(FEATURES),
                     "excluded_by_mentor": MENTOR_EXCLUDED,
                     "pending_mentor_review": MENTOR_PENDING,
+                    "mentor_excluded_defects_not_ours": MENTOR_CONFIRMED_EXCLUDED_DEFECTS,
                     "new_team_feature": "Package_Size_Asymmetry"},
     "methodology": {
         "preprocessing": "김시우 pipeline d39bbff — OPCOND층 OK-baseline median/MAD 강건 z-score",
@@ -804,18 +824,21 @@ meta = {
         "Response 계열은 원인이 아니라 감시지표로 분류 — 조치는 FDC에서",
     ],
     "known_limitations": [
-        "블레이드 관련 파라미터(마모도/드레싱/스핀들 런아웃) 컬럼이 데이터에 없음 — "
-        "Chipping/Micro_Crack 모두 블레이드 단계 불량이라 Vibration이 유일한 프록시",
+        "Vibration은 장비/스테이지 레벨 단일 값(팀문서+멘토 확정 근거, 블레이드 특정 아님) — "
+        "레이저 단계 영향인지 다이싱 단계 영향인지 세분화되지 않음. 다이싱 단계를 직접 "
+        "나타내는 컬럼이 데이터에 없어 Micro_Crack 모델 성능(AUC 0.803)이 Chipping(0.965)보다 "
+        "낮은 원인으로 추정되나 확인된 바 아님",
         "Surface_Roughness는 멘토 drop 여부 미확정 — Micro_Crack 감시지표 결론이 이에 의존",
-        "Edge_Burn 제외 여부 미확정 — Jun BURN 분석 전체에 영향",
+        "[해결됨 26.08.01] Edge_Burn/Edge_Burn_Die는 멘토 최종 확인으로 제외 확정. "
+        "Jun BURN 분석 전체는 무효화되나, 우리 분석은 Edge_Burn을 피처로 쓴 적이 없고 "
+        "Chipping/Micro_Crack과 동시발생도 0건이라 영향 없음(검증 완료)",
         "r1은 DP02/DP03에 열화를 주입한 시나리오 데이터 — 실제 라인 재현 여부 별도 확인 필요",
         "Cooling_Flow/Cooling_Water_Temp 설비-컬럼 매핑 미확정",
     ],
     "open_questions_for_mentor": [
         "Surface_Roughness는 실제 측정값인가, 형식상 컬럼인가?",
-        "Edge_Burn을 최종 제외하는가?",
         "Bottom_Kerf가 다른 kerf 컬럼과 값이 중복인가?",
-        "블레이드 관련 파라미터(마모/드레싱/런아웃)를 추가로 받을 수 있는가?",
+        "Vibration을 세분화한 데이터(축별/시점별)가 있는가? — 레이저/다이싱 단계 영향 분리 목적",
     ],
 }
 with open(OUT / "db_00_metadata.json", "w", encoding="utf-8") as f:

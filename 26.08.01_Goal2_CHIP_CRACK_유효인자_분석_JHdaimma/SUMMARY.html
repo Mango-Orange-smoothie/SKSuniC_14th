@@ -577,8 +577,16 @@
             <b>Micro_Crack의 유일한 confirmed 감시지표</b>라 무효화되면 지표가 사라집니다.</span></li>
           <li><span class="mk">보고</span><span><code>Laser_Head_Remain_Time</code> 임계값 가설
             <b>미재현</b>(구간별 lift 0.98~1.01). 합성 데이터에 수명 로직이 반영되지 않은 것으로 추정됩니다.</span></li>
-          <li><span class="mk">확인</span><span><code>Edge_Burn</code> 최종 제외 여부 ·
-            <code>Bottom_Kerf</code> 값 중복 여부.</span></li>
+          <li><span class="mk">확인</span><span><code>Bottom_Kerf</code>가 다른 kerf 컬럼과 값이 중복인지.</span></li>
+        </ul>
+        <div class="note" style="margin-top:14px;border-left-color:var(--blade)">
+          <h4>✅ 해결됨 (26.08.01, 김시우 브랜치)</h4>
+          <p><span class="ev conf">멘토 확정</span> <code>Edge_Burn</code>은 "유효한 실패모드 아님"으로
+            최종 확인되어 defect 분석 대상에서 제외됐습니다. <b>Jun의 BURN 분석 전체가 무효화</b>되지만,
+            <b>우리 Chipping/Micro_Crack 분석에는 영향이 없습니다</b> — Edge_Burn을 피처로 쓴 적이 없고,
+            NG_Code=='BURN' 608건(전체 0.30%) 중 Chipping·Micro_Crack과 동시발생이 0건임을
+            직접 검증했습니다. 통계 재계산 불필요.</p>
+        </div>
         </ul>
       </div>
     </div>
