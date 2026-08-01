@@ -13,6 +13,12 @@
 > Particle/Remain_Coat/Micro_Crack/Chipping 4종만 Goal2 분석 대상입니다.
 > (참고: `pipeline/README.md` 최신본, `ANALYSIS_GUIDE.md`)
 >
+> **2026-08-01 Jun 최종 결정(범위 확정)**: `Edge_Burn`/`Edge_Burn_Die` 컬럼뿐 아니라
+> `NG_Code=='BURN'` 값도 함께 제외한다. 근거: `NG_Code=='BURN'`인 392건 전부가
+> `Edge_Burn==1`의 완전한 부분집합이라(같은 물리적 burn 현상을 두 방식으로 기록한 것),
+> 컬럼만 배제하고 `NG_Code` 값은 남기는 건 논리적으로 어색함. 이후 Goal2는
+> Particle/Remain_Coat/Micro_Crack/Chipping **4종만** 다룬다 — Burn은 완전히 범위 밖.
+>
 > 아래 내용은 **폐기 전 이력 기록용으로만** 남겨둡니다.
 
 ---
