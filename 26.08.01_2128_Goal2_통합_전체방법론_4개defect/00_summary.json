@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-01T12:37:51.775006+00:00",
+  "generated_at": "2026-08-01T13:13:34.649588+00:00",
   "n_rows": 200000,
   "n_normal": 149673,
   "n_features": 39,
@@ -23,7 +23,8 @@
         }
       },
       "tier1": [],
-      "tier2": [
+      "tier2": [],
+      "tier2d_dataset_specific": [
         "Vibration"
       ],
       "monitor_only": [
@@ -50,6 +51,7 @@
       },
       "tier1": [],
       "tier2": [],
+      "tier2d_dataset_specific": [],
       "monitor_only": []
     },
     "Chipping": {
@@ -74,11 +76,13 @@
         "Laser_Power",
         "Power_Efficiency",
         "Head_Temp",
-        "Laser_Centering_Position",
         "Vibration",
         "Kerf_Width_Profile"
       ],
       "tier2": [],
+      "tier2d_dataset_specific": [
+        "Laser_Centering_Position"
+      ],
       "monitor_only": []
     },
     "Micro_Crack": {
@@ -100,7 +104,8 @@
         }
       },
       "tier1": [],
-      "tier2": [
+      "tier2": [],
+      "tier2d_dataset_specific": [
         "Vibration"
       ],
       "monitor_only": [

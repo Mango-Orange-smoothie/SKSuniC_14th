@@ -1,5 +1,6 @@
 [0] 데이터 로드 (원본 + r1 통합)
     통합 200,000행 (original 100,000 + r1 100,000) | 정상군 149,673
+[0] 방법 G(재현성)용 원본/r1 개별 baseline 준비
 
 ==============================================================================
 ### DEFECT: Particle
@@ -13,10 +14,12 @@
       [A_cause_FDConly] AUC=0.6094 PR-AUC=0.0905 피처23개
       [B_monitor_full] AUC=0.8646 PR-AUC=0.2096 피처39개
   [E] DecisionTree stump 위험선 (pure)
+  [G] 원본/r1 재현성 (전 후보 컬럼)
+      reproduced=1  direction_only=13  not_reproduced=25
   [F] 시간 선행성(lag 5/20/50) — 대상 22개: ['Bottom_Kerf', 'CLN_Flow', 'CLN_Pressure', 'CLN_Time', 'Cleaning_Capacity', 'Coating_Flow', 'Coating_Uniformity', 'Cutting_X_Index', 'Cutting_Y_Index', 'Frequency', 'Head_Temp', 'Kerf_Width_Profile', 'Laser_Centering_Position', 'Laser_Cleaning_Demand', 'Laser_Power', 'Laser_Voltage', 'Package_Size_2', 'Power_Efficiency', 'Process_Time', 'Surface_Roughness', 'Top_Kerf', 'Vibration']
 
   --- Particle 최종 판정 ---
-  [Tier2_통계확정_인과방향검증필요] Vibration
+  [Tier2d_데이터셋특정적_재현안됨] Vibration
   [monitor_only] Surface_Roughness
 
 ==============================================================================
@@ -31,10 +34,12 @@
       [A_cause_FDConly] AUC=0.8815 PR-AUC=0.1813 피처23개
       [B_monitor_full] AUC=0.9409 PR-AUC=0.1963 피처39개
   [E] DecisionTree stump 위험선 (pure)
+  [G] 원본/r1 재현성 (전 후보 컬럼)
+      reproduced=0  direction_only=29  not_reproduced=10
   [F] 시간 선행성(lag 5/20/50) — 대상 21개: ['Beam_Diameter', 'Bottom_Kerf', 'CLN_Flow', 'CLN_Pressure', 'CLN_Time', 'Cleaning_Capacity', 'Cleaning_Load_Ratio', 'Coating_Flow', 'Coating_Thickness', 'Coating_Uniformity', 'Cooling_Water_Temp', 'Cutting_X_Index', 'Cutting_Y_Index', 'Feed_Speed', 'Frequency', 'Kerf_Width_Profile', 'Laser_Centering_Position', 'Laser_Power', 'Maintenance_Count', 'Surface_Roughness', 'Vibration']
 
   --- Remain_Coat 최종 판정 ---
-  [Tier2b_통계강함_결과공변의심] CLN_Pressure
+  [Tier2c_방향일치_크기데이터셋의존] CLN_Pressure
 
 ==============================================================================
 ### DEFECT: Chipping
@@ -48,10 +53,13 @@
       [A_cause_FDConly] AUC=0.9533 PR-AUC=0.473 피처23개
       [B_monitor_full] AUC=0.9594 PR-AUC=0.5387 피처39개
   [E] DecisionTree stump 위험선 (pure)
+  [G] 원본/r1 재현성 (전 후보 컬럼)
+      reproduced=14  direction_only=12  not_reproduced=13
   [F] 시간 선행성(lag 5/20/50) — 대상 24개: ['Alignment_Time', 'Bottom_Kerf', 'CLN_Flow', 'Cleaning_Load_Ratio', 'Cooling_Flow', 'Cooling_Thermal_Load', 'Frequency', 'Groove_Depth', 'Head_Temp', 'Kerf_Angle', 'Kerf_Width_Profile', 'Laser_Centering_Position', 'Laser_Cleaning_Demand', 'Laser_Power', 'Package_Size_1', 'Package_Size_2', 'Package_Size_3', 'Package_Size_4', 'Package_Size_Asymmetry', 'Power_Efficiency', 'Process_Time', 'Surface_Roughness', 'Top_Kerf', 'Vibration']
 
   --- Chipping 최종 판정 ---
-  [Tier1_실행준비완료] Laser_Power, Power_Efficiency, Head_Temp, Laser_Centering_Position, Vibration, Kerf_Width_Profile
+  [Tier1_실행준비완료] Laser_Power, Power_Efficiency, Head_Temp, Vibration, Kerf_Width_Profile
+  [Tier2d_데이터셋특정적_재현안됨] Laser_Centering_Position
 
 ==============================================================================
 ### DEFECT: Micro_Crack
@@ -66,16 +74,18 @@
       [A_cause_FDConly] AUC=0.8013 PR-AUC=0.0737 피처13개
       [B_monitor_full] AUC=0.899 PR-AUC=0.1686 피처23개
   [E] DecisionTree stump 위험선 (pure)
+  [G] 원본/r1 재현성 (전 후보 컬럼)
+      reproduced=1  direction_only=12  not_reproduced=10
   [F] 시간 선행성(lag 5/20/50) — 대상 16개: ['Alignment_Time', 'CLN_Flow', 'CLN_Pressure', 'CLN_Time', 'Coating_Thickness', 'Cooling_Flow', 'Cooling_Thermal_Load', 'Cooling_Water_Temp', 'Cutting_X_Index', 'Cutting_Y_Index', 'Maintenance_Count', 'Package_Size_1', 'Package_Size_Asymmetry', 'Process_Time', 'Surface_Roughness', 'Vibration']
 
   --- Micro_Crack 최종 판정 ---
-  [Tier2_통계확정_인과방향검증필요] Vibration
+  [Tier2d_데이터셋특정적_재현안됨] Vibration
   [monitor_only] Surface_Roughness
 
 ==============================================================================
 ### 교차 defect 공통 인자
 ==============================================================================
-   column  n_defects_as_cause            Particle           Remain_Coat     Chipping         Micro_Crack
-Vibration                   3 Tier2_통계확정_인과방향검증필요 insufficient_evidence Tier1_실행준비완료 Tier2_통계확정_인과방향검증필요
+   column  n_defects_reproduced_cause  n_defects_dataset_specific_only            Particle           Remain_Coat     Chipping         Micro_Crack
+Vibration                           1                                2 Tier2d_데이터셋특정적_재현안됨 insufficient_evidence Tier1_실행준비완료 Tier2d_데이터셋특정적_재현안됨
 
 완료 — C:\Users\dltmd\OneDrive\Desktop\4학년(2026)\3. 4학년 1.5학기 (여름계절)\대외활동\SK mySUNI 5기\풀코스 활동\회의\SKSuniC_14th\26.08.01_2128_Goal2_통합_전체방법론_4개defect

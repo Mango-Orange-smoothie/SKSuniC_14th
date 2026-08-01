@@ -1,16 +1,15 @@
 # Goal 2 — Particle / Remain_Coat / Chipping / Micro_Crack 통합 전체방법론
 
-담당: Jun · 기준일: 2026-08-01
+담당: Jun · 기준일: 2026-08-01 (재현성 반영 최종판)
 
-> ⚠️ **이 문서는 "모두 동일한 신뢰성"을 목표로 시작했지만, 실행 결과 그 반대 — 즉
-> **defect마다 신뢰도가 다르다는 것을 데이터로 재확인**하는 결과가 나왔습니다.
-> 특히 박대호님(Particle→Vibration)과 JHdaimma님(Micro_Crack→Vibration)의 핵심
-> 결론이 원본/r1 데이터셋 간 재현이 안 됩니다. 아래 "가장 중요한 발견"을 먼저 읽어주세요.
+> "모두 동일한 신뢰성"을 목표로 시작했는데, 실행 결과는 그 반대 — **defect마다,
+> 인자마다 신뢰도가 다르다는 걸 데이터로 재확인**하는 방향으로 끝났다. 재현성 검증을
+> tier 로직에 정식으로 반영해서, 신뢰도 차이가 판정표에 그대로 드러나게 만들었다.
 
 ## 무엇을 했나
 
 팀 3명이 각자 다른 방법을 보강했던 것(박대호=시간선행성, 전성재=Machine통제 다변량+시간선행성,
-JHdaimma=XGBoost+TreeSHAP+위험선)을 **6개 방법론 전부, 4개 defect 전부에 동일하게** 적용했다.
+JHdaimma=XGBoost+TreeSHAP+위험선)을 **7개 방법론 전부, 4개 defect 전부에 동일하게** 적용했다.
 
 | 방법 | 내용 |
 |---|---|
@@ -20,79 +19,82 @@ JHdaimma=XGBoost+TreeSHAP+위험선)을 **6개 방법론 전부, 4개 defect 전
 | D | XGBoost + TreeSHAP, 모델 A(FDC전용)/B(전체) 분리 — JHdaimma 원안 |
 | E | DecisionTree stump 위험선 — JHdaimma 원안 |
 | F | 시간 선행성(lag 5/20/50 스트립) — 박대호 원안, 전성재 확장 |
+| **G** | **원본/r1 데이터셋 재현성** — 이번 작업 중 새로 필요하다고 밝혀져서 추가 |
 
 데이터: 원본(100,000행) + r1(100,000행) 통합 200,000행. **모든 4개 defect에 pure
-라벨(다른 3개 defect 동시발생 배제)을 적용** — 통합 후 재확인한 결과 박대호님의
-원본 단독 분석과 달리 4개 defect가 서로 상당히 동시발생하기 때문(예:
-Particle&Remain_Coat 5,793건).
+라벨(다른 3개 defect 동시발생 배제)을 적용** — 박대호님의 원본 단독 분석과 달리,
+통합 데이터에서는 4개 defect가 서로 상당히 동시발생한다(예: Particle&Remain_Coat 5,793건).
 
-## 가장 중요한 발견 — 원본/r1 재현성 (`09_reproducibility_by_dataset.csv`)
+## 방법 G — 왜 필요했나
 
-통합 데이터의 효과크기가 낮게 나온 인자들이 있어서, 원본과 r1을 나눠 따로
-Cliff's delta를 계산해봤다. 결과:
+4개 방법(A~D)만으로 나온 1차 결과에서 `Vibration`이 Particle/Chipping/Micro_Crack
+3개 defect의 공통 원인처럼 보였다. 그런데 원본/r1을 나눠서 다시 보니:
 
 | defect | 컬럼 | 원본 delta | r1 delta | 판정 |
 |---|---|---|---|---|
-| **Chipping** | Groove_Depth | -0.797 | -0.652 | ✅ 양쪽 재현 |
-| **Chipping** | Head_Temp | 0.214 | 0.753 | ✅ 양쪽 재현 |
-| **Chipping** | Kerf_Width_Profile | 1.000 | 0.813 | ✅ 양쪽 재현 |
-| **Chipping** | Laser_Power | -0.978 | -0.765 | ✅ 양쪽 재현 |
-| **Chipping** | Power_Efficiency | -0.347 | -0.779 | ✅ 양쪽 재현 |
-| **Chipping** | Vibration | 0.337 | 0.709 | ✅ 양쪽 재현 |
-| Chipping | Laser_Centering_Position | -0.024 | 0.515 | ⚠️ r1에서만 |
-| **Particle** | **Vibration** | **0.219** | **-0.034** | 🔴 **원본에서만 — r1은 사실상 무신호(부호도 반대)** |
-| **Remain_Coat** | **CLN_Pressure** | **-0.529** | **-0.136** | 🟡 방향은 같으나 r1에서 기준(0.2) 미달 |
-| **Micro_Crack** | **Vibration** | **0.087** | **-0.092** | 🔴 **양쪽 다 약하고 부호도 반대** |
+| Chipping | Groove_Depth, Head_Temp, Kerf_Width_Profile, Laser_Power, Power_Efficiency, Vibration | 전부 \|delta\|≥0.2 | 전부 \|delta\|≥0.2, 동일방향 | ✅ reproduced |
+| Chipping | Laser_Centering_Position | -0.024 | 0.515 | ⚠️ r1에서만 (not_reproduced) |
+| **Particle** | **Vibration** | **0.219** | **-0.034** | 🔴 원본에서만, r1은 부호까지 반대 (not_reproduced) |
+| **Remain_Coat** | **CLN_Pressure** | **-0.529** | **-0.136** | 🟡 방향은 같으나 r1에서 기준(0.2) 미달 (direction_only) |
+| **Micro_Crack** | **Vibration** | **0.087** | **-0.092** | 🔴 양쪽 다 약하고 부호도 반대 (not_reproduced) |
 
-### 해석
+**해석**: r1은 "DP02/DP03에 열화를 주입한 시나리오"로 알려져 있는데, 그 시나리오가
+Chipping 메커니즘과는 잘 들어맞지만 Particle/Micro_Crack의 Vibration 메커니즘은
+반영하지 않은 것으로 보인다. 박대호님/JHdaimma님이 틀렸다는 뜻이 아니라 — 각자
+**원본 데이터만으로 낸 결론**이 r1까지 포함한 통합 데이터에서는 그대로 일반화되지
+않는다는 뜻이다.
 
-- **Chipping은 압도적으로 견고하다.** 6개 인자 전부 원본·r1 양쪽에서 같은 방향, 기준 이상
-  효과크기로 재현됐다 — r1이 애초에 "DP02/DP03에 열화를 주입한 시나리오"로 알려져 있는데,
-  그 시나리오가 Chipping 메커니즘과 잘 들어맞는 것으로 보인다.
-- **박대호님의 `Vibration`(Particle) 핵심 결론은 원본 데이터에서만 성립한다.** 원본에서는
-  0.219로 박대호님 결과(0.220)와 거의 정확히 일치하지만, r1에서는 -0.034로 사실상
-  무신호다. **r1의 Particle 생성 시나리오가 Vibration 메커니즘을 반영하지 않았을
-  가능성**이 높다 — 박대호님이 틀렸다는 뜻이 아니라, r1이 모든 defect에 똑같이
-  적용 가능한 시나리오가 아닐 수 있다는 뜻이다.
-- **JHdaimma님의 `Vibration`(Micro_Crack) 결론은 재검토가 필요하다.** 원본 0.087,
-  r1 -0.092로 둘 다 약하고 부호까지 반대다. JHdaimma님 README의 SHAP 결과(원인모델
-  1위, 0.255)는 원본+r1 **통합** 데이터로 학습한 것이라 이 약한 신호를 못 볼 수 있다 —
-  다중공선성 방어(모델 분리)는 있지만 데이터셋 간 재현성 검증은 없었던 부분.
+## Tier 체계 (재현성을 1차 게이트로 반영)
 
-**결론**: "6개 방법론을 다 적용했다"가 "신뢰도가 같아졌다"를 보장하지 않는다.
-오히려 **재현성 검증 자체가 7번째 방법론으로 꼭 필요하다는 게 이번 작업으로 증명됐다.**
+재현성을 통계적 방법 개수나 시간선행성보다 **먼저** 거른다 — 같은 배치 안에서의
+시간선행성보다, 서로 다른 배치(원본 vs r1)에서도 안 흔들리는지가 더 근본적인
+일반화 질문이라고 판단했다.
 
-## 통합 판정 결과 (`07_{defect}_unified_verdict.csv`)
+| tier | 조건 |
+|---|---|
+| **Tier1_실행준비완료** | 도메인지지 + 통계 2개↑ 방법 통과 + **원본·r1 양쪽 재현** + 시간선행신호 유지 |
+| Tier2_통계확정_인과방향검증필요 | 위 조건 + 재현됨, 단 시간선행성만 판단보류 |
+| Tier2b_통계강함_결과공변의심 | 위 조건 + 재현됨, 단 시간선행신호 소멸(결과공변 의심) |
+| **Tier2c_방향일치_크기데이터셋의존** | 재현성이 direction_only(방향은 같으나 한쪽 데이터셋에서 기준 미달) |
+| **Tier2d_데이터셋특정적_재현안됨** | 재현성이 not_reproduced(부호 반대 또는 한쪽만 신호) — **가장 주의 필요** |
+| Tier3_약한신호 | 도메인지지 + 통계 1개 방법만 통과 |
+| candidate_needs_domain_review | 통계는 강하나 도메인 지지 없음 |
+| monitor_only / rejected / excluded_domain | 팀 도메인 판단(각자 후속검증 결론)을 그대로 반영 |
 
-Tier는 `n_methods_agree`(A~E 중 몇 개 통과, 최대4) + 도메인 지지 + 방법F(시간선행성)를
-결합해 정했다. **위 재현성 표는 아직 tier 계산에 반영되지 않았다** — 반영 여부를
-사용자와 상의해야 해서 일단 별도 파일로만 남겨뒀다.
+## 최종 판정 결과 (`07_{defect}_unified_verdict.csv`)
 
-| defect | Tier1(실행준비완료) | Tier2(통계확정, 인과방향 검증필요) | Tier2b(통계강함, 결과공변의심) | monitor_only |
+| defect | Tier1 | Tier2c(방향유지, 크기 데이터셋의존) | Tier2d(데이터셋특정적, 재현 안 됨) | monitor_only |
 |---|---|---|---|---|
-| Particle | — | **Vibration** (⚠️ 재현성표 참고) | — | Surface_Roughness |
-| Remain_Coat | — | — | **CLN_Pressure** (⚠️ 방향은 재현, 크기는 r1에서 약화) | — |
-| Chipping | **Laser_Power, Power_Efficiency, Head_Temp, Laser_Centering_Position, Vibration, Kerf_Width_Profile** | — | — | — |
-| Micro_Crack | — | **Vibration** (⚠️ 재현성표 참고) | — | Surface_Roughness |
+| Particle | — | — | **Vibration** | Surface_Roughness |
+| Remain_Coat | — | **CLN_Pressure** | — | — |
+| **Chipping** | **Laser_Power, Power_Efficiency, Head_Temp, Vibration, Kerf_Width_Profile** | — | Laser_Centering_Position | — |
+| Micro_Crack | — | — | **Vibration** | Surface_Roughness |
 
-`Chipping`은 왜 전부 Tier1인데 나머지는 아닌지: Chipping만 원본/r1 양쪽에서 대부분
-그대로 재현됐고, 다른 defect는 재현성 문제가 있거나(Particle/Micro_Crack) 시간선행성
-검사 방식과 원인의 성질이 안 맞아서(Remain_Coat — 전성재님이 이미 지적한 "즉시성
-현상이라 추세형 검사에 안 걸림") Tier1 기준을 못 채웠다.
+**결론**: 이번 4개 defect 중 **Chipping만 진짜로 "실행준비완료" 등급**이다. 나머지는
+전부 어떤 형태로든 "데이터셋에 따라 흔들린다"는 단서가 붙는다 — Remain_Coat는
+그나마 방향은 유지되고(전성재님의 "즉시성 현상" 해석과 일치), Particle/Micro_Crack의
+`Vibration`은 재현조차 안 된다.
 
 ## 교차 defect 공통 인자 (`08_cross_defect_vibration.csv`)
 
-`Vibration`이 3개 defect(Particle/Chipping/Micro_Crack)에서 원인 후보로 나왔지만,
-**신뢰도는 defect마다 전혀 다르다** — Chipping은 원본/r1 양쪽 재현 + 시간선행성 확인까지
-된 강한 신호, Particle/Micro_Crack은 원본에서만 또는 양쪽 다 약한 신호다. "Vibration
-하나가 세 불량의 공통 원인"이라고 단순화해서 보고하면 안 된다.
+| 컬럼 | 재현된 원인(Tier1/2/2b) 개수 | 데이터셋특정적(Tier2d) 개수 |
+|---|---|---|
+| Vibration | 1 (Chipping만) | 2 (Particle, Micro_Crack) |
+
+**"Vibration이 3개 불량의 공통 원인"이라는 최초 헤드라인은 데이터로 반박됐다.**
+Vibration이 재현 가능한 원인으로 확인된 건 Chipping 하나뿐이다. Particle과
+Micro_Crack에서 Vibration이 원인이라는 주장은 이번 기준으로는 데이터셋 의존적
+신호라 실행(SOP 조치)의 근거로 쓰면 안 된다.
 
 ## 실행 방법
 
 ```bash
 python "26.08.01_2128_Goal2_통합_전체방법론_4개defect/unified_full_methodology.py"
-python "26.08.01_2128_Goal2_통합_전체방법론_4개defect/reproducibility_check.py"
 ```
+
+`reproducibility_check.py`는 방법 G가 본 스크립트에 흡수되면서 더 이상 필요 없다
+(구버전 결과 `09_reproducibility_by_dataset.csv`는 이력 참고용으로 남겨둠, 각
+defect별 `09_{defect}_reproducibility.csv`가 최신·전체 후보 컬럼 버전).
 
 이 브랜치에는 `data/raw/`가 없다 — `DP_HealthIndex_Dataset.csv`/`_r1.csv`를 저장소
 루트의 **상위 폴더**에 둬야 한다(용량 때문에 git 커밋 안 함).
@@ -101,18 +103,20 @@ python "26.08.01_2128_Goal2_통합_전체방법론_4개defect/reproducibility_ch
 
 | 파일 | 내용 |
 |---|---|
-| `00_summary.json` | 실행 메타데이터 |
+| `00_summary.json` | 실행 메타데이터 (defect별 tier1/tier2/tier2d 목록 포함) |
 | `01~06_{defect}_*.csv` | 방법 A~F 각각의 defect별 상세 결과 |
-| `07_{defect}_unified_verdict.csv` | 6개 방법 통합 최종 판정표 |
-| `08_cross_defect_vibration.csv` | 교차 defect 공통 인자 |
-| **`09_reproducibility_by_dataset.csv`** | **원본/r1 재현성 — 가장 중요한 발견** |
+| `07_{defect}_unified_verdict.csv` | **7개 방법 통합 최종 판정표 (메인 산출물)** |
+| `08_cross_defect_vibration.csv` | 교차 defect 공통 인자 (재현 여부 구분) |
+| `09_{defect}_reproducibility.csv` | 방법 G 상세 (전 후보 컬럼 × 원본/r1) |
+| `09_reproducibility_by_dataset.csv` | (구버전, Tier1~2b 후보만 대상 — 이력용) |
 
-## 다음 결정이 필요한 것
+## 다음에 필요한 것
 
-1. **재현성표를 tier 로직에 반영할지** — 반영하면 Particle의 Vibration/Micro_Crack의
-   Vibration은 강등되고, Remain_Coat의 CLN_Pressure는 방향유지로 유지될 가능성이 큼.
-2. **박대호님/JHdaimma님께 이 재현성 결과를 공유하고 확인받을 것** — 특히 각자의
-   결론이 r1 없이(원본 단독) 도출된 것이었는지, r1까지 반영한 것이었는지 재확인 필요.
-3. r1이 "모든 defect에 균등하게 적용 가능한 시나리오"인지, 아니면 "Chipping/Crack
-   전용으로 설계된 시나리오"인지 멘토/현업에 확인 필요 — 이게 확인되면 Particle/
-   Remain_Coat는 원본 단독 결과를 우선하는 게 맞을 수도 있음.
+1. **박대호님/JHdaimma님께 공유하고 확인받을 것** — 각자의 `Vibration` 결론이 원본
+   단독 분석이었다는 걸 이 결과가 뒷받침한다. r1을 어떻게 다룰지(제외/가중치 낮춤/
+   전용 시나리오로 별도 취급) 논의 필요.
+2. **r1이 "모든 defect에 균등 적용 가능한 시나리오"인지 멘토/현업 확인** — Chipping
+   전용으로 설계된 것이라면, Particle/Remain_Coat/Micro_Crack은 원본 단독 결과를
+   우선하는 게 맞을 수 있음.
+3. Chipping의 `Laser_Centering_Position`도 재현 실패라 Tier1에서 빠졌다 —
+   JHdaimma님의 SHAP 결과에는 포함돼 있었을 가능성이 있어 대조 확인 권장.

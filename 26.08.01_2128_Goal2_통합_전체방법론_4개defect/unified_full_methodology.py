@@ -220,6 +220,60 @@ for c in ALL_FEATURE_COLS:
 mach_dummies = pd.get_dummies(df["Machine_ID"], prefix="MACH", drop_first=True).astype(float)
 ds_dummies = pd.get_dummies(df["source_dataset"], prefix="DS", drop_first=True).astype(float)
 
+# 방법 G(재현성)용 — 원본/r1을 각각 독립적으로 baseline/z-score 재계산.
+# 통합 baseline을 나눠 쓰면 안 된다 — 한쪽 데이터셋의 특성이 다른 쪽 기준을 오염시킨다.
+print("[0] 방법 G(재현성)용 원본/r1 개별 baseline 준비")
+o_prep = o.copy()
+o_prep["is_normal"] = (o_prep["Yield"] == 100) & (o_prep["NG_Code"] == "OK")
+o_prep = config.add_domain_features(o_prep)
+o_bl = compute_stratum_baseline_stats(o_prep[o_prep["is_normal"]], OPCOND, ALL_FEATURE_COLS)
+o_prep = zscore_transform(o_prep, o_bl, OPCOND, ALL_FEATURE_COLS)
+
+r_prep = r.copy()
+r_prep["is_normal"] = (r_prep["Yield"] == 100) & (r_prep["NG_Code"] == "OK")
+r_prep = config.add_domain_features(r_prep)
+r_bl = compute_stratum_baseline_stats(r_prep[r_prep["is_normal"]], OPCOND, ALL_FEATURE_COLS)
+r_prep = zscore_transform(r_prep, r_bl, OPCOND, ALL_FEATURE_COLS)
+
+REPRO_MIN = 0.2  # Tier1/2 기준과 동일한 효과크기 임계값
+
+
+def method_g_reproducibility(feats, defect_bin_col):
+    """defect_bin_col(예: 'Vibration'이 아니라 'Particle')의 pure 라벨로 원본/r1 각각의
+    Cliff's delta를 계산해 재현성을 분류한다.
+
+    분류: reproduced(양쪽 |delta|>=0.2 동일방향) / direction_only(방향은 같으나 한쪽 미달)
+          / not_reproduced(부호 반대 또는 한쪽이 사실상 무신호)
+    """
+    others = [b for b in ALL_DEFECT_BIN_COLS if b != defect_bin_col]
+    rows = []
+    for dsname, part in [("original", o_prep), ("r1", r_prep)]:
+        pure = (part[defect_bin_col] == 1) & (part[others] == 0).all(axis=1)
+        for c in feats:
+            d, p = cliffs(part.loc[pure, f"{c}_z"], part.loc[~pure, f"{c}_z"])
+            rows.append({"column": c, "dataset": dsname, "delta": d, "n_pure": int(pure.sum())})
+    t = pd.DataFrame(rows)
+    wide = t.pivot(index="column", columns="dataset", values="delta").reset_index()
+    wide.columns.name = None
+    if "original" not in wide.columns:
+        wide["original"] = np.nan
+    if "r1" not in wide.columns:
+        wide["r1"] = np.nan
+
+    def classify(row):
+        a, b = row.get("original"), row.get("r1")
+        if pd.isna(a) or pd.isna(b):
+            return "판정불가"
+        if abs(a) >= REPRO_MIN and abs(b) >= REPRO_MIN and np.sign(a) == np.sign(b):
+            return "reproduced"
+        if np.sign(a) == np.sign(b) and (a != 0) and (b != 0):
+            return "direction_only"
+        return "not_reproduced"
+    wide["reproducibility"] = wide.apply(classify, axis=1)
+    wide = wide.rename(columns={"original": "delta_original", "r1": "delta_r1"})
+    return wide
+
+
 summary = {"generated_at": datetime.now(timezone.utc).isoformat(),
            "n_rows": int(len(df)), "n_normal": int(df.is_normal.sum()),
            "n_features": len(ALL_FEATURE_COLS), "defects": {}}
@@ -478,6 +532,14 @@ for dname, spec in DEFECTS.items():
     t_e = method_e_thresholds(feats, y_pure, keep)
     t_e.to_csv(OUT / f"05_{dname.lower()}_thresholds.csv", index=False, encoding="utf-8-sig")
 
+    print("  [G] 원본/r1 재현성 (전 후보 컬럼)")
+    t_g = method_g_reproducibility(feats, spec["bin"])
+    t_g.to_csv(OUT / f"09_{dname.lower()}_reproducibility.csv", index=False, encoding="utf-8-sig")
+    n_repro = (t_g.reproducibility == "reproduced").sum()
+    n_dir_only = (t_g.reproducibility == "direction_only").sum()
+    n_not = (t_g.reproducibility == "not_reproduced").sum()
+    print(f"      reproduced={n_repro}  direction_only={n_dir_only}  not_reproduced={n_not}")
+
     # 방법 F는 팀 관행대로 이미 신호가 있는 후보만 (전수조사 아님) — A/B/C/D 중 하나라도
     # 걸린 컬럼 + 도메인 가설표에 있는 컬럼만 추린다.
     uni_pure_flag = set(t_a.loc[(t_a.label == "pure") & (t_a.univariate_flag), "column"])
@@ -523,18 +585,31 @@ for dname, spec in DEFECTS.items():
         else:
             temporal_status = "판단보류"
 
+        # 방법 G(재현성) 취합
+        g_row = t_g[t_g.column == c]
+        repro = g_row.reproducibility.iloc[0] if len(g_row) else "판정불가"
+        delta_original = float(g_row.delta_original.iloc[0]) if len(g_row) and pd.notna(g_row.delta_original.iloc[0]) else None
+        delta_r1 = float(g_row.delta_r1.iloc[0]) if len(g_row) and pd.notna(g_row.delta_r1.iloc[0]) else None
+
+        # tier 결정 — 재현성을 통계/시간선행성보다 먼저 거르는 1차 게이트로 둔다.
+        # 근거: 원본/r1처럼 서로 다른 배치에서도 안 흔들리는지가, 같은 배치 안에서의
+        # 시간선행성보다 더 근본적인 일반화 가능성 질문이기 때문 (2026-08-01 결정).
         if dstatus == "monitor_only_not_cause":
             tier = "monitor_only"
         elif dstatus == "rejected_by_followup":
             tier = "rejected"
         elif dstatus == "not_related_to_defect":
             tier = "excluded_domain"
-        elif has_support and n_methods >= 2 and temporal_status == "선행신호 유지":
+        elif has_support and n_methods >= 2 and repro == "reproduced" and temporal_status == "선행신호 유지":
             tier = "Tier1_실행준비완료"
-        elif has_support and n_methods >= 2 and temporal_status in ("판단보류", "미검사"):
+        elif has_support and n_methods >= 2 and repro == "reproduced" and temporal_status in ("판단보류", "미검사"):
             tier = "Tier2_통계확정_인과방향검증필요"
-        elif has_support and n_methods >= 2 and temporal_status == "선행신호 소멸(결과공변 의심)":
+        elif has_support and n_methods >= 2 and repro == "reproduced" and temporal_status == "선행신호 소멸(결과공변 의심)":
             tier = "Tier2b_통계강함_결과공변의심"
+        elif has_support and n_methods >= 2 and repro == "direction_only":
+            tier = "Tier2c_방향일치_크기데이터셋의존"
+        elif has_support and n_methods >= 2 and repro == "not_reproduced":
+            tier = "Tier2d_데이터셋특정적_재현안됨"
         elif has_support and n_methods == 1:
             tier = "Tier3_약한신호"
         elif not has_support and n_methods >= 2:
@@ -553,20 +628,23 @@ for dname, spec in DEFECTS.items():
             "flag_rf": rf_flag, "flag_machine_controlled": mc_flag, "flag_shap": shap_flag,
             "shap_mean_abs": round(shap_abs, 5) if pd.notna(shap_abs) else None,
             "n_methods_agree": n_methods, "temporal_status": temporal_status,
+            "reproducibility": repro, "delta_original": delta_original, "delta_r1": delta_r1,
             "tier": tier,
         })
     unified = pd.DataFrame(rows)
     tier_order = {"Tier1_실행준비완료": 0, "Tier2_통계확정_인과방향검증필요": 1,
-                 "Tier2b_통계강함_결과공변의심": 2, "monitor_only": 3, "Tier3_약한신호": 4,
-                 "candidate_needs_domain_review": 5, "rejected": 6, "excluded_domain": 7,
-                 "insufficient_evidence": 8}
+                 "Tier2b_통계강함_결과공변의심": 2, "Tier2c_방향일치_크기데이터셋의존": 3,
+                 "Tier2d_데이터셋특정적_재현안됨": 4, "monitor_only": 5, "Tier3_약한신호": 6,
+                 "candidate_needs_domain_review": 7, "rejected": 8, "excluded_domain": 9,
+                 "insufficient_evidence": 10}
     unified["_o"] = unified.tier.map(tier_order)
     unified = unified.sort_values(["_o", "n_methods_agree"], ascending=[True, False]).drop(columns="_o")
     unified.to_csv(OUT / f"07_{dname.lower()}_unified_verdict.csv", index=False, encoding="utf-8-sig")
     all_unified[dname] = unified
 
     print(f"\n  --- {dname} 최종 판정 ---")
-    for tr in ["Tier1_실행준비완료", "Tier2_통계확정_인과방향검증필요", "Tier2b_통계강함_결과공변의심", "monitor_only"]:
+    for tr in ["Tier1_실행준비완료", "Tier2_통계확정_인과방향검증필요", "Tier2b_통계강함_결과공변의심",
+              "Tier2c_방향일치_크기데이터셋의존", "Tier2d_데이터셋특정적_재현안됨", "monitor_only"]:
         sub = unified[unified.tier == tr]
         if len(sub):
             print(f"  [{tr}] " + ", ".join(sub.column.tolist()))
@@ -577,21 +655,30 @@ for dname, spec in DEFECTS.items():
         "shap_model_meta": meta_d,
         "tier1": unified.loc[unified.tier == "Tier1_실행준비완료", "column"].tolist(),
         "tier2": unified.loc[unified.tier == "Tier2_통계확정_인과방향검증필요", "column"].tolist(),
+        "tier2d_dataset_specific": unified.loc[unified.tier == "Tier2d_데이터셋특정적_재현안됨", "column"].tolist(),
         "monitor_only": unified.loc[unified.tier == "monitor_only", "column"].tolist(),
     }
 
 # =============================================================================
-# 교차 defect 요약 — Vibration 등 여러 defect에 걸친 공통 인자
+# 교차 defect 요약 — 여러 defect에 걸친 공통 인자
+# 재현성(Tier1/Tier2/Tier2b만 "진짜 원인 후보"로 집계)과, 참고용 "데이터셋 의존적" 목록을
+# 분리한다 — 안 그러면 Vibration처럼 한쪽만 반영된 신호가 "3개 defect 공통원인"으로
+# 과장 보고될 위험이 있다(2026-08-01 발견, 이번 개정의 계기).
 # =============================================================================
 print(f"\n{'='*78}\n### 교차 defect 공통 인자\n{'='*78}")
 combined = pd.concat(all_unified.values(), ignore_index=True)
+SOLID_TIERS = ("Tier1_실행준비완료", "Tier2_통계확정_인과방향검증필요", "Tier2b_통계강함_결과공변의심")
 cross_rows = []
 for col, g in combined.groupby("column"):
     tiers = dict(zip(g.defect, g.tier))
-    n_cause = sum(1 for t in tiers.values() if t.startswith("Tier1") or t.startswith("Tier2"))
-    if n_cause >= 2:
-        cross_rows.append({"column": col, "n_defects_as_cause": n_cause, **tiers})
-cross_df = pd.DataFrame(cross_rows).sort_values("n_defects_as_cause", ascending=False) if cross_rows else pd.DataFrame()
+    n_solid = sum(1 for t in tiers.values() if t in SOLID_TIERS)
+    n_dataset_specific = sum(1 for t in tiers.values() if t == "Tier2d_데이터셋특정적_재현안됨")
+    if n_solid >= 2 or (n_solid + n_dataset_specific) >= 2:
+        cross_rows.append({"column": col, "n_defects_reproduced_cause": n_solid,
+                           "n_defects_dataset_specific_only": n_dataset_specific, **tiers})
+cross_df = pd.DataFrame(cross_rows).sort_values(
+    ["n_defects_reproduced_cause", "n_defects_dataset_specific_only"], ascending=False
+) if cross_rows else pd.DataFrame()
 cross_df.to_csv(OUT / "08_cross_defect_vibration.csv", index=False, encoding="utf-8-sig")
 print(cross_df.to_string(index=False) if len(cross_df) else "  (2개 이상 defect에서 원인으로 확정된 공통 인자 없음)")
 
