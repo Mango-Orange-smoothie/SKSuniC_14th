@@ -1,0 +1,40 @@
+﻿defect,column,layer,subsystem,domain_status,domain_mechanism,direction_hypothesis,delta_pure,p_fdr_pure,flag_univariate,flag_nonlinear,flag_rf,flag_machine_controlled,flag_shap,shap_mean_abs,n_methods_agree,temporal_status,tier
+Remain_Coat,CLN_Pressure,FDC,fdc_cleaning,defect_related,"세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",down,-0.2466,3.683e-139,True,True,True,True,True,0.83844,4,선행신호 소멸(결과공변 의심),Tier2b_통계강함_결과공변의심
+Remain_Coat,Cutting_X_Index,FDC,fdc_motion,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0122,2.564e-01,False,False,False,True,True,0.11258,2,판단보류,candidate_needs_domain_review
+Remain_Coat,Coating_Uniformity,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0238,2.326e-02,False,False,True,True,False,,2,판단보류,candidate_needs_domain_review
+Remain_Coat,Surface_Roughness,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.1139,6.126e-31,False,False,True,True,False,,2,선행신호 유지,candidate_needs_domain_review
+Remain_Coat,CLN_Flow,FDC,fdc_cleaning,rejected_by_followup,전성재 검증6: Machine 통제 다변량(L1)에서 계수 0 — CLN_Pressure가 이미 설명하는 것 이상의 독자정보 없음,not_applicable,-0.5556,0.000e+00,True,True,True,True,True,1.17764,4,선행신호 유지,rejected
+Remain_Coat,Cleaning_Capacity,FDC,engineered,rejected_by_followup,전성재 검증6: L1에서 계수 0,not_applicable,-0.5384,0.000e+00,True,True,True,True,True,0.30876,4,선행신호 유지,rejected
+Remain_Coat,CLN_Time,FDC,fdc_cleaning,rejected_by_followup,전성재 검증9: 동시점부터 무신호(p=0.60) — 원인 후보에서 완전 제외,not_applicable,0.0033,7.834e-01,False,False,True,False,True,0.16601,2,판단보류,rejected
+Remain_Coat,Coating_Thickness,Response,response,rejected_by_followup,전성재 검증: 세정 후 측정이면 잔류 코팅량과 동어반복(데이터 누수 위험) — 측정시점 확인 전까지 제외. 선행신호도 소멸(0.7%)로 결과공변 해석과 일치,not_applicable,-0.1464,4.383e-50,False,False,True,True,False,,2,판단보류,rejected
+Remain_Coat,Cleaning_Load_Ratio,Response,engineered,rejected_by_followup,전성재 검증6: L1에서 계수 0,not_applicable,0.566,0.000e+00,True,True,False,False,False,,1,선행신호 유지,rejected
+Remain_Coat,Laser_Power,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1816,3.370e-76,False,False,False,False,True,0.11264,1,선행신호 유지,insufficient_evidence
+Remain_Coat,Laser_Centering_Position,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0984,1.824e-23,False,False,False,False,True,0.11097,1,판단보류,insufficient_evidence
+Remain_Coat,Beam_Diameter,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0133,2.224e-01,False,False,False,True,False,0.099,1,판단보류,insufficient_evidence
+Remain_Coat,Frequency,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0155,1.580e-01,False,False,True,False,False,0.10109,1,판단보류,insufficient_evidence
+Remain_Coat,Feed_Speed,FDC,fdc_motion,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0017,8.610e-01,False,False,False,False,True,0.11095,1,판단보류,insufficient_evidence
+Remain_Coat,Cutting_Y_Index,FDC,fdc_motion,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.019,7.559e-02,False,False,False,False,True,0.12895,1,판단보류,insufficient_evidence
+Remain_Coat,Cooling_Water_Temp,FDC,fdc_thermal,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0053,6.539e-01,False,False,True,False,False,0.10256,1,판단보류,insufficient_evidence
+Remain_Coat,Coating_Flow,FDC,fdc_cleaning,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0028,7.987e-01,False,False,False,False,True,0.13764,1,판단보류,insufficient_evidence
+Remain_Coat,Vibration,FDC,fdc_mechanical,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1251,5.297e-37,False,False,False,True,False,0.10532,1,선행신호 유지,insufficient_evidence
+Remain_Coat,Kerf_Width_Profile,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.1788,6.354e-74,False,False,False,True,False,,1,선행신호 유지,insufficient_evidence
+Remain_Coat,Bottom_Kerf,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.2014,2.943e-93,True,False,False,False,False,,1,선행신호 유지,insufficient_evidence
+Remain_Coat,Maintenance_Count,Other,undocumented_env_or_infra,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0096,3.764e-01,False,False,True,False,False,,1,판단보류,insufficient_evidence
+Remain_Coat,Power_Efficiency,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1639,1.981e-62,False,False,False,False,False,0.09388,0,미검사,insufficient_evidence
+Remain_Coat,Laser_Current,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0121,2.564e-01,False,False,False,False,False,0.09455,0,미검사,insufficient_evidence
+Remain_Coat,Laser_Voltage,FDC,fdc_laser,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0215,4.177e-02,False,False,False,False,False,0.10809,0,미검사,insufficient_evidence
+Remain_Coat,Alignment_Time,FDC,fdc_motion,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0132,2.224e-01,False,False,False,False,False,0.10008,0,미검사,insufficient_evidence
+Remain_Coat,Process_Time,FDC,fdc_motion,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0032,7.834e-01,False,False,False,False,False,0.10208,0,미검사,insufficient_evidence
+Remain_Coat,Head_Temp,FDC,fdc_thermal,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.1699,6.216e-67,False,False,False,False,False,0.10432,0,미검사,insufficient_evidence
+Remain_Coat,Cooling_Flow,FDC,fdc_thermal,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1051,1.492e-26,False,False,False,False,False,0.10973,0,미검사,insufficient_evidence
+Remain_Coat,Laser_Head_Remain_Time,FDC,fdc_cleaning,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0135,2.224e-01,False,False,False,False,False,0.08255,0,미검사,insufficient_evidence
+Remain_Coat,Top_Kerf,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.1878,2.853e-81,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Kerf_Angle,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.1258,2.068e-37,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Groove_Depth,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1336,5.362e-42,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Package_Size_1,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0948,6.283e-22,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Package_Size_2,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.0938,1.726e-21,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Package_Size_3,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0904,4.005e-20,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Package_Size_4,Response,response,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.095,5.577e-22,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Cooling_Thermal_Load,FDC,engineered,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0677,7.299e-12,False,False,False,False,False,0.08149,0,미검사,insufficient_evidence
+Remain_Coat,Laser_Cleaning_Demand,Response,engineered,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,0.1741,3.523e-70,False,False,False,False,False,,0,미검사,insufficient_evidence
+Remain_Coat,Package_Size_Asymmetry,Other,engineered,unclassified,"미분류 — 팀 원안에 없던 컬럼, 이번 통합 스캔에서 새로 확인 필요",unknown,-0.0916,1.353e-20,False,False,False,False,False,,0,미검사,insufficient_evidence

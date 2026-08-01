@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-08-01T12:37:51.775006+00:00",
+  "n_rows": 200000,
+  "n_normal": 149673,
+  "n_features": 39,
+  "defects": {
+    "Particle": {
+      "n_primary": 11296,
+      "n_broad": 21371,
+      "n_pure": 10472,
+      "l1_auc": 0.8447,
+      "hgb_auc": 0.8625,
+      "shap_model_meta": {
+        "A_cause_FDConly": {
+          "roc_auc": 0.6094,
+          "pr_auc": 0.0905,
+          "n_features": 23
+        },
+        "B_monitor_full": {
+          "roc_auc": 0.8646,
+          "pr_auc": 0.2096,
+          "n_features": 39
+        }
+      },
+      "tier1": [],
+      "tier2": [
+        "Vibration"
+      ],
+      "monitor_only": [
+        "Surface_Roughness"
+      ]
+    },
+    "Remain_Coat": {
+      "n_primary": 9266,
+      "n_broad": 9774,
+      "n_pure": 3545,
+      "l1_auc": 0.8974,
+      "hgb_auc": 0.947,
+      "shap_model_meta": {
+        "A_cause_FDConly": {
+          "roc_auc": 0.8815,
+          "pr_auc": 0.1813,
+          "n_features": 23
+        },
+        "B_monitor_full": {
+          "roc_auc": 0.9409,
+          "pr_auc": 0.1963,
+          "n_features": 39
+        }
+      },
+      "tier1": [],
+      "tier2": [],
+      "monitor_only": []
+    },
+    "Chipping": {
+      "n_primary": 24175,
+      "n_broad": 24175,
+      "n_pure": 12468,
+      "l1_auc": 0.9555,
+      "hgb_auc": 0.9626,
+      "shap_model_meta": {
+        "A_cause_FDConly": {
+          "roc_auc": 0.9533,
+          "pr_auc": 0.473,
+          "n_features": 23
+        },
+        "B_monitor_full": {
+          "roc_auc": 0.9594,
+          "pr_auc": 0.5387,
+          "n_features": 39
+        }
+      },
+      "tier1": [
+        "Laser_Power",
+        "Power_Efficiency",
+        "Head_Temp",
+        "Laser_Centering_Position",
+        "Vibration",
+        "Kerf_Width_Profile"
+      ],
+      "tier2": [],
+      "monitor_only": []
+    },
+    "Micro_Crack": {
+      "n_primary": 4921,
+      "n_broad": 15413,
+      "n_pure": 4921,
+      "l1_auc": 0.899,
+      "hgb_auc": 0.905,
+      "shap_model_meta": {
+        "A_cause_FDConly": {
+          "roc_auc": 0.8013,
+          "pr_auc": 0.0737,
+          "n_features": 13
+        },
+        "B_monitor_full": {
+          "roc_auc": 0.899,
+          "pr_auc": 0.1686,
+          "n_features": 23
+        }
+      },
+      "tier1": [],
+      "tier2": [
+        "Vibration"
+      ],
+      "monitor_only": [
+        "Surface_Roughness"
+      ]
+    }
+  }
+}

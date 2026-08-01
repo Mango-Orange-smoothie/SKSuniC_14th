@@ -1,0 +1,11 @@
+﻿defect,column,original,r1,reproducible
+Chipping,Groove_Depth,-0.7973,-0.6521,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Chipping,Head_Temp,0.2144,0.753,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Chipping,Kerf_Width_Profile,0.9998,0.8131,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Chipping,Laser_Centering_Position,-0.0242,0.5154,한쪽 데이터셋에서만 신호 - 재현 안 됨
+Chipping,Laser_Power,-0.9778,-0.7651,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Chipping,Power_Efficiency,-0.3467,-0.7792,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Chipping,Vibration,0.3369,0.7091,"양쪽 모두 |delta|>=0.2, 동일 방향"
+Micro_Crack,Vibration,0.0872,-0.0922,약함/판단보류
+Particle,Vibration,0.2192,-0.034,한쪽 데이터셋에서만 신호 - 재현 안 됨
+Remain_Coat,CLN_Pressure,-0.5288,-0.1361,한쪽 데이터셋에서만 신호 - 재현 안 됨
