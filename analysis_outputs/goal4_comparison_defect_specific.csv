@@ -1,0 +1,5 @@
+﻿source_file,defect,원인_컬럼,해당_컬럼_경보_총건수,실제_발생건수,해당_컬럼_경보가_사전에_있었던_건수,사전탐지율(%),그외행_대조군_비율(%),"격차(실제_예측력,%p)"
+HealthIndex_Dataset.csv,REM_COAT,CLN_Pressure,19509,2332,2184,93.65,92.55,1.1
+HealthIndex_Dataset.csv,PARTICLE,Surface_Roughness,23036,6455,6291,97.46,97.24,0.22
+DP_HealthIndex_Dataset_r1.csv,REM_COAT,CLN_Pressure,19317,6934,6554,94.52,92.46,2.06
+DP_HealthIndex_Dataset_r1.csv,PARTICLE,Surface_Roughness,22186,4841,4692,96.92,97.09,-0.17
