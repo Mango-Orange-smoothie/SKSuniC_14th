@@ -52,8 +52,8 @@ Micro_Crack,numeric_spearman
 Micro_Crack_Die,numeric_spearman
 Laser_Paim,numeric_spearman
 Laser_Paim_Die,numeric_spearman
-Edge_Burn,numeric_spearman
-Edge_Burn_Die,numeric_spearman
+Edge_Burn,categorical_association_or_excluded
+Edge_Burn_Die,categorical_association_or_excluded
 Fail_Die,numeric_spearman
 Yield,numeric_spearman
 NG_Code,categorical_association_or_excluded

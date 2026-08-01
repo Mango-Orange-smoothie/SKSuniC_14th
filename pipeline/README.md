@@ -119,6 +119,13 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
   `analysis_outputs/full_correlation/02b_process_parameter_correlation_pairs.csv`와
   교차검증** — 여러 방법에서 공통으로 상위권인 인자만 "유효인자"로 멘토에게 제출한다
   (`ANALYSIS_GUIDE.md`가 이미 경고했듯 상관/중요도 하나만으로는 가짜상관 위험이 있다).
+  **주의**: `03_impact_factor_ranking.csv`(`analysis_step_by_step.py` 산출물, 26.08.01
+  Edge_Burn 제외 반영 재작성됨)는 Particle/Remain_Coat/Micro_Crack/Chipping 4개 defect를
+  다루도록 갱신됐다. 단 **Micro_Crack/Chipping은 층별(Machine×Product×Recipe) 표본 부족
+  으로 실제 결과 행이 없다**(스크립트 실행 시 콘솔 경고 참고, 최대 층당 2건/1건뿐) —
+  이 두 defect는 이 파일로 교차검증할 수 없고, Jun/윤진혁의 행 단위 검정(Goal2 CRACK/CHIP
+  분석)을 참고할 것. **Particle/Remain_Coat 행만 실질적으로 교차검증에 쓸 수 있다.**
+  Laser_Paim은 이 데이터셋에서 발생 건수가 0건이라 애초에 대상이 아니다.
 - **Goal 3 (상호작용)**: Goal 2가 확정한 유효인자 목록을 받아서 실행 (Goal 2 이후 순서).
   `00_stratum_baseline_stats_by_opcond.csv`의 정규화 스케일 위에서 인자쌍 상호작용 분석.
 - **Goal 4 (이상치/열화 탐지)**: 먼저 `00_missing_sensor_fault_flags.csv`로 결측/센서고장

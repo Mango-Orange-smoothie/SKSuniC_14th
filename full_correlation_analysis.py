@@ -5,11 +5,17 @@
   02_top_numeric_correlation_pairs.csv 절대 상관계수 상위 쌍
   03_categorical_defect_associations.csv 범주형 인자와 결과의 Cramer's V
   04_correlation_scope.csv              포함/제외 칼럼 목록
+
+2026-08-01 업데이트: Edge_Burn/Edge_Burn_Die는 멘토 최종 확인 결과 유효한 실패모드가
+아니라 분석 대상에서 제외됨(analysis_step_by_step.py와 동일 결정,
+pipeline/config.py의 MENTOR_EXCLUDED_DEFECTS 참고) — 전체 수치 스캔에서도 제외한다.
 """
 
 from pathlib import Path
 import numpy as np
 import pandas as pd
+
+from pipeline import config
 
 ROOT = Path(__file__).parent
 OUT = ROOT / "analysis_outputs" / "full_correlation"
@@ -30,10 +36,14 @@ def cramers_v(a: pd.Series, b: pd.Series) -> float:
 
 
 def main() -> None:
-    df = pd.read_excel(ROOT / "DP_HealthIndex_Dataset.xlsx")
+    df = pd.read_csv(config.INPUT_CSV)
 
     # DateTime/ID는 수치 크기의 차이가 공정 물리량을 뜻하지 않으므로 수치 상관에서는 제외한다.
-    excluded = ["DateTime", "Lot_ID", "Strip_ID", "Machine_ID", "Product_ID", "Recipe_ID", "Shift", "Operator_ID", "NG_Code"]
+    # Edge_Burn/Edge_Burn_Die는 멘토 확인 결과 유효한 실패모드가 아니라 제외.
+    excluded = [
+        "DateTime", "Lot_ID", "Strip_ID", "Machine_ID", "Product_ID", "Recipe_ID",
+        "Shift", "Operator_ID", "NG_Code", "Edge_Burn", "Edge_Burn_Die",
+    ]
     candidates = [c for c in df.columns if c not in excluded]
     numeric = df[candidates].apply(pd.to_numeric, errors="coerce")
     numeric_cols = numeric.columns[numeric.notna().any()].tolist()
@@ -57,7 +67,7 @@ def main() -> None:
     result_columns = [
         "Chipping", "Chipping_Die", "Remain_Coat", "Remain_Coat_Die",
         "Particle", "Particle_Die", "Micro_Crack", "Micro_Crack_Die",
-        "Laser_Paim", "Laser_Paim_Die", "Edge_Burn", "Edge_Burn_Die",
+        "Laser_Paim", "Laser_Paim_Die",
         "Fail_Die", "Yield",
     ]
     process_pairs = pairs.loc[
@@ -67,7 +77,7 @@ def main() -> None:
 
     # 범주형 식별 인자는 defect/NG 결과와 Cramer's V로 별도 확인한다.
     categories = ["Machine_ID", "Product_ID", "Recipe_ID", "Shift", "Operator_ID"]
-    outcomes = ["NG_Code", "Particle", "Remain_Coat", "Edge_Burn", "Yield"]
+    outcomes = ["NG_Code", "Particle", "Remain_Coat", "Micro_Crack", "Chipping", "Yield"]
     association = [
         {"category": category, "outcome": outcome, "cramers_v": cramers_v(df[category], df[outcome])}
         for category in categories for outcome in outcomes
