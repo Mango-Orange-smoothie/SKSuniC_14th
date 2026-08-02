@@ -70,6 +70,18 @@ MENTOR_DOMAIN_NOTES = {
         "멘토 피드백: 기준 깊이(7㎛) 대비 편차값이지만, 이 데이터에서 7㎛가 실제 물리 "
         "상수가 아닐 수 있음 — Kerf_Width_Profile과 동일 주의사항, baseline은 데이터로 역산."
     ),
+    "Bottom_Kerf": (
+        "Jun 도메인 지식(26.08.02, 멘토 미확정): Top_Kerf=절단 상단 폭, Bottom_Kerf=완전히 "
+        "깎인 하단 폭, Kerf_Width_Profile=7㎛ 지점 폭, Kerf_Angle=절단면 기울기(경계값), "
+        "Groove_Depth=실제 깎인 깊이 — 5개가 같은 절단면을 위치별로 잰 값이라는 해석. "
+        "**단, 이 데이터로 검증한 결과 그 기하학적 순서 관계는 성립하지 않음**: "
+        "Top_Kerf > Bottom_Kerf 비율이 49.3%(위가 항상 넓어야 하면 거의 100%여야 함), "
+        "Kerf_Width_Profile이 Top~Bottom 사이 값인 비율도 28.5%뿐. 5개 컬럼 평균이 다들 "
+        "50.09~50.10으로 비슷해서 같은 물리량을 재는 것처럼 보이지만, 서로 독립적으로 "
+        "생성된 값에 가까움(가상데이터 한계 — Kerf_Width_Profile 노트의 '7㎛ 비고정' 문제와 "
+        "같은 맥락). 인과분석 시 Jun의 개념적 해석은 참고하되, 5개를 기하학적으로 서로 "
+        "치환 가능한 중복값처럼 다루지 말 것 — 각각 독립 후보 변수로 취급."
+    ),
     "Package_Size_1": "멘토 피드백: 4방향(동서남북) 중 하나, 방향 특정 불필요. 센터링 이상 시 비대칭 패턴 발생 — Package_Size_Asymmetry(팀 공용 피처) 참고.",
     "Package_Size_2": "멘토 피드백: Package_Size_1과 동일 — 센터링 이상 시 비대칭 패턴, Package_Size_Asymmetry 참고.",
     "Package_Size_3": "멘토 피드백: Package_Size_1과 동일 — 센터링 이상 시 비대칭 패턴, Package_Size_Asymmetry 참고.",
@@ -96,7 +108,14 @@ MENTOR_EXCLUDED_DEFECTS_NOTE = (
 # 멘토 피드백(26.07.31) — 아직 최종 확정이 아니라 "재확인 예정"으로 남은 항목.
 # 함부로 제외하지 않고 include_in_downstream_default=True로 유지하되, 강한 경고를 남긴다.
 MENTOR_PENDING_REVIEW = {
-    "Bottom_Kerf": "멘토가 다른 kerf 컬럼과 값 중복 여부, 순수 샘플링 값인지 재확인 예정이라고 했음 — 결과 해석 시 주의.",
+    "Bottom_Kerf": (
+        "멘토가 다른 kerf 컬럼과 값 중복 여부, 순수 샘플링 값인지 재확인 예정이라고 했음 "
+        "— 결과 해석 시 주의. 팀 자체 검증(26.08.02): 상관계수로는 완전 중복 아님(0.63대, "
+        "OPCOND 층화 재검증해도 동일), 값 자체 100% 일치하는 행도 없음 — '중복 저장'은 "
+        "가능성 낮음. 단 Jun의 도메인 해석(Top/Bottom/Profile이 절단면 위치별 값)이 기대하는 "
+        "기하학적 순서 관계도 데이터에서 안 성립함(MENTOR_DOMAIN_NOTES 참고) — 멘토 최종 "
+        "확인 전까지는 '중복도 아니고 깔끔한 기하학적 유도값도 아닌, 독립적인 후보 변수'로 취급."
+    ),
     "Surface_Roughness": (
         "멘토가 drop 여부를 확정하지 않음('필요상 넣어놓은 컬럼'이라고만 언급) — Jun의 "
         "BURN/PARTICLE/CRACK confirmed 목록에 이미 등장하므로 최종 확정 전까지 결과 해석 시 주의."
