@@ -292,7 +292,7 @@ GROUP 방식 — 지금까지 쓴 OPCOND/Machine-더미 방식과는 또 다른 
 
 산출물: `verify_v4_00_summary.json`, `verify_v4_01_full_temporal_scan.csv`
 
-## 13. SHAP 개별 스트립 설명 (`verify_v5_shap_explanation.py`)
+## 12. SHAP 개별 스트립 설명 (`verify_v5_shap_explanation.py`)
 
 지금까지의 permutation importance는 "전체적으로 어떤 변수가 중요한가"만 답한다. SHAP는
 **스트립 하나하나의 예측에 각 변수가 얼마나 기여했는지**를 쪼개서 보여준다 — 현장에
@@ -308,11 +308,31 @@ RandomForestClassifier(v1 검증과 동일 계열) + `shap.TreeExplainer`로 계
 불량 쪽으로 밀어줌). **1건(DP04, 행 70518)은 `Coating_Thickness`가 1위였고 CLN_Pressure는
 오히려 정상 범위**였다 — REM_COAT 불량이 전부 같은 경로로 생기는 게 아니라, 스트립마다
 다른 원인 패턴이 섞여 있을 수 있다는 걸 보여준다. SOP/알람 설계 시 "CLN_Pressure만
-보면 된다"고 단순화하지 말고 Coating_Thickness 측정 시점 확인(11번 1항)이 왜 여전히
+보면 된다"고 단순화하지 말고 Coating_Thickness 측정 시점 확인(14번 1항)이 왜 여전히
 중요한지에 대한 추가 근거가 된다.
 
 산출물: `verify_v5_00_summary.json`, `verify_v5_01_shap_global_importance.csv`,
 `verify_v5_02_shap_example_strips.csv`
+
+## 13. AI Agent용 스트립 즉답 DB (`generate_strip_explanations.py`)
+
+김시우님의 AI Agent 프로토타입(Health Index/유효인자/SOP를 도구 호출로 조회해 답함)
+방향에 맞춰서, "이 스트립 왜 불량났어?"라는 질문에 Agent가 **매번 모델을 새로 돌리지
+않고 즉시 조회만** 하면 되도록 사전계산해뒀다.
+
+12번(SHAP)의 방식을 예시 5건에서 **Remain_Coat=1인 전체 스트립(2,332건)으로 확장**해서,
+각 스트립의 상위 기여 인자 3개 + 자연어 설명 문장을 `Lot_ID|Strip_ID` 키로 조회 가능한
+JSON으로 저장했다. `Lot_ID+Strip_ID`는 `pipeline/config.py`의 분석키 규약과 동일
+(Strip_ID 단독은 다른 Lot에서 재사용되므로 단독 키로 쓰면 안 됨).
+
+예시 조회 결과: `lookup['LOT005662|STRIP14965']['explanation_ko']`
+→ "DP01 장비 스트립, 불량 예측확률 62%. 주 원인: CLN_Pressure이(가) 낮아서 불량 쪽으로
+작용. (보조 요인: Coating_Thickness, Cleaning_Load_Ratio)" 형태.
+
+**주의**: 이건 김시우님의 Agent 구조가 "프로토타입" 단계라 팀 확정 방식이 아니다 — 회의
+에서 다른 구조로 정해지면 이 JSON 포맷도 바뀔 수 있음.
+
+산출물: `strip_explanations.json`(2,332건), `strip_explanations_meta.json`
 
 ## 14. 다음에 확인할 것 (전성재 담당 관점)
 
