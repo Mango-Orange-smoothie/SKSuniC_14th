@@ -79,9 +79,12 @@ MENTOR_DOMAIN_NOTES = {
         "상수가 아닐 수 있음 — Kerf_Width_Profile과 동일 주의사항, baseline은 데이터로 역산. "
         "메커니즘(팀 도메인지식, 26.08.02): 너무 깊게 깎인 건 문제 안 되고 **덜 깎였을 때만 "
         "위험**(direction=down이 위험, either 아님) — Kerf_Width_Profile과 방향 성격이 다름. "
-        "단, JHdaimma 모델에서는 Chipping의 직접 원인이 아니라 Laser_Power가 만드는 "
-        "결과값(R²=0.606)으로 나와서 CAUSE_FACTORS에는 아직 안 넣음 — 원인이 아니라 "
-        "감시지표(monitor)로 취급."
+        "Chipping 원인으로 Jun이 통계검정 confirmed(가공깊이 부족 -> Low-k 불완전 승화 -> "
+        "Blade가 잔류물 타격), CAUSE_FACTORS에 반영됨. "
+        "(정정: JHdaimma 모델에서 Laser_Power의 결과값(R²=0.606)으로 나온 건 JHdaimma가 "
+        "Chipping 예측 후보에서 애초에 제외하고 별도 회귀로만 다룬 것뿐 — Jun의 confirmed "
+        "결과를 반박하는 근거가 아니었음. 처음에 이걸 잘못 해석해서 CAUSE_FACTORS에서 뺐다가 "
+        "재정정함.)"
     ),
     "Kerf_Angle": (
         "팀 자체 검증(26.08.02): Top_Kerf/Bottom_Kerf/Groove_Depth 어느 조합과도 상관/회귀/"

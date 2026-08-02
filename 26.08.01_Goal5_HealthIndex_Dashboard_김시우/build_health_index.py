@@ -105,6 +105,18 @@ CAUSE_FACTORS = {
         "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, "
                      "값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
     },
+    "Groove_Depth": {
+        "direction": "down",
+        "defects": ["Chipping"],
+        "owner": "Jun",
+        "mechanism": "가공 깊이 부족(deep이 아니라 shallow가 위험) -> Low-k가 완전히 승화되지 "
+                     "못해 Blade 진입 시 Chipping 발생. Jun 통계검정 confirmed. "
+                     "(정정 26.08.02: JHdaimma 모델에서 Laser_Power의 결과값(R²=0.606)으로도 "
+                     "나오지만, 이건 JHdaimma가 Chipping 예측 후보에서 애초에 제외하고 다른 "
+                     "회귀로만 다룬 것뿐 — Jun이 별도로 직접 검정해서 confirmed 받은 결과를 "
+                     "무효화하는 근거가 아님. JHdaimma도 감시지표로 -0.750(얕을수록 위험과 "
+                     "일치하는 강한 음의 방향)을 별도 확인함.)",
+    },
 }
 CAUSE_COLS = list(CAUSE_FACTORS.keys())
 
@@ -113,9 +125,6 @@ CAUSE_COLS = list(CAUSE_FACTORS.keys())
 # 실제로 대시보드/경보에 반영하려면 별도 배선이 필요하다.
 MONITOR_FACTORS = {
     "Surface_Roughness": ["Particle", "Chipping", "Micro_Crack"],
-    "Groove_Depth": ["Chipping"],  # 방향: down(덜 깎였을 때)이 위험 — Kerf_Width_Profile과 달리 either 아님.
-                                    # JHdaimma 모델에서 Chipping 직접 원인이 아니라 Laser_Power의
-                                    # 결과값(R²=0.606)으로 나와 CAUSE_FACTORS에는 아직 안 넣음.
 }
 
 DEFECT_RATE_COLS = ["Particle_rate", "Remain_Coat_rate", "Micro_Crack_rate", "Chipping_rate"]
