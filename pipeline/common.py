@@ -170,6 +170,11 @@ def add_rolling_trend_features(
     변동(drift)이 서서히 진행되며 불량으로 이어지는 경우, 그 시점 z-score만으로는 못
     잡는 신호를 잡기 위함. window는 팀 공용 상수로 승격하지 않고 인자로 노출한다 —
     Goal마다 적정 길이가 다를 수 있어(Machine_ID 그루핑) 실험적으로 바꿔볼 여지를 남긴다.
+
+    주의: 원본 행(샷) 단위 df에 바로 쓰면 Machine×Product×Recipe 조합당 하루 평균
+    샷 수가 적어(이 데이터셋 기준 ~5개) window=5~10이 실제로는 1~2일치밖에 안 될 수
+    있다 — 여러 날에 걸친 추세를 보려면 `00_machine_daily_series.csv`(Step0 산출물,
+    이미 날짜 단위로 집계됨)를 df로 넘길 것.
     """
     result = df.sort_values([group_col, time_col]).copy()
     for col in columns:

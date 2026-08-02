@@ -145,8 +145,15 @@ def variability_count(df_all: pd.DataFrame, col: str) -> tuple[float, str, str]:
 # 3단계: 노이즈 vs 실제 열화추세 (장비별, OPCOND 잔차 기반)
 # ---------------------------------------------------------------------------
 
-def compute_machine_column_trend(df: pd.DataFrame, opcond_baseline: pd.DataFrame) -> pd.DataFrame:
-    """OPCOND 층 median을 뺀 z-잔차의 장비별 일간 평균에 Mann-Kendall(=kendalltau)+OLS 기울기.
+def compute_machine_daily_series(df: pd.DataFrame, opcond_baseline: pd.DataFrame) -> pd.DataFrame:
+    """장비×컬럼별 OPCOND 정규화 z-잔차를 날짜 단위로 집계한 long-format 시계열.
+
+    다른 팀원(추세/조기경보 분석 담당)이 원본 행(샷) 단위로 직접 rolling window를
+    돌리면, Machine×Product×Recipe로 쪼갤 때 하루 평균 샷 수가 5개 안팎이라
+    "10개 윈도우"가 실제로는 1~2일치밖에 안 돼서 몇 주 단위로 서서히 진행되는
+    열화 추세를 통계적으로 잡을 표본이 부족해지는 문제가 생긴다(day-vs-shot
+    단위 불일치). 이 표를 rolling/조기경보 분석의 공통 입력으로 쓰면 이 문제를
+    원천적으로 피할 수 있다 — 이미 날짜 단위로 집계·정규화되어 있다.
 
     Product/Recipe 조합이 날마다 달라도, 먼저 조건별로 정규화했기 때문에
     "그 장비가 자기 기대 baseline 대비 드리프트하는지"를 올바르게 반영한다.
@@ -157,37 +164,61 @@ def compute_machine_column_trend(df: pd.DataFrame, opcond_baseline: pd.DataFrame
     rows = []
     for machine, g in z_df.groupby("Machine_ID"):
         daily = g.groupby("date")
+        n_shots = daily.size()
         for col in CONTINUOUS_TREND_COLS:
             zcol = f"{col}_z"
-            series = daily[zcol].mean().sort_index()
-            day_index = np.arange(len(series))
-            tau, p_value = mann_kendall(pd.Series(day_index), series)
+            daily_mean = daily[col].mean()
+            daily_mean_z = daily[zcol].mean()
+            frame = pd.DataFrame({
+                "Machine_ID": machine,
+                "column": col,
+                "date": daily_mean.index,
+                "n_shots": n_shots.reindex(daily_mean.index).values,
+                "daily_mean": daily_mean.values,
+                "daily_mean_z": daily_mean_z.reindex(daily_mean.index).values,
+            })
+            rows.append(frame)
+    return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
 
-            ols_slope, ols_pvalue = np.nan, np.nan
-            valid = series.dropna()
-            if len(valid) >= 3:
-                x = sm.add_constant(np.arange(len(valid)))
-                model = sm.OLS(valid.values, x).fit()
-                ols_slope = float(model.params[1])
-                ols_pvalue = float(model.pvalues[1])
 
-            if pd.notna(p_value) and p_value < config.TREND_ALPHA:
-                trend_class = "candidate_upward_drift" if tau > 0 else "candidate_downward_drift"
-            else:
-                trend_class = "no_trend"
+def compute_machine_column_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
+    """compute_machine_daily_series 결과에 Mann-Kendall(=kendalltau)+OLS 기울기 검정.
 
-            rows.append(
-                {
-                    "Machine_ID": machine,
-                    "column": col,
-                    "n_days": len(valid),
-                    "kendall_tau": tau,
-                    "kendall_p_value": p_value,
-                    "ols_slope_per_day": ols_slope,
-                    "ols_p_value": ols_pvalue,
-                    "trend_class": trend_class,
-                }
-            )
+    89일 전체 구간을 한 번에 검정하는 방식이라(요약 통계 하나), 언제부터/얼마나
+    나빠지고 있는지 날짜별 추이를 보려면 daily_series를 직접 rolling으로 쓸 것
+    — 이 표는 "장기적으로 드리프트가 있는 조합이 맞는지"를 확정하는 용도다.
+    """
+    rows = []
+    for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
+        series = g.sort_values("date")["daily_mean_z"]
+        day_index = np.arange(len(series))
+        tau, p_value = mann_kendall(pd.Series(day_index), series)
+
+        ols_slope, ols_pvalue = np.nan, np.nan
+        valid = series.dropna()
+        if len(valid) >= 3:
+            x = sm.add_constant(np.arange(len(valid)))
+            model = sm.OLS(valid.values, x).fit()
+            ols_slope = float(model.params[1])
+            ols_pvalue = float(model.pvalues[1])
+
+        if pd.notna(p_value) and p_value < config.TREND_ALPHA:
+            trend_class = "candidate_upward_drift" if tau > 0 else "candidate_downward_drift"
+        else:
+            trend_class = "no_trend"
+
+        rows.append(
+            {
+                "Machine_ID": machine,
+                "column": col,
+                "n_days": len(valid),
+                "kendall_tau": tau,
+                "kendall_p_value": p_value,
+                "ols_slope_per_day": ols_slope,
+                "ols_p_value": ols_pvalue,
+                "trend_class": trend_class,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -392,7 +423,10 @@ def main() -> None:
     save_table(opcond_baseline, "00_stratum_baseline_stats_by_opcond.csv", subdir="preprocessing")
     save_table(machine_opcond_baseline, "00_stratum_baseline_stats_by_machine_opcond.csv", subdir="preprocessing")
 
-    machine_trend = compute_machine_column_trend(df, opcond_baseline)
+    daily_series = compute_machine_daily_series(df, opcond_baseline)
+    save_table(daily_series, "00_machine_daily_series.csv", subdir="preprocessing")
+
+    machine_trend = compute_machine_column_trend(daily_series)
     save_table(machine_trend, "00_machine_column_trend.csv", subdir="preprocessing")
     trend_summary = summarize_column_trend(machine_trend)
 

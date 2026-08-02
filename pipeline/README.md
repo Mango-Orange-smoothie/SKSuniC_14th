@@ -22,16 +22,40 @@ pip install -r requirements.txt
 python3 -m pipeline.step0_preprocessing
 ```
 
-`analysis_outputs/preprocessing/`에 아래 6개 파일이 생성된다 (10만행 기준 약 8초 소요).
+`analysis_outputs/preprocessing/`에 아래 7개 파일이 생성된다 (10만행 기준 약 8초 소요).
 
 | 파일 | 내용 |
 |---|---|
 | `00_column_classification.csv` | 68개 원본 컬럼 전체의 분류(서브시스템/타입/역할/변동성/추세/제외여부) |
-| `00_machine_column_trend.csv` | (장비, 연속형 컬럼)별 추세검정 상세 (Mann-Kendall tau/p, OLS 기울기/p) |
+| `00_machine_daily_series.csv` | (장비, 연속형 컬럼, 날짜)별 OPCOND 정규화 일별 집계 시계열 — **추세/조기경보 분석 공용 입력(아래 설명)** |
+| `00_machine_column_trend.csv` | (장비, 연속형 컬럼)별 89일 전체 추세검정 요약 (Mann-Kendall tau/p, OLS 기울기/p) |
 | `00_missing_sensor_fault_flags.csv` | 결측/물리적으로 불가능한 0값/flatline(센서 고착) 플래그 |
 | `00_stratum_baseline_stats_by_opcond.csv` | Product×Recipe grain OK-baseline (mean/std/median/MAD/분위수) |
 | `00_stratum_baseline_stats_by_machine_opcond.csv` | Machine×Product×Recipe grain OK-baseline |
 | `00_preprocessing_summary.json` | 행 수/키/정상군 assert 결과 + 다운스트림 기본 포함 컬럼 목록 |
+
+### `00_machine_daily_series.csv` — 왜 추가했는지 (26.08.02)
+
+추세/조기경보 분석에서 원본 행(샷) 단위로 직접 rolling window를 돌리면, 이 데이터셋은
+Machine×Product×Recipe로 쪼갤 때 하루 평균 샷 수가 **5개 안팎**이라 "10개 윈도우"가
+실제로는 1~2일치밖에 안 된다. 실측 검증 결과, 이 데이터셋에서 가장 확실한 장기 drift
+(`DP02 Laser_Power`, 89일 전체 Kendall tau=-0.74, p≈2×10⁻²⁴)조차 **최근 30일만 잘라
+보면 통계적으로 안 잡힌다**(p=0.32) — 45일은 돼야 다시 유의해진다(p=0.014). 즉 일별
+집계 없이 짧은 샷 단위 윈도우로 장기 drift를 잡으려는 접근은 이 데이터 특성상
+구조적으로 어렵다.
+
+그래서 Step0에서 **미리 날짜 단위로 집계·정규화한 시계열**을 공용 산출물로 내보낸다.
+`compute_machine_daily_series()`가 `00_machine_column_trend.csv`(89일 전체 1회 검정)를
+만들 때 내부적으로 쓰던 일별 z-잔차 시계열을 그대로 노출한 것 — 새로 계산한 게 아니라
+기존에 버려지던 중간 결과를 저장한 것뿐이다. 컬럼: `Machine_ID`, `column`, `date`,
+`n_shots`(그날 표본 수), `daily_mean`(원값 일평균), `daily_mean_z`(OPCOND 정규화
+z-잔차 일평균).
+
+**권장 사용법**: 추세/조기경보 분석(rolling window, 조기경보 임계값 등)은 이 파일의
+`daily_mean_z`를 입력으로 rolling을 돌릴 것 — 원본 행에서 직접 rolling하지 말 것.
+날짜 단위로 이미 노이즈가 눌려 있어 같은 윈도우 크기로도 더 안정적인 신호를 준다.
+(이 파일 생성 자체는 전처리 담당 소관, 그 위에 얹는 rolling/조기경보 판정 로직은
+추세분석 담당 소관 — 역할 분리.)
 
 ## 공통 로드 패턴
 
