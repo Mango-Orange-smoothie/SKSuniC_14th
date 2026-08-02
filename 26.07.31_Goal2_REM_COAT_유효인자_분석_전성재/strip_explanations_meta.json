@@ -1,0 +1,8 @@
+{
+  "generated_at": "2026-08-02T09:08:22.435829+00:00",
+  "purpose": "AI Agent가 '이 스트립 왜 불량났어?' 질문에 즉시 조회로 답하기 위한 사전계산 DB",
+  "key_format": "Lot_ID|Strip_ID (pipeline/config.py KEY 규약과 동일, Strip_ID 단독 사용 금지)",
+  "n_strips": 2332,
+  "model": "RandomForestClassifier(n_estimators=300, max_depth=6), verify_v5와 동일 설정",
+  "usage_example": "lookup['LOT005662|STRIP14965']['explanation_ko']"
+}

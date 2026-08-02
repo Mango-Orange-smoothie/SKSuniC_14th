@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-08-01T02:59:39.530032+00:00",
+  "step1_dp04_pairwise": [
+    {
+      "comparison": "DP04 vs DP01",
+      "cliffs_delta": -0.44853824457246616,
+      "p_value": 0.0,
+      "p_fdr": 0.0,
+      "significant": true
+    },
+    {
+      "comparison": "DP04 vs DP02",
+      "cliffs_delta": -0.4450290635788312,
+      "p_value": 0.0,
+      "p_fdr": 0.0,
+      "significant": true
+    },
+    {
+      "comparison": "DP04 vs DP03",
+      "cliffs_delta": -0.4459280570944003,
+      "p_value": 0.0,
+      "p_fdr": 0.0,
+      "significant": true
+    }
+  ],
+  "step2_mediation": {
+    "dp04_log_odds_alone": 0.5307822048955557,
+    "dp04_odds_ratio_alone": 1.7002617416643044,
+    "dp04_log_odds_after_cln_flow_adjust": -0.0176586663315237,
+    "dp04_odds_ratio_after_adjust": 0.9824963342081598,
+    "dp04_excess_risk_reduction_pct": 103.32691378283837,
+    "cln_flow_coef_in_adjusted_model": -0.2885748884818526,
+    "cln_pressure_coef_in_adjusted_model": -1.1875766069970544,
+    "interpretation": "DP04의 초과위험(log-odds)이 CLN_Flow를 모델에 추가했을 때 103.3% 줄었다 — 이 비율이 클수록 'CLN_Flow가 DP04 초과위험을 설명한다'는 근거가 강함 (100%면 완전 설명, 0%면 전혀 무관)."
+  },
+  "step3_r1_replication": {
+    "remain_coat_rate_by_machine": {
+      "DP01": 0.021245392207380396,
+      "DP02": 0.020777129051741495,
+      "DP03": 0.020718287718166795,
+      "DP04": 0.23385203167907032
+    },
+    "cln_flow_median_z_by_machine": {
+      "DP01": 0.10649854096999203,
+      "DP02": 0.10937687991509816,
+      "DP03": 0.10117361392146082,
+      "DP04": -1.2927739556634714
+    },
+    "cln_pressure_median_z_by_machine": {
+      "DP01": -0.014235976728426214,
+      "DP02": 0.0010204096209982063,
+      "DP03": -0.017979570892382266,
+      "DP04": -0.015046332326783566
+    },
+    "dp04_still_highest_remain_coat": true,
+    "dp04_still_lowest_cln_flow": true
+  }
+}

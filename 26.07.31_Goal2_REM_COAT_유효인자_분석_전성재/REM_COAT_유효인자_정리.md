@@ -292,7 +292,29 @@ GROUP 방식 — 지금까지 쓴 OPCOND/Machine-더미 방식과는 또 다른 
 
 산출물: `verify_v4_00_summary.json`, `verify_v4_01_full_temporal_scan.csv`
 
-## 12. 다음에 확인할 것 (전성재 담당 관점)
+## 13. SHAP 개별 스트립 설명 (`verify_v5_shap_explanation.py`)
+
+지금까지의 permutation importance는 "전체적으로 어떤 변수가 중요한가"만 답한다. SHAP는
+**스트립 하나하나의 예측에 각 변수가 얼마나 기여했는지**를 쪼개서 보여준다 — 현장에
+"이 스트립이 왜 불량 예측됐는지" 설명할 때 필요한 형태.
+
+RandomForestClassifier(v1 검증과 동일 계열) + `shap.TreeExplainer`로 계산.
+
+**전역 SHAP 중요도 top5**: `CLN_Pressure`, `Coating_Thickness`, `CLN_Flow`,
+`Cleaning_Load_Ratio`, `Cleaning_Capacity` — 지금까지의 permutation importance 순위와
+정확히 일치(교차검증 통과).
+
+**개별 스트립 예시 5건 중**: 4건은 예상대로 `CLN_Pressure`가 1위 기여 변수(낮은 압력이
+불량 쪽으로 밀어줌). **1건(DP04, 행 70518)은 `Coating_Thickness`가 1위였고 CLN_Pressure는
+오히려 정상 범위**였다 — REM_COAT 불량이 전부 같은 경로로 생기는 게 아니라, 스트립마다
+다른 원인 패턴이 섞여 있을 수 있다는 걸 보여준다. SOP/알람 설계 시 "CLN_Pressure만
+보면 된다"고 단순화하지 말고 Coating_Thickness 측정 시점 확인(11번 1항)이 왜 여전히
+중요한지에 대한 추가 근거가 된다.
+
+산출물: `verify_v5_00_summary.json`, `verify_v5_01_shap_global_importance.csv`,
+`verify_v5_02_shap_example_strips.csv`
+
+## 14. 다음에 확인할 것 (전성재 담당 관점)
 
 1. `Coating_Thickness` 측정 시점(가공 전/후)을 현업/멘토에게 확인 — 데이터 누수 여부 판가름
 2. DP04 장비의 `CLN_Pressure`/`CLN_Flow` 실측값이 다른 3대와 어떻게 다른지 장비별로 재확인

@@ -1,0 +1,4 @@
+﻿comparison,cliffs_delta,p_value,p_fdr,significant
+DP04 vs DP01,-0.44853824457246616,0.0,0.0,True
+DP04 vs DP02,-0.4450290635788312,0.0,0.0,True
+DP04 vs DP03,-0.4459280570944003,0.0,0.0,True

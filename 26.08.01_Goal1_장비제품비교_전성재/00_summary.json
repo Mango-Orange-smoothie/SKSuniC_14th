@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-08-01T02:52:50.447554+00:00",
+  "n_rows": 100000,
+  "defects_with_significant_machine_difference": [
+    "Remain_Coat",
+    "Particle"
+  ],
+  "n_continuous_vars_scanned": 40,
+  "n_continuous_vars_significant": 12,
+  "top10_continuous_by_effect": [
+    {
+      "column": "CLN_Flow",
+      "epsilon_squared": 0.1132516174699102,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Vibration",
+      "epsilon_squared": 0.03344677994023808,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Laser_Power",
+      "epsilon_squared": 0.03034594733237829,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Bottom_Kerf",
+      "epsilon_squared": 0.02849495430991072,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Laser_Cleaning_Demand",
+      "epsilon_squared": 0.025144238349540056,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Power_Efficiency",
+      "epsilon_squared": 0.023555145218395104,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Top_Kerf",
+      "epsilon_squared": 0.022687282536695257,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Kerf_Width_Profile",
+      "epsilon_squared": 0.01960710429001155,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Focus",
+      "epsilon_squared": 0.017188214338294847,
+      "p_fdr": 0.0
+    },
+    {
+      "column": "Cleaning_Load_Ratio",
+      "epsilon_squared": 0.01600295593860531,
+      "p_fdr": 0.0
+    }
+  ]
+}

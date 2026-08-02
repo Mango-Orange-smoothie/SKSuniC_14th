@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-08-01T02:36:23.133061+00:00",
+  "model": "RandomForestClassifier(n_estimators=300, max_depth=6)",
+  "n_test": 30000,
+  "global_shap_top5": [
+    "CLN_Pressure",
+    "Coating_Thickness",
+    "CLN_Flow",
+    "Cleaning_Load_Ratio",
+    "Cleaning_Capacity"
+  ],
+  "n_example_strips": 5,
+  "note": "permutation importance(1차 검증)와 SHAP 전역 중요도 순위가 일치하는지가 교차검증 포인트."
+}
