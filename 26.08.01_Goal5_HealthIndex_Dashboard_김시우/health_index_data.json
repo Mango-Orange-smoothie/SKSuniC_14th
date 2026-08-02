@@ -1,0 +1,561 @@
+{
+  "generated_at": "2026-08-02T20:15:20.061852",
+  "recent_window_days": 14,
+  "anomaly_z_threshold": 2.0,
+  "cause_factors": {
+    "Vibration": {
+      "direction": "up",
+      "defects": [
+        "Particle",
+        "Micro_Crack"
+      ],
+      "owner": "daeho / JHdaimma",
+      "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)"
+    },
+    "CLN_Pressure": {
+      "direction": "down",
+      "defects": [
+        "Remain_Coat"
+      ],
+      "owner": "전성재",
+      "mechanism": "세정 압력 부족 -> 코팅 미제거"
+    },
+    "Laser_Power": {
+      "direction": "down",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격"
+    },
+    "Power_Efficiency": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)"
+    },
+    "Head_Temp": {
+      "direction": "up",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping"
+    },
+    "Laser_Centering_Position": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "빔 중심 이탈 -> 비대칭 절단"
+    },
+    "Cooling_Flow": {
+      "direction": "down",
+      "defects": [
+        "Micro_Crack"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)"
+    },
+    "Kerf_Width_Profile": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "Jun / JHdaimma",
+      "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)"
+    },
+    "Top_Kerf": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)"
+    },
+    "Bottom_Kerf": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)"
+    },
+    "Groove_Depth": {
+      "direction": "down",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "Jun",
+      "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed."
+    }
+  },
+  "machines": {
+    "DP01": {
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "level_z": -0.125,
+              "recent_trend_slope_z_per_day": 0.0099,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "level_z": -0.017,
+              "recent_trend_slope_z_per_day": -0.0035,
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "level_z": 0.049,
+              "recent_trend_slope_z_per_day": 0.0001,
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "level_z": -0.125,
+              "recent_trend_slope_z_per_day": 0.0099,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "level_z": 0.103,
+              "recent_trend_slope_z_per_day": -0.0031,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "level_z": -0.115,
+              "recent_trend_slope_z_per_day": 0.0017,
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "level_z": -0.186,
+              "recent_trend_slope_z_per_day": -0.0041,
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "level_z": 0.039,
+              "recent_trend_slope_z_per_day": -0.0018,
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "level_z": 0.005,
+              "recent_trend_slope_z_per_day": 0.0003,
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "level_z": -0.133,
+              "recent_trend_slope_z_per_day": 0.0022,
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "level_z": 0.094,
+              "recent_trend_slope_z_per_day": -0.0019,
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "level_z": 0.097,
+              "recent_trend_slope_z_per_day": -0.0042,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": []
+    },
+    "DP02": {
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "level_z": 0.25,
+              "recent_trend_slope_z_per_day": 0.0003,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "level_z": 0.014,
+              "recent_trend_slope_z_per_day": -0.0031,
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "level_z": -0.104,
+              "recent_trend_slope_z_per_day": -0.0038,
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "level_z": 0.25,
+              "recent_trend_slope_z_per_day": 0.0003,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "level_z": 0.574,
+              "recent_trend_slope_z_per_day": 0.0008,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "level_z": 0.317,
+              "recent_trend_slope_z_per_day": 0.0045,
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "level_z": -0.005,
+              "recent_trend_slope_z_per_day": 0.0071,
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "level_z": 0.48,
+              "recent_trend_slope_z_per_day": 0.0043,
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "level_z": 0.215,
+              "recent_trend_slope_z_per_day": -0.0041,
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "level_z": 0.557,
+              "recent_trend_slope_z_per_day": 0.0053,
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "level_z": 0.531,
+              "recent_trend_slope_z_per_day": 0.0065,
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "level_z": 0.469,
+              "recent_trend_slope_z_per_day": 0.0045,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": []
+    },
+    "DP03": {
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "level_z": 0.769,
+              "recent_trend_slope_z_per_day": -0.0049,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "level_z": 0.023,
+              "recent_trend_slope_z_per_day": -0.001,
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "level_z": 0.035,
+              "recent_trend_slope_z_per_day": 0.0012,
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "level_z": 0.769,
+              "recent_trend_slope_z_per_day": -0.0049,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "level_z": 0.274,
+              "recent_trend_slope_z_per_day": 0.0019,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "level_z": -0.001,
+              "recent_trend_slope_z_per_day": -0.0037,
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "level_z": 0.552,
+              "recent_trend_slope_z_per_day": -0.0032,
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "level_z": 0.166,
+              "recent_trend_slope_z_per_day": -0.0009,
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "level_z": 0.095,
+              "recent_trend_slope_z_per_day": 0.0012,
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "level_z": 0.174,
+              "recent_trend_slope_z_per_day": 0.0028,
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "level_z": 0.097,
+              "recent_trend_slope_z_per_day": -0.0004,
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "level_z": 0.246,
+              "recent_trend_slope_z_per_day": 0.0021,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": []
+    },
+    "DP04": {
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "level_z": 0.375,
+              "recent_trend_slope_z_per_day": 0.0084,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "level_z": 0.04,
+              "recent_trend_slope_z_per_day": -0.0044,
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "level_z": -0.1,
+              "recent_trend_slope_z_per_day": -0.0037,
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "level_z": 0.375,
+              "recent_trend_slope_z_per_day": 0.0084,
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "level_z": 0.059,
+              "recent_trend_slope_z_per_day": 0.0009,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "level_z": -0.087,
+              "recent_trend_slope_z_per_day": 0.0007,
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "level_z": 0.008,
+              "recent_trend_slope_z_per_day": -0.0011,
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "level_z": 0.062,
+              "recent_trend_slope_z_per_day": -0.0024,
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "level_z": 0.025,
+              "recent_trend_slope_z_per_day": 0.0041,
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "level_z": -0.089,
+              "recent_trend_slope_z_per_day": -0.0023,
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "level_z": 0.077,
+              "recent_trend_slope_z_per_day": -0.0021,
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "level_z": 0.075,
+              "recent_trend_slope_z_per_day": 0.0024,
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": [
+        {
+          "column": "CLN_Flow",
+          "level_z": 3.806,
+          "recent_trend_slope_z_per_day": 0.0047,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
+    }
+  }
+}

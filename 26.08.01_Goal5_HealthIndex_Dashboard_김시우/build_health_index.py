@@ -1,20 +1,31 @@
-"""Goal5 — 러프 Health Index + 경보 + SOP 제안 (월요일 대시보드용, 1차 버전).
+"""Health Index 재설계 v2 — "오늘 뭐부터 봐야 하는가"를 위한 우선순위 신호 계산.
 
-목적: 월요일 멘토 미팅 전 "대충이라도" 보여줄 결과물. 정교한 최종 버전이 아니라
-지금까지 팀이 확정한 유효인자(daeho=Particle, 전성재=Remain_Coat,
-JHdaimma=Chipping/Micro_Crack)를 모아서 실제 숫자로 된 Health Index/경보/SOP를 만든다.
+배경: 이전 버전(v1)은 불량페널티+안정성페널티+추세페널티를 가중치(3/8/5)로 더해
+하나의 점수로 뭉갰다. 근거 없는 가중치 문제도 있었지만, 더 근본적으로는 목적과
+안 맞았다 — 이 프로젝트는 "과거를 요약한 리포트"가 아니라 "엔지니어에게 뭘 보라고
+알려주는 AI Agent"가 목표다. 하나의 점수로 뭉개면 에이전트가 "왜 급한지" 설명을
+못 한다.
 
-가중치는 전부 잠정치이며 문서에 그렇게 명시한다 (pipeline/README.md의 Goal5 설계와 동일한
-원칙 — 자동학습 가중치는 이번 범위 밖).
+v2 구조:
+  1. defect별로 확정 원인변수(CAUSE_FACTORS)의 "레벨"(지금 얼마나 벗어났나)과
+     "추세"(최근 며칠간 얼마나 빠르게 나빠지는가)를 따로따로 보고한다 — 하나의
+     점수로 합치지 않는다. 합치는 가중치 자체가 또 다른 임의값이 되기 때문에,
+     그 판단(레벨이 심각한지 추세가 나쁜지 종합적으로 얼마나 급한지)은 AI Agent가
+     자연어로 설명하게 맡긴다.
+  2. 확정 원인이 아닌 나머지 변수도 같은 레벨/추세 계산을 적용한다(안전망) —
+     단 defect 연결/SOP는 안 붙이고 "미확인 이상"으로만 표시한다. Step0가 이미
+     전체 연속형 변수에 대해 baseline/일별 시계열을 계산해둬서 추가 비용이 거의 없다.
+  3. 실제 불량 발생 여부(최근 7일 defect rate)는 레벨/추세와 별개 필드로 분리한다
+     — "이미 터진 것"과 "터지기 전 조짐"은 다른 층위의 정보라서 섞으면 안 된다.
+
+이 스크립트는 정적 HTML 대시보드를 만들지 않는다(v1의 build_dashboard_html.py는
+삭제됨) — 산출물은 AI Agent(agent.py)가 직접 읽는 health_index_data.json 하나뿐이다.
 
 실행 (저장소 루트에서):
   python "26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py"
 
 산출물 (이 폴더 안):
-  01_health_index_by_machine_date.csv   Machine x Date 단위 Health Index
-  02_active_alerts.csv                  현재(최근 7일) 경보 목록
-  03_sop_suggestions.csv                경보별 SOP 제안 매핑
-  dashboard_data.json                   대시보드 HTML이 바로 읽는 통합 데이터
+  health_index_data.json   AI Agent가 읽는 데이터 (레벨/추세/실제발생/미확인이상)
 """
 
 from __future__ import annotations
@@ -30,17 +41,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
-from pipeline.common import load_dataset, compute_stratum_baseline_stats, zscore_transform
+from pipeline.common import load_dataset, zscore_transform
+from pipeline.step0_preprocessing import CONTINUOUS_TREND_COLS
 
 OUT_DIR = Path(__file__).resolve().parent
 
 # ---------------------------------------------------------------------------
-# 팀이 각 defect별로 확정한 "원인(cause)" FDC 변수. 출처:
+# 팀이 각 defect별로 확정한 "원인(cause)" FDC/response 변수. 출처:
 #   Particle:    daeho  26.07.31_2058_Goal2_PARTICLE_후속검증 (선행신호 검증까지 완료)
 #   Remain_Coat: 전성재 26.07.31_Goal2_REM_COAT_유효인자_분석_전성재 (Machine 통제 다변량, v2)
-#   Chipping:    JHdaimma 26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma (SHAP 모델A)
+#   Chipping:    JHdaimma 26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma (3방법 합의:
+#                통계검정+permutation importance+SHAP), Jun의 CHIP 분석(confirmed) 교차확인
 #   Micro_Crack: JHdaimma 동일 (Vibration/Cooling_Flow = Chipping과 공유 원인)
-# direction: "up"=높을수록 위험, "down"=낮을수록 위험
+# direction: "up"=높을수록 위험, "down"=낮을수록 위험, "either"=양방향 다 위험(U자형 등)
 # ---------------------------------------------------------------------------
 CAUSE_FACTORS = {
     "Vibration": {
@@ -109,221 +122,188 @@ CAUSE_FACTORS = {
         "direction": "down",
         "defects": ["Chipping"],
         "owner": "Jun",
-        "mechanism": "가공 깊이 부족(deep이 아니라 shallow가 위험) -> Low-k가 완전히 승화되지 "
-                     "못해 Blade 진입 시 Chipping 발생. Jun 통계검정 confirmed. "
-                     "(정정 26.08.02: JHdaimma 모델에서 Laser_Power의 결과값(R²=0.606)으로도 "
-                     "나오지만, 이건 JHdaimma가 Chipping 예측 후보에서 애초에 제외하고 다른 "
-                     "회귀로만 다룬 것뿐 — Jun이 별도로 직접 검정해서 confirmed 받은 결과를 "
-                     "무효화하는 근거가 아님. JHdaimma도 감시지표로 -0.750(얕을수록 위험과 "
-                     "일치하는 강한 음의 방향)을 별도 확인함.)",
+        "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 "
+                     "승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
     },
 }
-CAUSE_COLS = list(CAUSE_FACTORS.keys())
+CAUSE_COLS = set(CAUSE_FACTORS.keys())
 
-# 원인(CAUSE_FACTORS)으로 확정하기엔 근거 부족하지만 참고용으로 같이 보는 감시지표.
-# 주의: 이 딕셔너리는 아직 build_alerts/build_sop_suggestions 등 어디서도 안 쓰임(죽은 코드) —
-# 실제로 대시보드/경보에 반영하려면 별도 배선이 필요하다.
-MONITOR_FACTORS = {
-    "Surface_Roughness": ["Particle", "Chipping", "Micro_Crack"],
+DEFECT_RATE_COLS = {
+    "Particle": "Particle_rate",
+    "Remain_Coat": "Remain_Coat_rate",
+    "Micro_Crack": "Micro_Crack_rate",
+    "Chipping": "Chipping_rate",
 }
 
-DEFECT_RATE_COLS = ["Particle_rate", "Remain_Coat_rate", "Micro_Crack_rate", "Chipping_rate"]
-
-# 러프 가중치 (잠정 — 멘토/팀 논의로 조정 예정)
-W_DEFECT = 3.0     # (100 - Yield_7d_ma) 에 곱하는 배율
-W_STABILITY = 8.0  # 원인변수 평균 |z| 에 곱하는 배율
-W_TREND = 5.0      # 나쁜 방향 추세 변수 1개당 감점
-CAP_DEFECT = 45
-CAP_STABILITY = 30
-CAP_TREND = 20
-# 실제 분포(최초 실행 결과 min=75.5, DP02/DP03가 지속적으로 75~78 구간)를 보고 잡은 값.
-# 정교한 기준이 아니라 "지금 뚜렷하게 낮은 장비 2대를 놓치지 않는" 러프 임계값.
-ALERT_HI_THRESHOLD = 80
-ALERT_Z_THRESHOLD = 2.0
+# 미확인 이상(안전망) 판정 임계값 — 확정 원인이 아니라서 보수적으로 잡음. 근거 있는
+# 최적화 값이 아니라 관례적 컷오프(대략 상위/하위 2.3%)다. 필요시 조정할 것.
+ANOMALY_Z_THRESHOLD = 2.0
+# 레벨/추세 계산에 쓰는 최근 구간 길이(일). 통계적 유의성을 새로 검정하는 게 아니라
+# "최근 방향/속도"를 서술하는 용도라서 짧아도 된다 — 다만 지난 검증(DP02 Laser_Power
+# 사례)에서 확인했듯 이 값 자체로 "유의미한 추세 확정"을 주장하지는 않는다.
+RECENT_WINDOW_DAYS = 14
+RECENT_DEFECT_WINDOW_DAYS = 7
 
 
 def load_step0_outputs():
-    baseline_opcond = pd.read_csv(config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv")
-    machine_trend = pd.read_csv(config.PREPROCESSING_DIR / "00_machine_column_trend.csv")
-    return baseline_opcond, machine_trend
+    opcond_baseline = pd.read_csv(config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv")
+    daily_series = pd.read_csv(config.PREPROCESSING_DIR / "00_machine_daily_series.csv")
+    daily_series["date"] = pd.to_datetime(daily_series["date"])
+    return opcond_baseline, daily_series
 
 
-def compute_daily_stability(df: pd.DataFrame, baseline_opcond: pd.DataFrame) -> pd.DataFrame:
-    """cause 변수 7개의 OPCOND 층화 z-score를 계산해 Machine x Date 평균 |z|로 집계."""
-    z_df = zscore_transform(df, baseline_opcond, config.OPCOND, CAUSE_COLS)
-    z_df["date"] = z_df["DateTime"].dt.date
-
-    # direction 반영: "down"이 위험이면 z를 뒤집어서 "z가 클수록 위험"으로 통일.
-    for col, meta in CAUSE_FACTORS.items():
-        zcol = f"{col}_z"
-        if meta["direction"] == "down":
-            z_df[zcol] = -z_df[zcol]
-        elif meta["direction"] == "either":
-            z_df[zcol] = z_df[zcol].abs()
-
-    z_cols = [f"{c}_z" for c in CAUSE_COLS]
-    daily = z_df.groupby(["Machine_ID", "date"])[z_cols].mean().reset_index()
-    daily["mean_abs_risk_z"] = daily[z_cols].mean(axis=1)
-    return daily, z_df
+def direction_of(column: str) -> str:
+    """CAUSE_FACTORS에 있으면 확정된 방향, 없으면 방향 모르니 either(양방향 이상 취급)."""
+    meta = CAUSE_FACTORS.get(column)
+    return meta["direction"] if meta else "either"
 
 
-def compute_machine_bad_trend_detail(machine_trend: pd.DataFrame) -> pd.DataFrame:
-    """cause 변수별로 '나쁜 방향' 추세면 표시. direction=either는 상승/하강 둘 다 나쁨으로 취급.
+def compute_level_and_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
+    """장비×컬럼별로 (a) 최근 시점 레벨, (b) 최근 N일 추세 기울기를 계산한다.
 
-    개수(bad_trend_count)뿐 아니라 어떤 변수가 걸렸는지(factor 목록)도 함께 반환 —
-    경보 메시지에서 "왜 이 장비 점수가 낮은지"를 설명하는 데 필요하다.
+    레벨/추세 둘 다 daily_mean_z(00_machine_daily_series.csv, OPCOND baseline 대비
+    일별 정규화 잔차)를 그대로 쓴다 — 새 통계 계산이 아니라 기존 산출물 재사용.
+    방향(up/down/either)에 따라 부호를 통일해서 "값이 클수록 위험"으로 맞춘다.
     """
     rows = []
-    for _, row in machine_trend.iterrows():
-        col = row["column"]
-        if col not in CAUSE_FACTORS:
+    for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
+        g = g.sort_values("date")
+        direction = direction_of(col)
+        z = g["daily_mean_z"]
+        if direction == "down":
+            z = -z
+        elif direction == "either":
+            z = z.abs()
+        # direction == "up"은 그대로
+
+        valid = z.dropna()
+        if valid.empty:
             continue
-        direction = CAUSE_FACTORS[col]["direction"]
-        trend_class = row["trend_class"]
-        bad = False
-        if direction == "up" and trend_class == "candidate_upward_drift":
-            bad = True
-        elif direction == "down" and trend_class == "candidate_downward_drift":
-            bad = True
-        elif direction == "either" and trend_class in ("candidate_upward_drift", "candidate_downward_drift"):
-            bad = True
-        rows.append({"Machine_ID": row["Machine_ID"], "column": col, "bad_trend": bad})
-    bad_df = pd.DataFrame(rows)
-    count = bad_df.groupby("Machine_ID")["bad_trend"].sum().rename("bad_trend_count")
-    factors = (
-        bad_df[bad_df["bad_trend"]]
-        .groupby("Machine_ID")["column"]
-        .apply(lambda s: list(s))
-        .rename("bad_trend_factors")
-    )
-    return pd.concat([count, factors], axis=1).reset_index()
+        level_z = float(valid.iloc[-1])
+        latest_date = g.loc[valid.index[-1], "date"]
 
+        recent = valid.iloc[-RECENT_WINDOW_DAYS:]
+        if len(recent) >= 3 and recent.nunique() > 1:
+            x = np.arange(len(recent))
+            slope = float(np.polyfit(x, recent.values, 1)[0])
+        else:
+            slope = None
 
-def build_health_index(df: pd.DataFrame, baseline_opcond, machine_trend) -> pd.DataFrame:
-    daily_stability, z_df = compute_daily_stability(df, baseline_opcond)
-
-    # 05_machine_daily_trend.csv: analysis_step_by_step.py 산출물 (Yield_7d_ma, defect rate 포함)
-    trend_table = pd.read_csv(REPO_ROOT / "analysis_outputs" / "05_machine_daily_trend.csv")
-    trend_table["date"] = pd.to_datetime(trend_table["date"]).dt.date
-
-    merged = daily_stability.merge(
-        trend_table[["Machine_ID", "date", "Yield_7d_ma"] + DEFECT_RATE_COLS],
-        on=["Machine_ID", "date"], how="left",
-    )
-
-    bad_trend_detail = compute_machine_bad_trend_detail(machine_trend)
-    merged = merged.merge(bad_trend_detail, on="Machine_ID", how="left")
-    merged["bad_trend_count"] = merged["bad_trend_count"].fillna(0)
-    merged["bad_trend_factors"] = merged["bad_trend_factors"].apply(lambda v: v if isinstance(v, list) else [])
-
-    merged["defect_penalty"] = ((100 - merged["Yield_7d_ma"].fillna(100)) * W_DEFECT).clip(0, CAP_DEFECT)
-    merged["stability_penalty"] = (merged["mean_abs_risk_z"].clip(lower=0) * W_STABILITY).clip(0, CAP_STABILITY)
-    merged["trend_penalty"] = (merged["bad_trend_count"] * W_TREND).clip(0, CAP_TREND)
-
-    merged["health_index"] = (
-        100 - merged["defect_penalty"] - merged["stability_penalty"] - merged["trend_penalty"]
-    ).clip(0, 100).round(1)
-
-    return merged.sort_values(["Machine_ID", "date"]), z_df
-
-
-def build_alerts(hi_table: pd.DataFrame, z_df: pd.DataFrame) -> pd.DataFrame:
-    """최근 7일 기준 경보: Health Index 낮음 OR 특정 원인변수가 위험 임계값을 넘음."""
-    recent_cutoff = hi_table["date"].max() - pd.Timedelta(days=7)
-    recent = hi_table[pd.to_datetime(hi_table["date"]) > pd.Timestamp(recent_cutoff)]
-
-    alerts = []
-    for _, row in recent.iterrows():
-        if row["health_index"] < ALERT_HI_THRESHOLD:
-            # 우선순위: ① 당일 z-score가 임계값을 넘는 급성 신호, ② 없으면 그 장비가
-            # 지속적으로 나쁜 방향 추세를 보이는 원인변수(trend_penalty의 실제 근거).
-            spike = [c for c in CAUSE_COLS if row.get(f"{c}_z", 0) is not None and row[f"{c}_z"] >= ALERT_Z_THRESHOLD]
-            trending = row.get("bad_trend_factors", [])
-            if spike:
-                triggered = spike
-                trigger_type = "당일 급성 이상"
-            elif trending:
-                triggered = trending
-                trigger_type = "지속적 추세 이상 (spec 이내지만 서서히 악화)"
-            else:
-                triggered = []
-                trigger_type = "복합 원인 (단일 변수로 설명 안 됨)"
-            alerts.append({
-                "Machine_ID": row["Machine_ID"],
-                "date": str(row["date"]),
-                "health_index": row["health_index"],
-                "defect_penalty": row["defect_penalty"],
-                "stability_penalty": row["stability_penalty"],
-                "trend_penalty": row["trend_penalty"],
-                "trigger_type": trigger_type,
-                "triggered_factors": ",".join(triggered) if triggered else "-",
-            })
-    columns = [
-        "Machine_ID", "date", "health_index", "defect_penalty",
-        "stability_penalty", "trend_penalty", "trigger_type", "triggered_factors",
-    ]
-    if not alerts:
-        return pd.DataFrame(columns=columns)
-    return pd.DataFrame(alerts)[columns].sort_values("health_index")
-
-
-def build_sop_suggestions(alerts: pd.DataFrame) -> pd.DataFrame:
-    """경보에 등장한 원인변수마다 점검/조치 룰 기반 SOP 초안 — 전부 DRAFT_UNVERIFIED."""
-    triggered_all = set()
-    for factors in alerts["triggered_factors"]:
-        for f in factors.split(","):
-            if f in CAUSE_FACTORS:
-                triggered_all.add(f)
-
-    rows = []
-    for factor in sorted(triggered_all):
-        meta = CAUSE_FACTORS[factor]
         rows.append({
-            "factor": factor,
-            "defects": ", ".join(meta["defects"]),
-            "mechanism": meta["mechanism"],
-            "check": f"{factor} 실측값을 baseline(00_stratum_baseline_stats_by_opcond.csv) 대비 확인",
-            "action": f"{factor} 이상 원인(설비 점검/재보정) 조치 후 {', '.join(meta['defects'])} 불량률 72시간 재확인",
-            "source": meta["owner"],
-            "status": "DRAFT_UNVERIFIED — 멘토/현장 SOP 확인 전까지 참고용",
+            "Machine_ID": machine,
+            "column": col,
+            "direction": direction,
+            "latest_date": str(latest_date.date()),
+            "level_z": round(level_z, 3),
+            "recent_trend_slope_z_per_day": round(slope, 4) if slope is not None else None,
+            "is_cause_factor": col in CAUSE_COLS,
         })
     return pd.DataFrame(rows)
 
 
+def load_defect_occurrence() -> pd.DataFrame:
+    """05_machine_daily_trend.csv(analysis_step_by_step.py 산출물)로 최근 실제 발생 여부 판정."""
+    trend = pd.read_csv(REPO_ROOT / "analysis_outputs" / "05_machine_daily_trend.csv")
+    trend["date"] = pd.to_datetime(trend["date"])
+    cutoff = trend["date"].max() - pd.Timedelta(days=RECENT_DEFECT_WINDOW_DAYS)
+    recent = trend[trend["date"] > cutoff]
+
+    rows = []
+    for machine, g in recent.groupby("Machine_ID"):
+        for defect, rate_col in DEFECT_RATE_COLS.items():
+            occurred = bool((g[rate_col] > 0).any())
+            count_days = int((g[rate_col] > 0).sum())
+            rows.append({
+                "Machine_ID": machine,
+                "defect": defect,
+                "actual_occurred_recent_7d": occurred,
+                "occurred_days_recent_7d": count_days,
+            })
+    return pd.DataFrame(rows)
+
+
+def build_machine_snapshot(level_trend: pd.DataFrame, occurrence: pd.DataFrame) -> dict:
+    """장비별로 defect별 원인 신호(확정) + 미확인 이상(안전망) + 실제발생 여부를 묶는다."""
+    machines: dict[str, dict] = {}
+
+    for machine, g in level_trend.groupby("Machine_ID"):
+        cause_rows = g[g["is_cause_factor"]]
+        other_rows = g[~g["is_cause_factor"]]
+
+        # defect별로 원인변수 묶기
+        defect_signals: dict[str, dict] = {}
+        for defect in DEFECT_RATE_COLS:
+            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+            factor_rows = cause_rows[cause_rows["column"].isin(factor_names)]
+            if factor_rows.empty:
+                continue
+            causes = {}
+            for _, row in factor_rows.iterrows():
+                meta = CAUSE_FACTORS[row["column"]]
+                causes[row["column"]] = {
+                    "level_z": row["level_z"],
+                    "recent_trend_slope_z_per_day": row["recent_trend_slope_z_per_day"],
+                    "direction": meta["direction"],
+                    "mechanism": meta["mechanism"],
+                    "source": meta["owner"],
+                }
+            occ = occurrence[(occurrence["Machine_ID"] == machine) & (occurrence["defect"] == defect)]
+            defect_signals[defect] = {
+                "actual_occurred_recent_7d": bool(occ["actual_occurred_recent_7d"].iloc[0]) if len(occ) else False,
+                "occurred_days_recent_7d": int(occ["occurred_days_recent_7d"].iloc[0]) if len(occ) else 0,
+                "causes": causes,
+            }
+
+        # 미확인 이상(안전망): 확정 원인 아닌 변수 중 레벨이 임계값 넘는 것만
+        anomalies = []
+        flagged = other_rows[other_rows["level_z"].abs() >= ANOMALY_Z_THRESHOLD]
+        for _, row in flagged.sort_values("level_z", ascending=False).iterrows():
+            anomalies.append({
+                "column": row["column"],
+                "level_z": row["level_z"],
+                "recent_trend_slope_z_per_day": row["recent_trend_slope_z_per_day"],
+                "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용",
+            })
+
+        machines[machine] = {
+            "latest_date": g["latest_date"].max(),
+            "defect_signals": defect_signals,
+            "unconfirmed_anomalies": anomalies,
+        }
+    return machines
+
+
 def main() -> None:
     df = load_dataset()
-    baseline_opcond, machine_trend = load_step0_outputs()
+    opcond_baseline, daily_series_raw = load_step0_outputs()
 
-    hi_table, z_df = build_health_index(df, baseline_opcond, machine_trend)
-    z_cols = [f"{c}_z" for c in CAUSE_COLS]
-    daily_z_lookup = z_df.groupby(["Machine_ID", "date"])[z_cols].mean().reset_index()
-    hi_full = hi_table.merge(daily_z_lookup, on=["Machine_ID", "date"], suffixes=("", "_dup"))
+    # daily_series는 이미 OPCOND 정규화된 z-잔차를 담고 있음(Step0 산출물) — 여기서
+    # zscore_transform을 다시 돌리지 않는다. df는 이 파일에서 더 안 씀(재현성 확인용으로만 로드).
+    del df
 
-    hi_full.to_csv(OUT_DIR / "01_health_index_by_machine_date.csv", index=False, encoding="utf-8-sig")
+    level_trend = compute_level_and_trend(daily_series_raw)
+    level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 
-    alerts = build_alerts(hi_full, z_df)
-    alerts.to_csv(OUT_DIR / "02_active_alerts.csv", index=False, encoding="utf-8-sig")
+    occurrence = load_defect_occurrence()
+    occurrence.to_csv(OUT_DIR / "02_defect_occurrence_recent7d.csv", index=False, encoding="utf-8-sig")
 
-    sop = build_sop_suggestions(alerts)
-    sop.to_csv(OUT_DIR / "03_sop_suggestions.csv", index=False, encoding="utf-8-sig")
+    machines = build_machine_snapshot(level_trend, occurrence)
 
-    # 대시보드용 통합 JSON
-    hi_full["date"] = hi_full["date"].astype(str)
-    dashboard = {
+    output = {
         "generated_at": pd.Timestamp.now().isoformat(),
-        "health_index_series": hi_full[["Machine_ID", "date", "health_index", "defect_penalty",
-                                          "stability_penalty", "trend_penalty"]].to_dict(orient="records"),
-        "alerts": alerts.to_dict(orient="records"),
-        "sop_suggestions": sop.to_dict(orient="records"),
+        "recent_window_days": RECENT_WINDOW_DAYS,
+        "anomaly_z_threshold": ANOMALY_Z_THRESHOLD,
         "cause_factors": CAUSE_FACTORS,
+        "machines": machines,
     }
-    with open(OUT_DIR / "dashboard_data.json", "w", encoding="utf-8") as f:
-        json.dump(dashboard, f, ensure_ascii=False, indent=2, default=str)
+    with open(OUT_DIR / "health_index_data.json", "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
-    print(f"완료: Health Index {len(hi_full)}행, 경보 {len(alerts)}건, SOP 제안 {len(sop)}건")
-    print(f"장비별 최신 Health Index:")
-    latest = hi_full.sort_values("date").groupby("Machine_ID").tail(1)
-    print(latest[["Machine_ID", "date", "health_index"]].to_string(index=False))
+    print(f"완료: {len(machines)}개 장비 스냅샷 생성")
+    for machine, snap in machines.items():
+        n_defects = len(snap["defect_signals"])
+        n_anomalies = len(snap["unconfirmed_anomalies"])
+        print(f"  {machine}: defect 신호 {n_defects}개, 미확인 이상 {n_anomalies}건")
 
 
 if __name__ == "__main__":
