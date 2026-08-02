@@ -6,17 +6,39 @@
 알려주는 AI Agent"가 목표다. 하나의 점수로 뭉개면 에이전트가 "왜 급한지" 설명을
 못 한다.
 
-v2 구조:
-  1. defect별로 확정 원인변수(CAUSE_FACTORS)의 "레벨"(지금 얼마나 벗어났나)과
-     "추세"(최근 며칠간 얼마나 빠르게 나빠지는가)를 따로따로 보고한다 — 하나의
-     점수로 합치지 않는다. 합치는 가중치 자체가 또 다른 임의값이 되기 때문에,
-     그 판단(레벨이 심각한지 추세가 나쁜지 종합적으로 얼마나 급한지)은 AI Agent가
-     자연어로 설명하게 맡긴다.
-  2. 확정 원인이 아닌 나머지 변수도 같은 레벨/추세 계산을 적용한다(안전망) —
-     단 defect 연결/SOP는 안 붙이고 "미확인 이상"으로만 표시한다. Step0가 이미
-     전체 연속형 변수에 대해 baseline/일별 시계열을 계산해둬서 추가 비용이 거의 없다.
-  3. 실제 불량 발생 여부(최근 7일 defect rate)는 레벨/추세와 별개 필드로 분리한다
+v2 구조 — 엔지니어가 "오늘 뭐부터 볼지" 정할 수 있는 숫자(0~100, 100이 건강)를 만들되,
+임의 가중치 없이 만든다.
+
+**Health Index가 답하는 질문은 "다른 장비/변수 대비 몇 등인가"가 아니라 "스펙 아웃(임시
+USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/순위 기반 백분위로 만들었다가,
+그건 "통계적으로 얼마나 특이한가"를 재는 거라 목적과 안 맞아서 폐기하고 이 방식으로
+다시 짰다.)
+
+  1. **레벨 = 스펙 경계까지 남은 여유를 다 쓴 정도(margin_used_pct, 0~100+)**
+       스펙 경계 z(boundary_z) = baseline(median)에서 임시 USL/LSL(정상군 p0.5~p99.5,
+         00_stratum_baseline_stats_by_opcond.csv)까지의 거리를, robust z-scale로 잰 것.
+         OPCOND 층별로 계산한 뒤 컬럼당 중앙값을 대표값으로 씀.
+       margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
+         0% = baseline 그대로, 100% = 스펙 경계 도달, 100% 넘으면 이미 스펙아웃.
+       변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
+  2. **추세 = 점수에 안 섞고, "예상 며칠 뒤 스펙아웃"으로 따로 보여준다.**
+       margin_used_pct의 최근 14일 기울기(%/일)를 구해서, 나빠지는 방향이면
+       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃.
+       레벨(z)과 추세(z/일)는 단위가 달라 그냥 더하면 한쪽이 묻히는 문제가 있었어서,
+       "점수 하나로 억지로 합치기"를 그만두고 서로 다른 질문에 각자 답하게 했다 —
+       레벨은 "지금 얼마나 급한가", 추세는 "언제쯤 더 급해지는가".
+  3. defect별 Health Index = 그 defect 원인변수들 중 최솟값(제일 나쁜 게 전체를 끌어내림)
+     장비별 Health Index   = 그 장비 defect들 중 최솟값
+  4. 확정 원인이 아닌 나머지 변수도 같은 레벨/추세 계산을 적용한다(안전망) — 단 defect
+     연결/SOP는 안 붙이고 "미확인 이상"으로만 표시한다. Step0가 이미 전체 연속형
+     변수에 대해 baseline/일별 시계열을 계산해둬서 추가 비용이 거의 없다.
+  5. 실제 불량 발생 여부(최근 7일 defect rate)는 레벨/추세와 별개 필드로 분리한다
      — "이미 터진 것"과 "터지기 전 조짐"은 다른 층위의 정보라서 섞으면 안 된다.
+
+알려진 한계: boundary_z는 컬럼당 대표값 하나(OPCOND 층별 중앙값)라서, 장비/레시피마다
+실제 스펙 여유가 다를 수 있는 걸 다 못 담는다. margin_used_pct도 "일별 평균 z"를
+"개별 샷 기준 p0.5~p99.5"랑 비교하는 거라, 하루 평균은 개별 샷보다 덜 극단적으로 나와서
+실제보다 여유가 있어 보일 수 있다 — 다음 라운드에서 보완할 것.
 
 이 스크립트는 정적 HTML 대시보드를 만들지 않는다(v1의 build_dashboard_html.py는
 삭제됨) — 산출물은 AI Agent(agent.py)가 직접 읽는 health_index_data.json 하나뿐이다.
@@ -36,12 +58,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy import stats as scipy_stats
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
-from pipeline.common import load_dataset, zscore_transform
 from pipeline.step0_preprocessing import CONTINUOUS_TREND_COLS
 
 OUT_DIR = Path(__file__).resolve().parent
@@ -135,9 +157,9 @@ DEFECT_RATE_COLS = {
     "Chipping": "Chipping_rate",
 }
 
-# 미확인 이상(안전망) 판정 임계값 — 확정 원인이 아니라서 보수적으로 잡음. 근거 있는
-# 최적화 값이 아니라 관례적 컷오프(대략 상위/하위 2.3%)다. 필요시 조정할 것.
-ANOMALY_Z_THRESHOLD = 2.0
+# 미확인 이상(안전망) 판정 임계값 — 스펙 경계까지 남은 여유를 이 % 이상 썼으면 표시.
+# 확정 원인이 아니라서 보수적으로(절반 이상 썼을 때만) 잡는다. 최적화된 값은 아니다.
+ANOMALY_MARGIN_THRESHOLD_PCT = 50.0
 # 레벨/추세 계산에 쓰는 최근 구간 길이(일). 통계적 유의성을 새로 검정하는 게 아니라
 # "최근 방향/속도"를 서술하는 용도라서 짧아도 된다 — 다만 지난 검증(DP02 Laser_Power
 # 사례)에서 확인했듯 이 값 자체로 "유의미한 추세 확정"을 주장하지는 않는다.
@@ -158,15 +180,65 @@ def direction_of(column: str) -> str:
     return meta["direction"] if meta else "either"
 
 
-def compute_level_and_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
-    """장비×컬럼별로 (a) 최근 시점 레벨, (b) 최근 N일 추세 기울기를 계산한다.
+def compute_spec_values(opcond_baseline: pd.DataFrame) -> dict[str, dict]:
+    """컬럼별 baseline(median)과 임시 USL/LSL(p0.5~p99.5)을 원래 단위 그대로 대표값 하나로 정리.
 
-    레벨/추세 둘 다 daily_mean_z(00_machine_daily_series.csv, OPCOND baseline 대비
-    일별 정규화 잔차)를 그대로 쓴다 — 새 통계 계산이 아니라 기존 산출물 재사용.
-    방향(up/down/either)에 따라 부호를 통일해서 "값이 클수록 위험"으로 맞춘다.
+    boundary_z(z-scale)와 별개로, 실제 값(원래 단위)을 그대로 보여주기 위한 것 —
+    "29.3% 사용" 같은 추상적 숫자 대신 "현재 293.08 / 하한 297.01"처럼 실제 값으로
+    보여주는 게 더 직관적이라는 피드백 반영.
+    """
+    spec: dict[str, dict] = {}
+    for col, g in opcond_baseline.groupby("column"):
+        spec[col] = {
+            "baseline_median": float(g["median"].median()),
+            "lsl": float(g["p0_5"].median()),
+            "usl": float(g["p99_5"].median()),
+        }
+    return spec
+
+
+def compute_boundary_z(opcond_baseline: pd.DataFrame) -> dict[str, float]:
+    """컬럼별 "baseline에서 임시 스펙 경계(p0.5~p99.5)까지 몇 z 떨어져 있는지"를 구한다.
+
+    OPCOND 층마다 살짝 다를 수 있어서, 층별로 계산한 뒤 중앙값을 컬럼의 대표값으로 쓴다.
+    direction에 따라 어느 쪽 경계를 볼지 결정 — either는 둘 중 가까운 쪽(더 보수적인 쪽)을 쓴다.
+    """
+    boundary_z: dict[str, float] = {}
+    for col, g in opcond_baseline.groupby("column"):
+        direction = direction_of(col)
+        scale = g["robust_z_scale"].where(g["robust_z_scale"].abs() > 1e-9)
+        up_z = (g["p99_5"] - g["median"]) / scale
+        down_z = (g["median"] - g["p0_5"]) / scale
+        if direction == "up":
+            candidate = up_z
+        elif direction == "down":
+            candidate = down_z
+        else:
+            candidate = pd.concat([up_z, down_z], axis=1).min(axis=1)
+        candidate = candidate[candidate > 0].dropna()
+        if len(candidate):
+            boundary_z[col] = float(candidate.median())
+    return boundary_z
+
+
+def compute_level_and_trend(
+    daily_series: pd.DataFrame, boundary_z: dict[str, float], spec_values: dict[str, dict],
+) -> pd.DataFrame:
+    """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
+
+    레벨 원값은 daily_mean_z(00_machine_daily_series.csv, OPCOND baseline 대비 일별
+    정규화 잔차)를 그대로 쓴다 — 새 통계 계산이 아니라 기존 산출물 재사용. 방향(up/down/
+    either)에 따라 부호를 통일해서 "값이 클수록 위험"으로 맞춘 뒤, boundary_z로 나눠서
+    "스펙 경계까지 여유를 몇 % 썼는지"로 바꾼다. 실제 원래 단위 값(current_value/lsl/usl)도
+    같이 붙여서 "29.3% 사용"이 아니라 실제 수치로 보여줄 수 있게 한다.
     """
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
+        b_z = boundary_z.get(col)
+        spec = spec_values.get(col)
+        if not b_z or not spec:
+            continue
+
         g = g.sort_values("date")
         direction = direction_of(col)
         z = g["daily_mean_z"]
@@ -176,29 +248,100 @@ def compute_level_and_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
             z = z.abs()
         # direction == "up"은 그대로
 
-        valid = z.dropna()
+        margin_pct = (z / b_z) * 100  # 0=baseline, 100=스펙 경계, 100 넘으면 스펙아웃
+        valid = margin_pct.dropna()
         if valid.empty:
             continue
-        level_z = float(valid.iloc[-1])
-        latest_date = g.loc[valid.index[-1], "date"]
+        current_margin_pct = float(valid.iloc[-1])
+        latest_idx = valid.index[-1]
+        latest_date = g.loc[latest_idx, "date"]
+        current_value = float(g.loc[latest_idx, "daily_mean"])
+        health_index_var = 100 - min(max(current_margin_pct, 0.0), 100.0)
+        spec_out = current_margin_pct >= 100
 
         recent = valid.iloc[-RECENT_WINDOW_DAYS:]
+        margin_slope, est_days = None, None
         if len(recent) >= 3 and recent.nunique() > 1:
             x = np.arange(len(recent))
-            slope = float(np.polyfit(x, recent.values, 1)[0])
-        else:
-            slope = None
+            lr = scipy_stats.linregress(x, recent.values)
+            margin_slope = float(lr.slope)  # %/일 (양수=여유가 줄어드는 중)
+            if not spec_out and margin_slope > 1e-9:
+                remaining = 100 - current_margin_pct
+                projected = remaining / margin_slope
+                est_days = round(projected, 1) if projected <= 365 else None  # 1년 넘게 남으면 "임박 아님" 취급
+            # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
 
         rows.append({
             "Machine_ID": machine,
             "column": col,
             "direction": direction,
             "latest_date": str(latest_date.date()),
-            "level_z": round(level_z, 3),
-            "recent_trend_slope_z_per_day": round(slope, 4) if slope is not None else None,
+            "current_value": round(current_value, 4),
+            "baseline_median": round(spec["baseline_median"], 4),
+            "lsl": round(spec["lsl"], 4),
+            "usl": round(spec["usl"], 4),
+            "spec_status": "SPEC_OUT" if spec_out else "OK",
+            "margin_used_pct": round(current_margin_pct, 1),
+            "health_index": round(health_index_var, 1),
+            "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
+            "estimated_days_to_spec_out": est_days,
             "is_cause_factor": col in CAUSE_COLS,
         })
     return pd.DataFrame(rows)
+
+
+TOP_N = 3  # 순위 표시 개수 — "제일 나쁜 것 하나"만 보여주지 말고 상위 N개를 보여달라는 피드백 반영
+
+
+def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """변수별 Health Index를 defect별 -> 장비별로 집계한다 (둘 다 '최솟값' 규칙).
+
+    평균이 아니라 최솟값을 쓰는 이유: 여러 원인변수 중 하나라도 심각하게 나쁘면
+    그 defect 전체가 위험해야 한다 — "약한 고리가 전체를 결정한다"는 원칙이라
+    가중치처럼 임의로 정할 여지가 없다. 대표값(최솟값)과 별개로, 상위 TOP_N개
+    순위(worst_factors/worst_defects)도 같이 담아서 "제일 나쁜 것 하나"만 보여주지
+    않고 여러 개를 순서대로 볼 수 있게 한다.
+    """
+    cause_rows = level_trend[level_trend["is_cause_factor"]]
+
+    defect_rows = []
+    for (machine, defect), _ in [
+        ((m, d), None) for m in cause_rows["Machine_ID"].unique() for d in DEFECT_RATE_COLS
+    ]:
+        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+        sub = cause_rows[(cause_rows["Machine_ID"] == machine) & (cause_rows["column"].isin(factor_names))]
+        if sub.empty:
+            continue
+        ranked = sub.sort_values("health_index").head(TOP_N)
+        worst = ranked.iloc[0]
+        defect_rows.append({
+            "Machine_ID": machine,
+            "defect": defect,
+            "health_index": worst["health_index"],
+            "worst_factor": worst["column"],
+            "worst_factors": [
+                {"factor": r["column"], "health_index": r["health_index"], "spec_status": r["spec_status"]}
+                for _, r in ranked.iterrows()
+            ],
+        })
+    defect_index = pd.DataFrame(defect_rows)
+
+    machine_rows = []
+    for machine, g in defect_index.groupby("Machine_ID"):
+        ranked = g.sort_values("health_index").head(TOP_N)
+        worst = ranked.iloc[0]
+        machine_rows.append({
+            "Machine_ID": machine,
+            "health_index": worst["health_index"],
+            "worst_defect": worst["defect"],
+            "worst_defects": [
+                {"defect": r["defect"], "health_index": r["health_index"], "worst_factor": r["worst_factor"]}
+                for _, r in ranked.iterrows()
+            ],
+        })
+    machine_index = pd.DataFrame(machine_rows)
+
+    return defect_index, machine_index
 
 
 def load_defect_occurrence() -> pd.DataFrame:
@@ -222,8 +365,16 @@ def load_defect_occurrence() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def build_machine_snapshot(level_trend: pd.DataFrame, occurrence: pd.DataFrame) -> dict:
-    """장비별로 defect별 원인 신호(확정) + 미확인 이상(안전망) + 실제발생 여부를 묶는다."""
+def _none_if_nan(value):
+    """DataFrame에 섞여 들어간 None이 NaN으로 바뀌는 걸 JSON 출력 직전에 되돌린다."""
+    return None if pd.isna(value) else value
+
+
+def build_machine_snapshot(
+    level_trend: pd.DataFrame, occurrence: pd.DataFrame,
+    defect_index: pd.DataFrame, machine_index: pd.DataFrame,
+) -> dict:
+    """장비별로 Health Index(장비/defect/변수 3단계) + 실제발생 여부 + 미확인 이상을 묶는다."""
     machines: dict[str, dict] = {}
 
     for machine, g in level_trend.groupby("Machine_ID"):
@@ -241,31 +392,48 @@ def build_machine_snapshot(level_trend: pd.DataFrame, occurrence: pd.DataFrame) 
             for _, row in factor_rows.iterrows():
                 meta = CAUSE_FACTORS[row["column"]]
                 causes[row["column"]] = {
-                    "level_z": row["level_z"],
-                    "recent_trend_slope_z_per_day": row["recent_trend_slope_z_per_day"],
+                    "current_value": row["current_value"],
+                    "baseline_median": row["baseline_median"],
+                    "lsl": row["lsl"],
+                    "usl": row["usl"],
+                    "spec_status": row["spec_status"],
+                    "health_index": row["health_index"],
+                    "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
+                    "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
                     "direction": meta["direction"],
                     "mechanism": meta["mechanism"],
                     "source": meta["owner"],
                 }
             occ = occurrence[(occurrence["Machine_ID"] == machine) & (occurrence["defect"] == defect)]
+            d_idx = defect_index[(defect_index["Machine_ID"] == machine) & (defect_index["defect"] == defect)]
             defect_signals[defect] = {
+                "health_index": float(d_idx["health_index"].iloc[0]) if len(d_idx) else None,
+                "worst_factors": d_idx["worst_factors"].iloc[0] if len(d_idx) else [],
                 "actual_occurred_recent_7d": bool(occ["actual_occurred_recent_7d"].iloc[0]) if len(occ) else False,
                 "occurred_days_recent_7d": int(occ["occurred_days_recent_7d"].iloc[0]) if len(occ) else 0,
                 "causes": causes,
             }
 
-        # 미확인 이상(안전망): 확정 원인 아닌 변수 중 레벨이 임계값 넘는 것만
+        # 미확인 이상(안전망): 확정 원인 아닌 변수 중 스펙 여유를 많이 쓴 것만
         anomalies = []
-        flagged = other_rows[other_rows["level_z"].abs() >= ANOMALY_Z_THRESHOLD]
-        for _, row in flagged.sort_values("level_z", ascending=False).iterrows():
+        flagged = other_rows[other_rows["margin_used_pct"] >= ANOMALY_MARGIN_THRESHOLD_PCT]
+        for _, row in flagged.sort_values("margin_used_pct", ascending=False).iterrows():
             anomalies.append({
                 "column": row["column"],
-                "level_z": row["level_z"],
-                "recent_trend_slope_z_per_day": row["recent_trend_slope_z_per_day"],
+                "current_value": row["current_value"],
+                "baseline_median": row["baseline_median"],
+                "lsl": row["lsl"],
+                "usl": row["usl"],
+                "spec_status": row["spec_status"],
+                "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
+                "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
                 "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용",
             })
 
+        m_idx = machine_index[machine_index["Machine_ID"] == machine]
         machines[machine] = {
+            "health_index": float(m_idx["health_index"].iloc[0]) if len(m_idx) else None,
+            "worst_defects": m_idx["worst_defects"].iloc[0] if len(m_idx) else [],
             "latest_date": g["latest_date"].max(),
             "defect_signals": defect_signals,
             "unconfirmed_anomalies": anomalies,
@@ -274,25 +442,27 @@ def build_machine_snapshot(level_trend: pd.DataFrame, occurrence: pd.DataFrame) 
 
 
 def main() -> None:
-    df = load_dataset()
     opcond_baseline, daily_series_raw = load_step0_outputs()
 
-    # daily_series는 이미 OPCOND 정규화된 z-잔차를 담고 있음(Step0 산출물) — 여기서
-    # zscore_transform을 다시 돌리지 않는다. df는 이 파일에서 더 안 씀(재현성 확인용으로만 로드).
-    del df
+    boundary_z = compute_boundary_z(opcond_baseline)
+    spec_values = compute_spec_values(opcond_baseline)
 
-    level_trend = compute_level_and_trend(daily_series_raw)
+    level_trend = compute_level_and_trend(daily_series_raw, boundary_z, spec_values)
     level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 
-    occurrence = load_defect_occurrence()
-    occurrence.to_csv(OUT_DIR / "02_defect_occurrence_recent7d.csv", index=False, encoding="utf-8-sig")
+    defect_index, machine_index = aggregate_health_index(level_trend)
+    defect_index.to_csv(OUT_DIR / "02_health_index_by_defect.csv", index=False, encoding="utf-8-sig")
+    machine_index.to_csv(OUT_DIR / "03_health_index_by_machine.csv", index=False, encoding="utf-8-sig")
 
-    machines = build_machine_snapshot(level_trend, occurrence)
+    occurrence = load_defect_occurrence()
+    occurrence.to_csv(OUT_DIR / "04_defect_occurrence_recent7d.csv", index=False, encoding="utf-8-sig")
+
+    machines = build_machine_snapshot(level_trend, occurrence, defect_index, machine_index)
 
     output = {
         "generated_at": pd.Timestamp.now().isoformat(),
         "recent_window_days": RECENT_WINDOW_DAYS,
-        "anomaly_z_threshold": ANOMALY_Z_THRESHOLD,
+        "anomaly_margin_threshold_pct": ANOMALY_MARGIN_THRESHOLD_PCT,
         "cause_factors": CAUSE_FACTORS,
         "machines": machines,
     }
@@ -300,10 +470,11 @@ def main() -> None:
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
     print(f"완료: {len(machines)}개 장비 스냅샷 생성")
-    for machine, snap in machines.items():
-        n_defects = len(snap["defect_signals"])
+    ranked = sorted(machines.items(), key=lambda kv: (kv[1]["health_index"] is None, kv[1]["health_index"]))
+    for machine, snap in ranked:
         n_anomalies = len(snap["unconfirmed_anomalies"])
-        print(f"  {machine}: defect 신호 {n_defects}개, 미확인 이상 {n_anomalies}건")
+        top3 = ", ".join(f"{d['defect']}({d['health_index']})" for d in snap["worst_defects"])
+        print(f"  {machine}: Health Index {snap['health_index']} (순위: {top3}), 미확인 이상 {n_anomalies}건")
 
 
 if __name__ == "__main__":
