@@ -121,6 +121,66 @@ defect(예: Chipping 4건, Micro_Crack 41건)의 표본 부족을 보완하는 *
   "재현되는지"만 확인하는 용도로 한정할 것 — r1 결과 단독으로 팀 공식 유효인자를 바꾸지 않는다.
 - r1 원본 파일은 용량 때문에 git에 커밋하지 않는다(JHdaimma README와 동일 방침).
 
+## 추가 피처 엔지니어링 도구 (26.08.02)
+
+단순 선형 상관/z-score만으로는 U자형 비선형, 임계값 반응, 누적 열화(drift) 관계를
+못 잡는 경우가 많다는 도메인 지적을 반영해 `pipeline/common.py`에 3개 함수를 추가했다.
+어떤 컬럼에 적용할지는 도메인 판단이 필요해 강제 적용하지 않고, Goal 담당자가 필요할
+때 갖다 쓰는 도구로 남겨둔다.
+
+- **`add_spec_deviation_features(df, baseline_long, stratum_keys, columns)`** — 공식
+  SPEC이 없는 데이터셋이라 OK군의 층별 0.5~99.5 분위수(`compute_stratum_baseline_stats`가
+  이미 계산해둔 `p0_5`/`p99_5`)를 임시 USL/LSL로 삼아 `max(0, X-USL) + max(0, LSL-X)`
+  이탈량 피처를 만든다. `Power_Efficiency`처럼 "높아도 낮아도 위험"한 either 방향
+  변수는 부호 있는 z-score로는 상쇄되어 사라지므로, 이 방식이 필요하다.
+- **`add_ratio_features(df, {새_컬럼명: (분자, 분모)})`** — 두 변수의 비율/상호작용
+  피처(0나눔 방지 포함). 예: `Bottom_Kerf`/`Top_Kerf`로 절단면 기울기 경향 포착.
+- **`add_rolling_trend_features(df, group_col, time_col, columns, window=5)`** —
+  장비별 시간순 rolling mean/std + 직전값 대비 delta. `Cooling_Water_Temp`,
+  `Laser_Head_Remain_Time`처럼 단발성 수치는 정상이어도 서서히 누적되며 불량으로
+  이어지는 경우를 잡기 위함. `00_machine_column_trend.csv`의 전체기간 1회 검정과
+  달리 날짜별로 값이 실제로 움직인다.
+
+세 함수 다 실제 데이터로 동작 검증 완료(스펙이탈 발생률 ~1%, ratio에 inf/NaN 없음,
+rolling이 행 순서/개수 보존).
+
+### `add_spec_deviation_features`의 "임시 USL/LSL"이 정확히 뭔지
+
+이 데이터셋엔 공식 설비 스펙(USL/LSL) 컬럼이 없다. 그래서 실제 스펙 대신 아래 방식으로
+**대체값**을 만들어 썼다 — 팀 전체가 이 값의 의미를 정확히 알고 써야 해서 상세히 남긴다.
+
+**정의**: 정상군(OK, `Yield=100` & `NG_Code='OK'`)의 분포에서, Product×Recipe(`OPCOND`)
+층별로 하위 0.5%/상위 0.5% 지점을 각각 임시 LSL/USL로 쓴다.
+
+```
+LSL(임시 하한) = 그 OPCOND 층에서 OK행들의 값 중 하위 0.5% 지점
+USL(임시 상한) = 그 OPCOND 층에서 OK행들의 값 중 상위 0.5% 지점
+spec_exceedance = max(0, X - USL) + max(0, LSL - X)   (범위 안이면 0)
+```
+
+**왜 이렇게 했나**: "정상적으로 나온 값들이 실제로 어디까지 퍼져 있었는지" 그 범위를
+스펙처럼 빌려 쓰자는 논리다. OK군의 99%가 이 구간 안에 있었으니, 벗어난 값(위+아래
+합쳐 1%)은 "정상 범위를 벗어난 이례적인 값"으로 볼 수 있다. Product×Recipe별로 따로
+계산하는 이유는 레시피마다 정상 범위 자체가 다르기 때문 — 전체를 뭉치면 왜곡된다.
+
+**새로 만든 게 아니라 재사용한 것**: `04_provisional_control_limits.csv`(김시우,
+`Coating_Uniformity`/`Surface_Roughness` 2개 컬럼에만 좁게 적용)와 같은 철학을,
+Step0의 `compute_stratum_baseline_stats()`가 이미 전체 FDC/response 컬럼에 대해
+층별 `p0_5`/`p99_5`로 일반화해서 `00_stratum_baseline_stats_by_opcond.csv`에
+계산해둔 상태였다. `add_spec_deviation_features()`는 그 기존 결과를 그대로 갖다 써서
+이탈량만 계산하는 얇은 함수다 — 새로 통계를 돌리지 않는다.
+
+**한계 (반드시 알고 쓸 것)**:
+- **진짜 공정 스펙이 아니다.** "정상적으로 나온 값의 범위"일 뿐, 설비 제조사나 공정
+  엔지니어가 정한 물리적 한계치가 아니다. 정상 범위 안에 있어도 실제 설비 스펙상으론
+  위험한 값일 수 있고, 반대로 스펙상 괜찮은데 이 기준으로 "이탈"로 잡힐 수도 있다.
+- **0.5%라는 컷오프도 임의값이다.** 통계적으로 최적화한 게 아니라
+  `04_provisional_control_limits.csv`에서 쓰던 값을 관례적으로 재사용했다.
+- 그래서 함수/컬럼명에 `USL`/`LSL`을 직접 쓰지 않고 `spec_exceedance`라고만 이름
+  붙였다 — 실제 스펙과 혼동하지 않도록 하기 위함.
+- **멘토가 실제 USL/LSL을 제공하면**: `add_spec_deviation_features`에 넘기는
+  `baseline_long` 인자만 그 값 기준으로 바꾸면 되고, 함수 구조 자체는 그대로 쓸 수 있다.
+
 ## Goal별 활용법
 
 - **Goal 1 (장비/제품 비교)**: `00_stratum_baseline_stats_by_machine_opcond.csv`의

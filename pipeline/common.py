@@ -120,6 +120,70 @@ def zscore_transform(
     return result
 
 
+def add_spec_deviation_features(
+    df: pd.DataFrame, baseline_long: pd.DataFrame, stratum_keys: list[str], columns: list[str]
+) -> pd.DataFrame:
+    """OK군 층별 0.5~99.5 분위수를 임시 USL/LSL로 삼아 스펙이탈량 피처를 만든다.
+
+    공식 SPEC 컬럼이 없는 데이터셋이라(04_provisional_control_limits.csv와 동일 철학),
+    compute_stratum_baseline_stats가 이미 만들어둔 p0_5/p99_5를 대체 스펙 상하한으로 쓴다.
+    Power_Efficiency처럼 "너무 높아도 너무 낮아도 위험"한 U자형(either) 변수는 부호 있는
+    z-score로 평균을 내면 양/음이 서로 상쇄돼 사라지므로, 항상 0 이상인 이탈량으로 바꿔야
+    선형/트리 모델이 바로 잡아낸다.
+
+    exceedance = max(0, X - USL) + max(0, LSL - X)  (스펙 안이면 0)
+    """
+    result = df.copy()
+    for col in columns:
+        sub = baseline_long.loc[baseline_long["column"] == col, stratum_keys + ["p0_5", "p99_5"]]
+        sub = sub.rename(columns={"p0_5": "__lsl", "p99_5": "__usl"})
+        result = result.merge(sub, on=stratum_keys, how="left")
+        over = (result[col] - result["__usl"]).clip(lower=0)
+        under = (result["__lsl"] - result[col]).clip(lower=0)
+        result[f"{col}_spec_exceedance"] = over + under
+        result = result.drop(columns=["__usl", "__lsl"])
+    return result
+
+
+def add_ratio_features(df: pd.DataFrame, ratios: dict[str, tuple[str, str]]) -> pd.DataFrame:
+    """두 컬럼의 비율/상호작용 피처를 0나눔 방지하며 추가한다.
+
+    단일 변수 하나로는 신호가 약해도 두 변수의 비율이 핵심 원인인 경우가 있다
+    (예: Bottom_Kerf/Top_Kerf로 절단면 기울기 경향 포착). ratios는
+    {새_컬럼명: (분자_컬럼, 분모_컬럼)} 형태 — 어떤 조합을 쓸지는 도메인 판단이라
+    여기서 임의로 정하지 않고 호출부(Goal 담당자)가 결정한다.
+    """
+    result = df.copy()
+    for name, (numer, denom) in ratios.items():
+        safe_denom = result[denom].where(result[denom].abs() > 1e-9)
+        result[name] = result[numer] / safe_denom
+    return result
+
+
+def add_rolling_trend_features(
+    df: pd.DataFrame, group_col: str, time_col: str, columns: list[str], window: int = 5
+) -> pd.DataFrame:
+    """장비(group_col)별 시간순 정렬 후 최근 window개 샷의 rolling mean/std와 직전값 대비
+    변화량(delta)을 붙인다.
+
+    Cooling_Water_Temp/Laser_Head_Remain_Time처럼 단발성 수치 1개는 정상이어도 누적
+    변동(drift)이 서서히 진행되며 불량으로 이어지는 경우, 그 시점 z-score만으로는 못
+    잡는 신호를 잡기 위함. window는 팀 공용 상수로 승격하지 않고 인자로 노출한다 —
+    Goal마다 적정 길이가 다를 수 있어(Machine_ID 그루핑) 실험적으로 바꿔볼 여지를 남긴다.
+    """
+    result = df.sort_values([group_col, time_col]).copy()
+    for col in columns:
+        grouped = result.groupby(group_col)[col]
+        result[f"{col}_roll{window}_mean"] = grouped.transform(
+            lambda s: s.rolling(window, min_periods=2).mean()
+        )
+        result[f"{col}_roll{window}_std"] = grouped.transform(
+            lambda s: s.rolling(window, min_periods=2).std()
+        )
+        result[f"{col}_delta"] = grouped.diff()
+    return result.sort_index()
+
+
 def stratified_split_by_defect(
     df: pd.DataFrame,
     defect_col: str,
