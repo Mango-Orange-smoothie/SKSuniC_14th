@@ -63,12 +63,32 @@ MENTOR_DOMAIN_NOTES = {
         "멘토 피드백: '7㎛ 지점' 기준으로 정의된 값이지만, 이 합성 데이터에서는 생성 시 "
         "정확히 7㎛로 고정되지 않고 임의 baseline을 썼을 수 있음 — 7㎛를 물리 상수로 "
         "하드코딩하지 말고, baseline을 데이터 분포(정상군 median 등)에서 역산해서 쓸 것 "
-        "(Step0의 OK-baseline 방식이 이미 이 원칙을 따름)."
+        "(Step0의 OK-baseline 방식이 이미 이 원칙을 따름). "
+        "메커니즘(팀 도메인지식, 26.08.02): 가공폭이 넓거나 좁거나 양방향 모두 위험 "
+        "(direction=either) — 패키지 크기 불균형이나 가공영역 이탈로 이어짐. Chipping "
+        "원인으로 Jun/JHdaimma 양쪽에서 통계적으로 확정됨(JHdaimma는 통계검정·permutation "
+        "importance·SHAP 3방법 모두 top10 합의)."
     ),
-    "Top_Kerf": "멘토 피드백: Kerf_Width_Profile과 동일한 '7㎛ 기준점 아님' 주의사항 적용.",
+    "Top_Kerf": (
+        "멘토 피드백: Kerf_Width_Profile과 동일한 '7㎛ 기준점 아님' 주의사항 적용. "
+        "Chipping 원인으로 JHdaimma가 3방법 합의로 확정(direction=either, Kerf_Width_Profile과 "
+        "동일 메커니즘 상속)."
+    ),
     "Groove_Depth": (
         "멘토 피드백: 기준 깊이(7㎛) 대비 편차값이지만, 이 데이터에서 7㎛가 실제 물리 "
-        "상수가 아닐 수 있음 — Kerf_Width_Profile과 동일 주의사항, baseline은 데이터로 역산."
+        "상수가 아닐 수 있음 — Kerf_Width_Profile과 동일 주의사항, baseline은 데이터로 역산. "
+        "메커니즘(팀 도메인지식, 26.08.02): 너무 깊게 깎인 건 문제 안 되고 **덜 깎였을 때만 "
+        "위험**(direction=down이 위험, either 아님) — Kerf_Width_Profile과 방향 성격이 다름. "
+        "단, JHdaimma 모델에서는 Chipping의 직접 원인이 아니라 Laser_Power가 만드는 "
+        "결과값(R²=0.606)으로 나와서 CAUSE_FACTORS에는 아직 안 넣음 — 원인이 아니라 "
+        "감시지표(monitor)로 취급."
+    ),
+    "Kerf_Angle": (
+        "팀 자체 검증(26.08.02): Top_Kerf/Bottom_Kerf/Groove_Depth 어느 조합과도 상관/회귀/"
+        "RandomForest 전부 관계 없음(R² 0.5~0.6% 수준). Jun의 5개 defect 통계검정에서도 "
+        "전부 insufficient_evidence/not_related_to_defect. JHdaimma 모델에서도 원인이 아니라 "
+        "Head_Temp가 만드는 결과값(R²=0.664)으로만 등장. **원인 후보에서 배제하고 "
+        "독립적으로 생성된 변수로 결론** — 더 이상 인과분석 대상으로 우선순위 두지 않음."
     ),
     "Bottom_Kerf": (
         "Jun 도메인 지식(26.08.02, 멘토 미확정): Top_Kerf=절단 상단 폭, Bottom_Kerf=완전히 "

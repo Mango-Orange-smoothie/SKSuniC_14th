@@ -85,13 +85,37 @@ CAUSE_FACTORS = {
         "owner": "JHdaimma",
         "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
     },
+    "Kerf_Width_Profile": {
+        "direction": "either",
+        "defects": ["Chipping"],
+        "owner": "Jun / JHdaimma",
+        "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 "
+                     "(JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+    },
+    "Top_Kerf": {
+        "direction": "either",
+        "defects": ["Chipping"],
+        "owner": "JHdaimma",
+        "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+    },
+    "Bottom_Kerf": {
+        "direction": "either",
+        "defects": ["Chipping"],
+        "owner": "JHdaimma",
+        "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, "
+                     "값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+    },
 }
 CAUSE_COLS = list(CAUSE_FACTORS.keys())
 
+# 원인(CAUSE_FACTORS)으로 확정하기엔 근거 부족하지만 참고용으로 같이 보는 감시지표.
+# 주의: 이 딕셔너리는 아직 build_alerts/build_sop_suggestions 등 어디서도 안 쓰임(죽은 코드) —
+# 실제로 대시보드/경보에 반영하려면 별도 배선이 필요하다.
 MONITOR_FACTORS = {
     "Surface_Roughness": ["Particle", "Chipping", "Micro_Crack"],
-    "Kerf_Width_Profile": ["Chipping"],
-    "Groove_Depth": ["Chipping"],
+    "Groove_Depth": ["Chipping"],  # 방향: down(덜 깎였을 때)이 위험 — Kerf_Width_Profile과 달리 either 아님.
+                                    # JHdaimma 모델에서 Chipping 직접 원인이 아니라 Laser_Power의
+                                    # 결과값(R²=0.606)으로 나와 CAUSE_FACTORS에는 아직 안 넣음.
 }
 
 DEFECT_RATE_COLS = ["Particle_rate", "Remain_Coat_rate", "Micro_Crack_rate", "Chipping_rate"]
