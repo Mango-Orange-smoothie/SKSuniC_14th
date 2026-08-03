@@ -9,7 +9,7 @@ agent.py의 로직(도구/시스템 프롬프트)을 그대로 재사용하고, 
 그 다음 브라우저에서 http://localhost:5050 접속.
 
 API 키는 이 서버(내 컴퓨터)에서만 쓰이고 브라우저로는 절대 안 나간다 —
-브라우저는 /api/ask에 질문 텍스트만 보내고, 답변 텍스트만 받는다.
+브라우저는 /api/ask에 질문 텍스트만 보내고, 답변 텍스트(+그래프 요청 시 시계열 데이터)만 받는다.
 """
 
 from __future__ import annotations
@@ -37,8 +37,8 @@ def api_ask():
     if not question:
         return jsonify({"error": "질문이 비어있습니다."}), 400
     try:
-        answer = agent.ask(question)
-        return jsonify({"answer": answer})
+        result = agent.ask(question)  # {"answer": str, "chart_data": dict | None}
+        return jsonify(result)
     except Exception as exc:  # noqa: BLE001 — 데모용 서버, 원인 그대로 노출해 디버깅 쉽게
         return jsonify({"error": str(exc)}), 500
 

@@ -84,6 +84,10 @@ button#send{background:var(--accent);color:#fff;border:none;border-radius:10px;
 button#send:disabled{opacity:.5;cursor:default}
 
 .disclaimer{font-size:11px;color:var(--ink-faint);text-align:center;padding-bottom:14px}
+
+.chart-wrap{margin-top:10px;overflow-x:auto}
+.chart-title{font:600 12px var(--font-ui);color:var(--ink-muted);margin-bottom:4px}
+.chart-wrap svg{display:block;min-width:420px}
 </style>
 </head>
 <body>
@@ -102,6 +106,7 @@ button#send:disabled{opacity:.5;cursor:default}
     <div class="chip" data-q="Particle 불량 원인이 뭐야?">Particle 불량 원인?</div>
     <div class="chip" data-q="Vibration 관련 SOP 알려줘.">Vibration SOP는?</div>
     <div class="chip" data-q="DP01이랑 DP03 비교해줘.">DP01 vs DP03</div>
+    <div class="chip" data-q="DP03 Vibration 추세 그래프로 보여줘.">Vibration 그래프</div>
   </div>
 
   <div class="messages" id="messages"></div>
@@ -168,11 +173,50 @@ function renderMarkdown(md){
   return html;
 }
 
-function addMessage(role, text, isError){
+// 장비×변수 시계열 데이터를 받아 선그래프(SVG)를 그린다. baseline/LSL/USL 기준선 포함.
+// 외부 차트 라이브러리 없이 직접 좌표 계산 — 데모용, 좌표계는 SVG viewBox 안에서 고정.
+function renderChart(cd){
+  const W = 640, H = 220, padL = 50, padR = 16, padT = 14, padB = 26;
+  const n = cd.series.length;
+  if(n < 2) return '';
+
+  const values = cd.series.map(p => p.value);
+  const allVals = values.concat([cd.lsl, cd.usl, cd.baseline_median]);
+  let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
+  vMin -= pad; vMax += pad;
+
+  const x = i => padL + (i / (n - 1)) * (W - padL - padR);
+  const y = v => padT + (1 - (v - vMin) / (vMax - vMin)) * (H - padT - padB);
+
+  const linePath = cd.series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const last = cd.series[n - 1];
+  const lastColor = cd.spec_status === 'SPEC_OUT' ? 'var(--critical)' : 'var(--accent)';
+
+  const hline = (v, color, dashed) =>
+    `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
+
+  return `<div class="chart-wrap">
+    <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+      ${hline(cd.usl, 'var(--critical)', true)}
+      ${hline(cd.lsl, 'var(--critical)', true)}
+      ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
+      <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+      <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
+      <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
+      <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
+      <text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>
+      <text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>
+    </svg>
+  </div>`;
+}
+
+function addMessage(role, text, isError, chartData){
   const div = document.createElement('div');
   div.className = 'msg ' + role + (isError ? ' error' : '');
   if(role === 'agent'){
-    div.innerHTML = renderMarkdown(text);
+    div.innerHTML = renderMarkdown(text) + (chartData ? renderChart(chartData) : '');
   } else {
     div.textContent = text;
   }
@@ -211,7 +255,7 @@ async function send(question){
     if(!res.ok){
       addMessage('agent', data.error || '오류가 발생했습니다.', true);
     } else {
-      addMessage('agent', data.answer);
+      addMessage('agent', data.answer, false, data.chart_data);
     }
   } catch(err){
     hideTyping();

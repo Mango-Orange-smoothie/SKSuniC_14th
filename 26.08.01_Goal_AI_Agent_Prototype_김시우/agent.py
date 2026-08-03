@@ -37,22 +37,34 @@ import sys
 from pathlib import Path
 
 import anthropic
+import pandas as pd
 from anthropic import beta_tool
 
 HERE = Path(__file__).resolve().parent
-HEALTH_INDEX_DATA = HERE.parent / "26.08.01_Goal5_HealthIndex_Dashboard_김시우" / "health_index_data.json"
+GOAL5_DIR = HERE.parent / "26.08.01_Goal5_HealthIndex_Dashboard_김시우"
+HEALTH_INDEX_DATA = GOAL5_DIR / "health_index_data.json"
+LEVEL_TREND_CSV = GOAL5_DIR / "01_level_trend_by_machine_column.csv"
+DAILY_SERIES_CSV = HERE.parent / "analysis_outputs" / "preprocessing" / "00_machine_daily_series.csv"
 
 with open(HEALTH_INDEX_DATA, encoding="utf-8") as f:
     DATA = json.load(f)
 
 MACHINES = DATA["machines"]
 CAUSE_FACTORS = DATA["cause_factors"]
+LEVEL_TREND = pd.read_csv(LEVEL_TREND_CSV)
+DAILY_SERIES = pd.read_csv(DAILY_SERIES_CSV)
 
 # defect -> 그 defect의 원인으로 확정된 factor 목록 (역인덱스)
 DEFECT_TO_FACTORS: dict[str, list[str]] = {}
 for factor, meta in CAUSE_FACTORS.items():
     for defect in meta["defects"]:
         DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
+
+# get_trend_chart_data가 마지막으로 만든 차트 데이터를 담아둔다. tool_runner는 최종
+# 텍스트만 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
+# 주의: 프로토타입이라 전역 변수 하나로 처리 — 동시에 여러 요청이 들어오면(멀티유저) 꼬일
+# 수 있다. 데모용 단일 사용자 흐름 전제.
+_last_chart_data: dict = {"value": None}
 
 
 @beta_tool
@@ -112,6 +124,45 @@ def get_sop_for_factor(factor_name: str) -> str:
     }, ensure_ascii=False, indent=2)
 
 
+@beta_tool
+def get_trend_chart_data(machine_id: str, factor: str) -> str:
+    """특정 장비×변수의 최근 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
+
+    사용자가 "그래프로 보여줘", "추세 그려줘"처럼 시각적으로 보고 싶어할 때만 호출한다.
+    반환값에는 baseline/LSL/USL 기준선과 날짜별 실측값이 들어있어, 화면에서 바로
+    선그래프로 그릴 수 있다. factor는 CAUSE_FACTORS 11개뿐 아니라 전체 연속형 변수
+    아무거나 가능하다(안전망 대상 포함).
+
+    Args:
+        machine_id: 장비 ID, 예: "DP01", "DP02", "DP03", "DP04".
+        factor: 변수 이름, 예: "Vibration", "Laser_Power", "CLN_Flow".
+    """
+    machine_id = machine_id.upper().strip()
+    spec_row = LEVEL_TREND[(LEVEL_TREND["Machine_ID"] == machine_id) & (LEVEL_TREND["column"] == factor)]
+    if spec_row.empty:
+        known = ", ".join(sorted(LEVEL_TREND["column"].unique()))
+        return f"'{machine_id}'/'{factor}' 조합을 찾을 수 없음. 조회 가능한 변수: {known}"
+
+    series = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == machine_id) & (DAILY_SERIES["column"] == factor)]
+    series = series.sort_values("date")
+
+    spec = spec_row.iloc[0]
+    result = {
+        "machine_id": machine_id,
+        "factor": factor,
+        "baseline_median": float(spec["baseline_median"]),
+        "lsl": float(spec["lsl"]),
+        "usl": float(spec["usl"]),
+        "spec_status": spec["spec_status"],
+        "series": [
+            {"date": d, "value": v}
+            for d, v in zip(series["date"], series["daily_mean"])
+        ],
+    }
+    _last_chart_data["value"] = result
+    return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)
+
+
 SYSTEM_PROMPT = """\
 너는 SK하이닉스 HBM 다이싱 공정의 "공정 품질 통합 관리 AI Agent"다. \
 엔지니어가 직접 데이터를 뒤지지 않아도, 오늘 뭘 먼저 봐야 하는지·원인·조치를 대신 조회해서 설명해주는 게 네 역할이다.
@@ -137,16 +188,20 @@ SYSTEM_PROMPT = """\
    "멘토/현장 확인 전까지는 참고용"이라는 점을 항상 명시하라.
 9. 답변은 한국어로, 공정 엔지니어가 바로 이해할 수 있게 간결하고 구체적으로 하라. \
    숫자를 인용할 때는 실제 조회한 값을 그대로 써라.
+10. 사용자가 그래프/추세를 시각적으로 보여달라고 하면 get_trend_chart_data를 호출하라. \
+    이 도구를 부르면 화면에 자동으로 선그래프가 그려지니, 너는 텍스트로 다시 수치를 \
+    나열할 필요 없이 "그래프로 보여드렸습니다"처럼 짧게 언급하고 핵심 해석만 덧붙여라.
 """
 
 
-def ask(question: str) -> str:
+def ask(question: str) -> dict:
+    _last_chart_data["value"] = None
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(
         model="claude-sonnet-5",
         max_tokens=2000,
         system=SYSTEM_PROMPT,
-        tools=[get_machine_health, get_defect_causes, get_sop_for_factor],
+        tools=[get_machine_health, get_defect_causes, get_sop_for_factor, get_trend_chart_data],
         messages=[{"role": "user", "content": question}],
     )
     final_text = ""
@@ -154,10 +209,14 @@ def ask(question: str) -> str:
         for block in message.content:
             if block.type == "text":
                 final_text = block.text
-    return final_text
+    return {"answer": final_text, "chart_data": _last_chart_data["value"]}
 
 
 if __name__ == "__main__":
     q = " ".join(sys.argv[1:]) or "DP03 상태 어때? 오늘 제일 급한 게 뭐야?"
     print(f"질문: {q}\n")
-    print(ask(q))
+    result = ask(q)
+    print(result["answer"])
+    if result["chart_data"]:
+        print(f"\n[그래프 데이터 있음: {result['chart_data']['machine_id']}/{result['chart_data']['factor']}, "
+              f"{len(result['chart_data']['series'])}개 포인트]")
