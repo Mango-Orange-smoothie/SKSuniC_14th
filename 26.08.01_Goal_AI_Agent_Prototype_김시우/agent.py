@@ -124,8 +124,11 @@ def get_sop_for_factor(factor_name: str) -> str:
     }, ensure_ascii=False, indent=2)
 
 
+DEFAULT_CHART_DAYS = 30  # 3개월(전체 89일) 다 보여주면 최근 동향이 묻힘 — 관례적 기본값
+
+
 @beta_tool
-def get_trend_chart_data(machine_id: str, factor: str) -> str:
+def get_trend_chart_data(machine_id: str, factor: str, days: int = DEFAULT_CHART_DAYS) -> str:
     """특정 장비×변수의 최근 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
 
     사용자가 "그래프로 보여줘", "추세 그려줘"처럼 시각적으로 보고 싶어할 때만 호출한다.
@@ -136,6 +139,9 @@ def get_trend_chart_data(machine_id: str, factor: str) -> str:
     Args:
         machine_id: 장비 ID, 예: "DP01", "DP02", "DP03", "DP04".
         factor: 변수 이름, 예: "Vibration", "Laser_Power", "CLN_Flow".
+        days: 최근 며칠치를 보여줄지. 기본 30일(최근 한 달) — 전체 기간(89일)을 다
+            보여주면 최근 동향이 묻힌다. 사용자가 "최근 일주일만", "전체 기간 다"처럼
+            요청하면 그에 맞게 조정(예: 7, 89).
     """
     machine_id = machine_id.upper().strip()
     spec_row = LEVEL_TREND[(LEVEL_TREND["Machine_ID"] == machine_id) & (LEVEL_TREND["column"] == factor)]
@@ -144,7 +150,7 @@ def get_trend_chart_data(machine_id: str, factor: str) -> str:
         return f"'{machine_id}'/'{factor}' 조합을 찾을 수 없음. 조회 가능한 변수: {known}"
 
     series = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == machine_id) & (DAILY_SERIES["column"] == factor)]
-    series = series.sort_values("date")
+    series = series.sort_values("date").tail(max(days, 2))
 
     spec = spec_row.iloc[0]
     result = {
