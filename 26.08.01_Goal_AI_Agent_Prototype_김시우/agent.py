@@ -45,6 +45,7 @@ GOAL5_DIR = HERE.parent / "26.08.01_Goal5_HealthIndex_Dashboard_김시우"
 HEALTH_INDEX_DATA = GOAL5_DIR / "health_index_data.json"
 LEVEL_TREND_CSV = GOAL5_DIR / "01_level_trend_by_machine_column.csv"
 DAILY_SERIES_CSV = HERE.parent / "analysis_outputs" / "preprocessing" / "00_machine_daily_series.csv"
+DAILY_TREND_CSV = HERE.parent / "analysis_outputs" / "05_machine_daily_trend.csv"
 
 with open(HEALTH_INDEX_DATA, encoding="utf-8") as f:
     DATA = json.load(f)
@@ -53,6 +54,14 @@ MACHINES = DATA["machines"]
 CAUSE_FACTORS = DATA["cause_factors"]
 LEVEL_TREND = pd.read_csv(LEVEL_TREND_CSV)
 DAILY_SERIES = pd.read_csv(DAILY_SERIES_CSV)
+DAILY_TREND = pd.read_csv(DAILY_TREND_CSV)  # 전체 89일 기준 defect rate — 실제 발생 날짜 조회용
+
+DEFECT_RATE_COLS = {
+    "Particle": "Particle_rate",
+    "Remain_Coat": "Remain_Coat_rate",
+    "Micro_Crack": "Micro_Crack_rate",
+    "Chipping": "Chipping_rate",
+}
 
 # defect -> 그 defect의 원인으로 확정된 factor 목록 (역인덱스)
 DEFECT_TO_FACTORS: dict[str, list[str]] = {}
@@ -128,8 +137,40 @@ DEFAULT_CHART_DAYS = 30  # 3개월(전체 89일) 다 보여주면 최근 동향�
 
 
 @beta_tool
-def get_trend_chart_data(machine_id: str, factor: str, days: int = DEFAULT_CHART_DAYS) -> str:
-    """특정 장비×변수의 최근 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
+def get_defect_occurrence_dates(machine_id: str, defect_name: str) -> str:
+    """특정 장비에서 특정 defect가 실제로 발생한 날짜를 전체 기간(89일) 기준으로 조회한다.
+
+    "언제 불량 났었어?", "불량 난 구간 보여줘"처럼 실제 발생 시점을 알아야 할 때 먼저
+    이 도구로 날짜를 찾고, 그 다음 get_trend_chart_data를 center_date와 함께 호출해서
+    그 주변 그래프를 보여준다. Particle/Remain_Coat처럼 거의 매일 발생하는 defect는
+    날짜가 아주 많이 나올 수 있다 — Chipping/Micro_Crack처럼 희귀한 defect에 특히 유용.
+
+    Args:
+        machine_id: 장비 ID.
+        defect_name: 불량 이름 (Particle/Remain_Coat/Micro_Crack/Chipping).
+    """
+    machine_id = machine_id.upper().strip()
+    rate_col = DEFECT_RATE_COLS.get(defect_name)
+    if not rate_col:
+        return f"'{defect_name}'는 알 수 없는 defect. 가능한 값: {', '.join(DEFECT_RATE_COLS.keys())}"
+
+    sub = DAILY_TREND[(DAILY_TREND["Machine_ID"] == machine_id) & (DAILY_TREND[rate_col] > 0)]
+    if sub.empty:
+        return f"{machine_id}에서 {defect_name}가 전체 기간 중 발생한 적 없음."
+    dates = sorted(sub["date"].tolist())
+    return json.dumps({
+        "machine_id": machine_id,
+        "defect": defect_name,
+        "occurrence_dates": dates,
+        "occurrence_count": len(dates),
+    }, ensure_ascii=False)
+
+
+@beta_tool
+def get_trend_chart_data(
+    machine_id: str, factor: str, days: int = DEFAULT_CHART_DAYS, center_date: str | None = None,
+) -> str:
+    """특정 장비×변수의 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
 
     사용자가 "그래프로 보여줘", "추세 그려줘"처럼 시각적으로 보고 싶어할 때만 호출한다.
     반환값에는 baseline/LSL/USL 기준선과 날짜별 실측값이 들어있어, 화면에서 바로
@@ -141,7 +182,11 @@ def get_trend_chart_data(machine_id: str, factor: str, days: int = DEFAULT_CHART
         factor: 변수 이름, 예: "Vibration", "Laser_Power", "CLN_Flow".
         days: 최근 며칠치를 보여줄지. 기본 30일(최근 한 달) — 전체 기간(89일)을 다
             보여주면 최근 동향이 묻힌다. 사용자가 "최근 일주일만", "전체 기간 다"처럼
-            요청하면 그에 맞게 조정(예: 7, 89).
+            요청하면 그에 맞게 조정(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜
+            앞뒤로 며칠씩 볼지를 뜻한다(예: days=7이면 앞뒤 3일씩 총 7일 근방).
+        center_date: "YYYY-MM-DD" 형식. "불량 난 구간 보여줘"처럼 특정 시점 주변을
+            보고 싶을 때 지정 — get_defect_occurrence_dates로 먼저 날짜를 찾은 뒤 여기
+            넘기면 된다. 지정 안 하면(기본) 오늘 기준 최근 days일을 보여준다.
     """
     machine_id = machine_id.upper().strip()
     spec_row = LEVEL_TREND[(LEVEL_TREND["Machine_ID"] == machine_id) & (LEVEL_TREND["column"] == factor)]
@@ -150,7 +195,14 @@ def get_trend_chart_data(machine_id: str, factor: str, days: int = DEFAULT_CHART
         return f"'{machine_id}'/'{factor}' 조합을 찾을 수 없음. 조회 가능한 변수: {known}"
 
     series = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == machine_id) & (DAILY_SERIES["column"] == factor)]
-    series = series.sort_values("date").tail(max(days, 2))
+    series = series.sort_values("date")
+    if center_date:
+        center = pd.Timestamp(center_date)
+        half = max(days, 2) // 2
+        dates = pd.to_datetime(series["date"])
+        series = series[(dates >= center - pd.Timedelta(days=half)) & (dates <= center + pd.Timedelta(days=half))]
+    else:
+        series = series.tail(max(days, 2))
 
     spec = spec_row.iloc[0]
     result = {
@@ -197,6 +249,10 @@ SYSTEM_PROMPT = """\
 10. 사용자가 그래프/추세를 시각적으로 보여달라고 하면 get_trend_chart_data를 호출하라. \
     이 도구를 부르면 화면에 자동으로 선그래프가 그려지니, 너는 텍스트로 다시 수치를 \
     나열할 필요 없이 "그래프로 보여드렸습니다"처럼 짧게 언급하고 핵심 해석만 덧붙여라.
+11. "불량 난 구간 보여줘"처럼 특정 시점 주변을 보고 싶어하면, 먼저 get_defect_occurrence_dates로 \
+    실제 발생 날짜를 찾고, 그 날짜를 get_trend_chart_data의 center_date로 넘겨서 그 주변(예: \
+    앞뒤 3일씩 총 7일)을 보여줘라. Particle/Remain_Coat는 발생일이 매우 많을 수 있으니, 그럴 \
+    땐 가장 최근 날짜 하나를 골라 쓰거나 사용자에게 어느 날짜를 원하는지 물어봐라.
 """
 
 
@@ -207,7 +263,10 @@ def ask(question: str) -> dict:
         model="claude-sonnet-5",
         max_tokens=2000,
         system=SYSTEM_PROMPT,
-        tools=[get_machine_health, get_defect_causes, get_sop_for_factor, get_trend_chart_data],
+        tools=[
+            get_machine_health, get_defect_causes, get_sop_for_factor,
+            get_trend_chart_data, get_defect_occurrence_dates,
+        ],
         messages=[{"role": "user", "content": question}],
     )
     final_text = ""
