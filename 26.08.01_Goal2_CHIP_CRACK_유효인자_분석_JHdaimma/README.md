@@ -26,6 +26,7 @@ Jun 브랜치가 "n=4는 패턴 탐지가 아니라 4개 사례 기록에 가깝
 |---|---|
 | **`SUMMARY.html`** | **한눈에 보기** — 결과 요약 페이지 (브라우저로 열어보세요) |
 | **`TEAM_DOMAIN_KNOWLEDGE_확정vs추정.md`** | **팀 전체 도메인 지식 정리** — 전 브랜치 전수 조사, 근거 등급별 분리 |
+| **`SHAP_판정제외_근거.md`** | **SHAP을 판정에서 뺀 근거** — 4개 defect 전체 오탐 24건 검증 |
 | **`agent_db/`** | **메인 산출물** — AI Agent(③ Relationship Analyzer)용 관계 DB 10종 |
 | `analysis_v2_kimsiwoo_jun/` | 김시우 전처리 + Jun 방법론 재현 분석 및 검증 |
 | `Goal2_Chipping_MicroCrack_도메인지식_정리.md` | 초기 도메인 지식 정리 |
