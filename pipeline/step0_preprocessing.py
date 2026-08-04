@@ -563,12 +563,36 @@ def compute_baseline_type_e(ok_df: pd.DataFrame) -> pd.DataFrame:
 # main
 # ---------------------------------------------------------------------------
 
+def _apply_mentor_target_override(baseline_df: pd.DataFrame) -> pd.DataFrame:
+    """SPEC(pipeline/spec.py)에 있는 컬럼은 median을 멘토 TARGET으로 덮어쓴다.
+
+    z-score 중심이 "실제 그동안 어땠는지"(median)가 아니라 "원래 어때야 하는지"(TARGET)여야
+    맞다 — 실측이 TARGET에서 미세하게 벗어나 있으면 median 기준으론 그 편차 자체가
+    안 보인다(자기 자신을 기준으로 삼으니 항상 0으로 보임). median_source 컬럼에
+    "mentor_target"/"empirical"로 출처를 남긴다. scale(mad/robust_z_scale)은 그대로
+    실측 분산을 쓴다 — TARGET은 "어디가 0이어야 하는지"만 바꾸고 "얼마나 흩어져 있는지"는
+    안 바꾸는 게 맞기 때문.
+    """
+    result = baseline_df.copy()
+    result["median_source"] = "empirical"
+    for column, spec in SPEC.items():
+        mask = result["column"] == column
+        if mask.any():
+            result.loc[mask, "median"] = spec["TARGET"]
+            result.loc[mask, "median_source"] = "mentor_target"
+    return result
+
+
 def main() -> None:
     df = load_and_validate()
     df_normal = df.loc[df["is_normal"]]
 
-    opcond_baseline = compute_stratum_baseline_stats(df_normal, config.OPCOND, CONTINUOUS_BASELINE_COLS)
-    machine_opcond_baseline = compute_stratum_baseline_stats(df_normal, config.GROUP, CONTINUOUS_BASELINE_COLS)
+    opcond_baseline = _apply_mentor_target_override(
+        compute_stratum_baseline_stats(df_normal, config.OPCOND, CONTINUOUS_BASELINE_COLS)
+    )
+    machine_opcond_baseline = _apply_mentor_target_override(
+        compute_stratum_baseline_stats(df_normal, config.GROUP, CONTINUOUS_BASELINE_COLS)
+    )
     save_table(opcond_baseline, "00_stratum_baseline_stats_by_opcond.csv", subdir="preprocessing")
     save_table(machine_opcond_baseline, "00_stratum_baseline_stats_by_machine_opcond.csv", subdir="preprocessing")
 
