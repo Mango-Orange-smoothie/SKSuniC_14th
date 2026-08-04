@@ -30,6 +30,9 @@ WINDOW = 10
 Z_THRESHOLD = 2.0
 VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
+PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "진짜 상태"로 볼지 —
+# 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
+# 22,948건 중 21,426건이 진입 이벤트였음) 방지용. 1행짜리 순간 판정 대신 지속성 요구.
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
@@ -163,6 +166,32 @@ def compute_std_trend(rolling_std):
 
 
 # ----------------------------------------------------------------------
+# 5-2. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
+#      (26.08.05 추가) Type C(위험 threshold)의 entered_first가 임계값 근처 노이즈로
+#      계속 새로 트리거되던 문제, variability_warning이 10행 표본의 std 추정 자체가
+#      원래 흔들림이 커서(표본 10개로 분산 추정은 노이즈가 큼) 너무 자주 뜨던 문제를
+#      같은 방식으로 고친다.
+# ----------------------------------------------------------------------
+def _sustained_state(condition: np.ndarray, persist_n: int) -> np.ndarray:
+    """condition이 최근 persist_n행 연속 True인 시점부터를 True로 표시(그 구간 전체, 상태형)."""
+    n = len(condition)
+    if n < persist_n:
+        return np.zeros(n, dtype=bool)
+    windows = np.lib.stride_tricks.sliding_window_view(condition, persist_n)
+    sustained = windows.all(axis=1)
+    full = np.zeros(n, dtype=bool)
+    full[persist_n - 1:] = sustained
+    return full
+
+
+def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
+    """_sustained_state 중에서도 그 상태가 "막 시작된" 시점 1행만 True(이벤트형)."""
+    full = _sustained_state(condition, persist_n)
+    prev_full = np.concatenate(([False], full[:-1]))
+    return full & ~prev_full
+
+
+# ----------------------------------------------------------------------
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
@@ -259,10 +288,14 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 std_ratio = rolling_std / ref_std
             else:
                 std_ratio = np.full(len(current_value), np.nan)
-            variability_warning = (
+            variability_raw = (
                 ~np.isnan(std_slope) & (std_slope > 0)
                 & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
             )
+            # 10행 표본으로 구한 std는 그 자체로 추정 노이즈가 커서, 1행짜리 순간 판정 대신
+            # PERSIST_WINDOW행 연속 유지될 때만 "진짜 변동성 확대"로 본다(상태형 — 지속되는
+            # 동안 계속 표시).
+            variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
 
             early_warning = np.zeros(len(current_value), dtype=bool)
             messages = np.array([""] * len(current_value), dtype=object)
@@ -302,13 +335,17 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     else:
                         entered_raw = (current_value >= baseline_arr) & valid_baseline
                         slope_toward_risk = slope > 0
-                    # 위험영역에 처음 진입한 시점만 경고 (이미 진입해 있던 이후 시점은 반복 경고하지 않음)
-                    prev_entered = np.concatenate(([False], entered_raw[:-1]))
-                    entered_first = entered_raw & ~prev_entered
-                    approaching = (
+                    # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고.
+                    # 예전엔 1행만 넘어도 진입으로 잡아서 임계값 근처 노이즈가 계속 "새로 진입"
+                    # 취급됐음(Surface_Roughness 22,948건 중 21,426건이 이 케이스였음).
+                    entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
+                    approaching_raw = (
                         (~entered_raw) & slope_toward_risk & calc_mask
                         & (np.abs(normalized_deviation) >= Z_THRESHOLD)
                     )
+                    # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
+                    # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
+                    approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
                     ew = entered_first | approaching
                     early_warning |= ew
                     for i in np.where(entered_first)[0]:
