@@ -1,0 +1,50 @@
+﻿[0] 데이터 로드 및 통합 (원본 + r1)  |  TARGET = PARTICLE
+    통합 200,000행 (original 100,000 + r1 100,000), 정상군 149,673건
+[0] OPCOND 층 baseline 산출 및 강건 z-score 변환 (김시우 pipeline 방식)
+    primary(PARTICLE) = 11,296건 | broad(Particle==1) = 21,371건 | pure = 10,472건 | 정상(OK) = 149,673건
+    [라벨 점검/original] primary=6,455 pure=6,450 불일치=5 {'PARTICLE': 5}
+    [라벨 점검/r1] primary=4,841 pure=4,022 불일치=819 {'PARTICLE': 819}
+  [1] 발생률 sanity check
+  [2] Mann-Whitney U + BH-FDR + Cliff's delta
+  [3] RandomForest(200, depth8, balanced) + permutation importance(AP, 15회)
+  [4] 도메인 가설 + 통계 교차검증 병합
+
+  --- PARTICLE 판정 결과 ---
+  [confirmed] 2건
+     Surface_Roughness        delta_p=+0.618 delta_b=+0.551 imp=+0.12245 rank= 1
+     Vibration                delta_p=+0.087 delta_b=+0.317 imp=+0.00465 rank= 3
+  [candidate_weak_signal] 8건
+     CLN_Flow                 delta_p=-0.008 delta_b=-0.146 imp=+0.00542 rank= 2
+     Kerf_Width_Profile       delta_p=-0.069 delta_b=+0.123 imp=+0.00367 rank= 4
+     Top_Kerf                 delta_p=-0.062 delta_b=+0.128 imp=+0.00343 rank= 5
+     Bottom_Kerf              delta_p=-0.059 delta_b=+0.130 imp=+0.00307 rank= 7
+     Focus                    delta_p=-0.074 delta_b=+0.112 imp=+0.00179 rank= 8
+     Cleaning_Load_Ratio      delta_p=+0.036 delta_b=+0.068 imp=+0.00027 rank=28
+     CLN_Pressure             delta_p=+0.013 delta_b=-0.063 imp=-0.00020 rank=37
+     Cleaning_Capacity        delta_p=+0.007 delta_b=-0.143 imp=-0.00049 rank=39
+
+  [8] 원본/r1 재현성 (진혁님 supplement_crossvalidation.py 방식)
+  target             column  delta_original  delta_r1  delta_combined
+PARTICLE  Surface_Roughness          0.6103    0.4896          0.5513
+PARTICLE          Vibration          0.1936    0.3307          0.3171
+PARTICLE           CLN_Flow         -0.0304   -0.2061         -0.1460
+PARTICLE  Cleaning_Capacity         -0.0344   -0.1937         -0.1433
+PARTICLE        Bottom_Kerf          0.0244    0.1389          0.1303
+PARTICLE           Top_Kerf          0.0207    0.1368          0.1277
+PARTICLE Kerf_Width_Profile          0.0140    0.1332          0.1231
+PARTICLE   Power_Efficiency         -0.0156   -0.1298         -0.1207
+
+  [9] baseline 민감도 (통합OK[사용] vs 전체행)
+      baseline 선택으로 판정이 바뀐 인자: 0건
+
+  [10] 비교군 4종 대조 — 팀 간 숫자 불일치의 원인 규명
+
+      Vibration — 비교군별 Cliff's delta (PARTICLE)
+dataset                original      r1  combined
+variant                                          
+A_jh_primary_vs_rest     0.2195 -0.0240    0.0865
+B_jun_pure_vs_notpure    0.2192 -0.0341    0.0773
+C_keep_pure_vs_clean     0.2191  0.1684    0.1935
+D_primary_vs_ok_only     0.2202  0.2892    0.2510
+
+완료 — ./out

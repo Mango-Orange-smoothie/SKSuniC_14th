@@ -1,0 +1,481 @@
+﻿dataset,variant,column,n_group,n_rest,cliffs_delta,p_value,note
+original,A_jh_primary_vs_rest,Laser_Power,4,99996,-0.9792,0.0006942935783298218,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Power_Efficiency,4,99996,-0.4454,0.12285728746603805,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Laser_Centering_Position,4,99996,-0.012,0.9669727901762473,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Laser_Current,4,99996,-0.2395,0.4067772693264936,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Laser_Voltage,4,99996,-0.411,0.154531445880808,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Beam_Diameter,4,99996,-0.1192,0.6795902227003134,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Feed_Speed,4,99996,-0.3156,0.2742260544966669,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Frequency,4,99996,-0.1316,0.6483934325661336,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Alignment_Time,4,99996,-0.3995,0.16636947368261967,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Process_Time,4,99996,-0.038,0.8951611430183789,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cutting_X_Index,4,99996,-0.0711,0.8054489884561149,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cutting_Y_Index,4,99996,0.3356,0.24503567277459914,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Head_Temp,4,99996,0.0421,0.8839854826025454,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cooling_Flow,4,99996,0.3711,0.19856775411472116,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cooling_Water_Temp,4,99996,0.5051,0.08017745292934192,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Focus,4,99996,-0.1815,0.5296131508688979,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,CLN_Flow,4,99996,0.0815,0.7778308770894211,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,CLN_Pressure,4,99996,0.6237,0.030738209134807095,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,CLN_Time,4,99996,0.2748,0.3412148894808523,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Coating_Flow,4,99996,-0.2531,0.3807111423447994,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Laser_Head_Remain_Time,4,99996,-0.1917,0.5066513209664767,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Vibration,4,99996,0.3447,0.23242097422073305,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Kerf_Width_Profile,4,99996,0.9998,0.0005332572262545719,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Top_Kerf,4,99996,0.909,0.00164028128398376,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Bottom_Kerf,4,99996,0.9446,0.0010673511955514377,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Kerf_Angle,4,99996,0.1714,0.5526753433254984,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Groove_Depth,4,99996,-0.834,0.0038635181170508007,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Package_Size_1,4,99996,-0.169,0.5583259483421916,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Package_Size_2,4,99996,0.4005,0.16530840377907352,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Package_Size_3,4,99996,0.0493,0.8645374402314855,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Package_Size_4,4,99996,0.1907,0.5088651308358161,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Coating_Thickness,4,99996,0.0022,0.9940436468390963,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Coating_Uniformity,4,99996,-0.0603,0.8346029206258003,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cutting_Offset,4,99996,-0.0663,0.8183657702986209,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Surface_Roughness,4,99996,0.0691,0.8109305083355642,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cooling_Thermal_Load,4,99996,0.2439,0.3981095425840451,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Laser_Cleaning_Demand,4,99996,-0.9827,0.0006640078939820458,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cleaning_Capacity,4,99996,0.4398,0.12762281025473696,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Cleaning_Load_Ratio,4,99996,-0.6781,0.018824820920317776,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,A_jh_primary_vs_rest,Maintenance_Count,4,99996,0.1551,0.5906502067765206,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+original,B_jun_pure_vs_notpure,Laser_Power,3,99997,-0.976,0.0034108441546761674,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Power_Efficiency,3,99997,-0.3323,0.3188858765018626,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Laser_Centering_Position,3,99997,-0.0209,0.9500208232107008,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Laser_Current,3,99997,-0.4998,0.133810045770011,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Laser_Voltage,3,99997,-0.2391,0.4731784066700204,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Beam_Diameter,3,99997,-0.0571,0.8639943958394648,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Feed_Speed,3,99997,-0.636,0.05640426123222715,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Frequency,3,99997,-0.3409,0.3064023097516869,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Alignment_Time,3,99997,-0.8453,0.011216663770023746,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Process_Time,3,99997,-0.2141,0.5207391272319613,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cutting_X_Index,3,99997,-0.0787,0.8134618779517787,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cutting_Y_Index,3,99997,0.2758,0.4079830276706463,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Head_Temp,3,99997,0.2032,0.5420896417387473,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cooling_Flow,3,99997,0.2892,0.38561949688805097,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cooling_Water_Temp,3,99997,0.6755,0.0427340235014623,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Focus,3,99997,-0.1092,0.7433023881806893,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,CLN_Flow,3,99997,-0.0133,0.9681645327504095,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,CLN_Pressure,3,99997,0.7224,0.030230914413911725,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,CLN_Time,3,99997,0.2753,0.40880507826758583,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Coating_Flow,3,99997,-0.0061,0.985327583214549,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Laser_Head_Remain_Time,3,99997,-0.2435,0.46509236994535896,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Vibration,3,99997,0.3392,0.30893931850754863,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Kerf_Width_Profile,3,99997,0.9999,0.002703254951996537,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Top_Kerf,3,99997,0.9028,0.006763149193039815,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Bottom_Kerf,3,99997,0.9702,0.003608635460501986,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Kerf_Angle,3,99997,0.5126,0.12407661450615863,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Groove_Depth,3,99997,-0.7948,0.01711332789910511,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Package_Size_1,3,99997,-0.1157,0.7284682981826931,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Package_Size_2,3,99997,0.3382,0.3103439275646389,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Package_Size_3,3,99997,-0.1085,0.7448150834605769,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Package_Size_4,3,99997,0.2166,0.515907415133499,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Coating_Thickness,3,99997,-0.2638,0.4286418258828576,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Coating_Uniformity,3,99997,0.2517,0.45026244980911334,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cutting_Offset,3,99997,0.0542,0.8708793516920084,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Surface_Roughness,3,99997,0.1284,0.7002049265148829,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cooling_Thermal_Load,3,99997,0.4534,0.17376233931707707,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Laser_Cleaning_Demand,3,99997,-0.9789,0.0033195020170993413,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cleaning_Capacity,3,99997,0.4471,0.1798576647132838,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Cleaning_Load_Ratio,3,99997,-0.6659,0.04573834969867882,승준님 방법 G — unified_full_methodology.py:253
+original,B_jun_pure_vs_notpure,Maintenance_Count,3,99997,0.4702,0.1579459279320925,승준님 방법 G — unified_full_methodology.py:253
+original,C_keep_pure_vs_clean,Laser_Power,3,91176,-0.9759,0.0034157307939114085,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Power_Efficiency,3,91176,-0.3339,0.3165573946821679,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Laser_Centering_Position,3,91176,-0.0209,0.94996051017082,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Laser_Current,3,91176,-0.5003,0.1334099301285461,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Laser_Voltage,3,91176,-0.2394,0.47258690968563677,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Beam_Diameter,3,91176,-0.0574,0.86339110597623,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Feed_Speed,3,91176,-0.6354,0.05662782333975631,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Frequency,3,91176,-0.3432,0.3031507860660846,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Alignment_Time,3,91176,-0.8443,0.011310111088892332,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Process_Time,3,91176,-0.2138,0.5213737160612877,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cutting_X_Index,3,91176,-0.0785,0.8138668028382063,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cutting_Y_Index,3,91176,0.2756,0.4084186399527139,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Head_Temp,3,91176,0.2037,0.5410526156902975,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cooling_Flow,3,91176,0.288,0.3876347874509227,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cooling_Water_Temp,3,91176,0.6749,0.04291744708037182,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Focus,3,91176,-0.1089,0.7438686863360024,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,CLN_Flow,3,91176,-0.017,0.9593873429406491,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,CLN_Pressure,3,91176,0.7184,0.031162340535963732,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,CLN_Time,3,91176,0.2749,0.4096010801788451,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Coating_Flow,3,91176,-0.0058,0.9862268537774067,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Laser_Head_Remain_Time,3,91176,-0.2442,0.4638827483575756,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Vibration,3,91176,0.3508,0.29267002197310776,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Kerf_Width_Profile,3,91176,0.9999,0.0027032004694861936,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Top_Kerf,3,91176,0.9037,0.006706855216834762,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Bottom_Kerf,3,91176,0.9703,0.003605796409980023,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Kerf_Angle,3,91176,0.5124,0.12427336879862935,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Groove_Depth,3,91176,-0.7944,0.017158985931960875,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Package_Size_1,3,91176,-0.1159,0.7281607623966776,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Package_Size_2,3,91176,0.3384,0.31003590147069615,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Package_Size_3,3,91176,-0.1089,0.7438435301477617,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Package_Size_4,3,91176,0.2175,0.5140971238035851,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Coating_Thickness,3,91176,-0.2721,0.41442014940313077,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Coating_Uniformity,3,91176,0.2512,0.45115361266756815,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cutting_Offset,3,91176,0.0545,0.8701472491712829,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Surface_Roughness,3,91176,0.1685,0.6132190872296995,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cooling_Thermal_Load,3,91176,0.4534,0.1737434505374007,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Laser_Cleaning_Demand,3,91176,-0.9787,0.003325402492870603,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cleaning_Capacity,3,91176,0.4424,0.18445138826805396,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Cleaning_Load_Ratio,3,91176,-0.6626,0.046841857573883476,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,C_keep_pure_vs_clean,Maintenance_Count,3,91176,0.4685,0.15939382189623885,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+original,D_primary_vs_ok_only,Laser_Power,4,90783,-0.979,0.0006959614516466676,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Power_Efficiency,4,90783,-0.4468,0.1216933664459835,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Laser_Centering_Position,4,90783,-0.0119,0.9672505145985506,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Laser_Current,4,90783,-0.24,0.40571918573420973,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Laser_Voltage,4,90783,-0.4112,0.15434159738300482,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Beam_Diameter,4,90783,-0.1194,0.679255918831507,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Feed_Speed,4,90783,-0.3149,0.2754013525594643,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Frequency,4,90783,-0.1285,0.6563361556892294,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Alignment_Time,4,90783,-0.3987,0.1672593647166173,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Process_Time,4,90783,-0.0375,0.8965279917574938,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cutting_X_Index,4,90783,-0.0709,0.8060233802038141,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cutting_Y_Index,4,90783,0.335,0.24580760965887916,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Head_Temp,4,90783,0.0425,0.8828385283227645,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cooling_Flow,4,90783,0.3699,0.20009416991842766,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cooling_Water_Temp,4,90783,0.5045,0.08051847624711325,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Focus,4,90783,-0.1809,0.530868420972465,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,CLN_Flow,4,90783,0.0779,0.7873664285015668,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,CLN_Pressure,4,90783,0.6183,0.03220960606613006,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,CLN_Time,4,90783,0.2743,0.34200835271801966,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Coating_Flow,4,90783,-0.2526,0.38154435945289267,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Laser_Head_Remain_Time,4,90783,-0.1926,0.5045994289713139,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Vibration,4,90783,0.3581,0.21485291581168098,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Kerf_Width_Profile,4,90783,0.9998,0.0005332709450517801,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Top_Kerf,4,90783,0.9104,0.0016120195803711913,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Bottom_Kerf,4,90783,0.9451,0.0010613915914163012,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Kerf_Angle,4,90783,0.171,0.5537125820959274,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Groove_Depth,4,90783,-0.8337,0.003877966467659983,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Package_Size_1,4,90783,-0.1691,0.558012501517849,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Package_Size_2,4,90783,0.4012,0.1646178782884108,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Package_Size_3,4,90783,0.0489,0.8656035228665447,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Package_Size_4,4,90783,0.1917,0.5067337887008094,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Coating_Thickness,4,90783,-0.0049,0.9864679018683784,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Coating_Uniformity,4,90783,-0.0609,0.8328064617409188,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cutting_Offset,4,90783,-0.066,0.8191290550773778,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Surface_Roughness,4,90783,0.1159,0.6879696825847648,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cooling_Thermal_Load,4,90783,0.2441,0.39781480605669584,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Laser_Cleaning_Demand,4,90783,-0.9825,0.0006655659434918138,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cleaning_Capacity,4,90783,0.4347,0.13212369911459534,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Cleaning_Load_Ratio,4,90783,-0.6746,0.019453505249399938,대호님 규약 — 정상군 = NG_Code=='OK'
+original,D_primary_vs_ok_only,Maintenance_Count,4,90783,0.1537,0.5941298956407962,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,A_jh_primary_vs_rest,Laser_Power,24171,75829,-0.9071,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Power_Efficiency,24171,75829,-0.9246,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Laser_Centering_Position,24171,75829,0.6478,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Laser_Current,24171,75829,0.0111,0.009391032887597567,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Laser_Voltage,24171,75829,0.0039,0.3595243240346282,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Beam_Diameter,24171,75829,0.0014,0.7419058330129389,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Feed_Speed,24171,75829,0.0018,0.6743373291761972,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Frequency,24171,75829,-0.0031,0.4719097700903002,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Alignment_Time,24171,75829,-0.0056,0.1883995428555314,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Process_Time,24171,75829,0.0002,0.971580053896204,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cutting_X_Index,24171,75829,-0.0043,0.3104163603212591,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cutting_Y_Index,24171,75829,-0.0025,0.5510844320330246,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Head_Temp,24171,75829,0.8665,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cooling_Flow,24171,75829,-0.4623,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cooling_Water_Temp,24171,75829,-0.0055,0.19486185035089765,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Focus,24171,75829,0.8721,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,CLN_Flow,24171,75829,0.1559,1.1998552285378222e-292,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,CLN_Pressure,24171,75829,-0.0002,0.9611279368938588,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,CLN_Time,24171,75829,0.0003,0.9511650226558344,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Coating_Flow,24171,75829,-0.0016,0.7095651131388172,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Laser_Head_Remain_Time,24171,75829,-0.0032,0.45424825970707705,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Vibration,24171,75829,0.8694,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Kerf_Width_Profile,24171,75829,0.96,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Top_Kerf,24171,75829,0.9537,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Bottom_Kerf,24171,75829,0.9565,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Kerf_Angle,24171,75829,0.7653,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Groove_Depth,24171,75829,-0.7863,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Package_Size_1,24171,75829,-0.6388,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Package_Size_2,24171,75829,-0.57,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Package_Size_3,24171,75829,0.5641,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Package_Size_4,24171,75829,0.6368,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Coating_Thickness,24171,75829,-0.0026,0.5352641981370052,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Coating_Uniformity,24171,75829,0.0005,0.9052501219222873,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cutting_Offset,24171,75829,0.6472,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Surface_Roughness,24171,75829,0.4848,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cooling_Thermal_Load,24171,75829,0.3002,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Laser_Cleaning_Demand,24171,75829,-0.8965,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cleaning_Capacity,24171,75829,0.1325,8.134256526347807e-212,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Cleaning_Load_Ratio,24171,75829,-0.5318,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,A_jh_primary_vs_rest,Maintenance_Count,24171,75829,0.0016,0.7113113031933438,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+r1,B_jun_pure_vs_notpure,Laser_Power,12465,87535,-0.7652,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Power_Efficiency,12465,87535,-0.7794,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Laser_Centering_Position,12465,87535,0.5154,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Laser_Current,12465,87535,0.0093,0.09081270393705798,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Laser_Voltage,12465,87535,0.0042,0.4524535549267048,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Beam_Diameter,12465,87535,0.0057,0.30505257628294125,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Feed_Speed,12465,87535,0.0017,0.7623109009946961,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Frequency,12465,87535,-0.0153,0.0055332289786291025,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Alignment_Time,12465,87535,-0.0015,0.7870503687402868,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Process_Time,12465,87535,0.0058,0.2941490057627124,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cutting_X_Index,12465,87535,-0.0027,0.6203761048210816,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cutting_Y_Index,12465,87535,-0.0118,0.03228196335240857,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Head_Temp,12465,87535,0.7527,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cooling_Flow,12465,87535,-0.4123,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cooling_Water_Temp,12465,87535,-0.0028,0.6094999761637092,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Focus,12465,87535,0.7561,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,CLN_Flow,12465,87535,0.1354,1.572672738606504e-132,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,CLN_Pressure,12465,87535,0.006,0.27549808755673744,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,CLN_Time,12465,87535,0.0028,0.6123996437664931,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Coating_Flow,12465,87535,0.0011,0.8473111774146063,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Laser_Head_Remain_Time,12465,87535,-0.0011,0.8447706689640712,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Vibration,12465,87535,0.7091,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Kerf_Width_Profile,12465,87535,0.8128,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Top_Kerf,12465,87535,0.8067,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Bottom_Kerf,12465,87535,0.8093,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Kerf_Angle,12465,87535,0.6637,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Groove_Depth,12465,87535,-0.6521,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Package_Size_1,12465,87535,-0.5094,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Package_Size_2,12465,87535,-0.4461,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Package_Size_3,12465,87535,0.4451,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Package_Size_4,12465,87535,0.5064,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Coating_Thickness,12465,87535,0.0066,0.23426511180812304,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Coating_Uniformity,12465,87535,0.0026,0.6440225639418404,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cutting_Offset,12465,87535,0.5141,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Surface_Roughness,12465,87535,0.2594,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cooling_Thermal_Load,12465,87535,0.2703,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Laser_Cleaning_Demand,12465,87535,-0.7553,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cleaning_Capacity,12465,87535,0.1191,5.606645787091473e-103,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Cleaning_Load_Ratio,12465,87535,-0.4412,0.0,승준님 방법 G — unified_full_methodology.py:253
+r1,B_jun_pure_vs_notpure,Maintenance_Count,12465,87535,0.0025,0.6454467003642527,승준님 방법 G — unified_full_methodology.py:253
+r1,C_keep_pure_vs_clean,Laser_Power,12465,70873,-0.7364,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Power_Efficiency,12465,70873,-0.7499,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Laser_Centering_Position,12465,70873,0.4949,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Laser_Current,12465,70873,0.0085,0.1281955277154077,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Laser_Voltage,12465,70873,0.0025,0.6617242371089482,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Beam_Diameter,12465,70873,0.0049,0.37832932634914973,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Feed_Speed,12465,70873,0.0017,0.7616230463224172,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Frequency,12465,70873,-0.0111,0.04711778703254101,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Alignment_Time,12465,70873,0.001,0.8638313246404219,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Process_Time,12465,70873,0.0054,0.3312738131039955,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cutting_X_Index,12465,70873,-0.003,0.5965299220432986,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cutting_Y_Index,12465,70873,-0.0116,0.03878991910972498,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Head_Temp,12465,70873,0.7302,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cooling_Flow,12465,70873,-0.4,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cooling_Water_Temp,12465,70873,-0.0037,0.5120846417310843,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Focus,12465,70873,0.733,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,CLN_Flow,12465,70873,0.0706,2.659043347433646e-36,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,CLN_Pressure,12465,70873,-0.0038,0.5034571950805411,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,CLN_Time,12465,70873,0.0049,0.3795358543206395,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Coating_Flow,12465,70873,0.0025,0.6591082393831356,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Laser_Head_Remain_Time,12465,70873,-0.0007,0.8964238424159896,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Vibration,12465,70873,0.7003,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Kerf_Width_Profile,12465,70873,0.7827,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Top_Kerf,12465,70873,0.777,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Bottom_Kerf,12465,70873,0.7795,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Kerf_Angle,12465,70873,0.6446,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Groove_Depth,12465,70873,-0.6276,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Package_Size_1,12465,70873,-0.4895,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Package_Size_2,12465,70873,-0.4283,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Package_Size_3,12465,70873,0.4271,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Package_Size_4,12465,70873,0.4866,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Coating_Thickness,12465,70873,0.0017,0.7553562402096186,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Coating_Uniformity,12465,70873,0.0012,0.8321732774869834,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cutting_Offset,12465,70873,0.4936,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Surface_Roughness,12465,70873,0.3249,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cooling_Thermal_Load,12465,70873,0.2614,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Laser_Cleaning_Demand,12465,70873,-0.7268,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cleaning_Capacity,12465,70873,0.0601,8.811330543210292e-27,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Cleaning_Load_Ratio,12465,70873,-0.3941,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,C_keep_pure_vs_clean,Maintenance_Count,12465,70873,0.0009,0.8739913819132782,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+r1,D_primary_vs_ok_only,Laser_Power,24171,58890,-0.9115,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Power_Efficiency,24171,58890,-0.9293,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Laser_Centering_Position,24171,58890,0.6513,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Laser_Current,24171,58890,0.0104,0.017914396426094888,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Laser_Voltage,24171,58890,0.002,0.6483395224425903,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Beam_Diameter,24171,58890,0.0005,0.9038516315156263,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Feed_Speed,24171,58890,0.002,0.6465272567052498,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Frequency,24171,58890,0.0058,0.1858579912154128,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Alignment_Time,24171,58890,-0.0025,0.5715175964698218,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Process_Time,24171,58890,-0.0003,0.9538689584275333,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cutting_X_Index,24171,58890,-0.0047,0.289710655436491,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cutting_Y_Index,24171,58890,-0.0018,0.691281988454937,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Head_Temp,24171,58890,0.8718,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cooling_Flow,24171,58890,-0.4647,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cooling_Water_Temp,24171,58890,-0.0068,0.1256375539372553,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Focus,24171,58890,0.8775,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,CLN_Flow,24171,58890,0.0842,3.4393411202070335e-81,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,CLN_Pressure,24171,58890,-0.0123,0.00540378452486864,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,CLN_Time,24171,58890,0.0028,0.5194625546950578,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Coating_Flow,24171,58890,0.0001,0.9761527421072409,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Laser_Head_Remain_Time,24171,58890,-0.0029,0.5179977441792043,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Vibration,24171,58890,0.8953,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Kerf_Width_Profile,24171,58890,0.9656,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Top_Kerf,24171,58890,0.9594,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Bottom_Kerf,24171,58890,0.9621,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Kerf_Angle,24171,58890,0.7707,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Groove_Depth,24171,58890,-0.7904,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Package_Size_1,24171,58890,-0.6422,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Package_Size_2,24171,58890,-0.5734,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Package_Size_3,24171,58890,0.5666,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Package_Size_4,24171,58890,0.6403,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Coating_Thickness,24171,58890,-0.0084,0.056798778796572434,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Coating_Uniformity,24171,58890,-0.0013,0.7694874963637083,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cutting_Offset,24171,58890,0.6507,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Surface_Roughness,24171,58890,0.579,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cooling_Thermal_Load,24171,58890,0.3008,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Laser_Cleaning_Demand,24171,58890,-0.9008,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cleaning_Capacity,24171,58890,0.0664,2.7476663797441164e-51,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Cleaning_Load_Ratio,24171,58890,-0.4983,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+r1,D_primary_vs_ok_only,Maintenance_Count,24171,58890,-0.0002,0.961116111376141,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,A_jh_primary_vs_rest,Laser_Power,24175,175825,-0.9229,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Power_Efficiency,24175,175825,-0.9506,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Laser_Centering_Position,24175,175825,0.6577,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Laser_Current,24175,175825,0.009,0.023023036320198625,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Laser_Voltage,24175,175825,0.0007,0.8512662739668997,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Beam_Diameter,24175,175825,0.0006,0.8794460440520119,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Feed_Speed,24175,175825,0.0025,0.5210326924063058,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Frequency,24175,175825,-0.0041,0.29535965446472723,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Alignment_Time,24175,175825,-0.0035,0.3731147334312972,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Process_Time,24175,175825,-0.0007,0.8644595021327973,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cutting_X_Index,24175,175825,-0.0023,0.5635249118688153,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cutting_Y_Index,24175,175825,0.0003,0.9315675362506094,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Head_Temp,24175,175825,0.9319,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cooling_Flow,24175,175825,-0.4992,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cooling_Water_Temp,24175,175825,-0.0036,0.3688061848983092,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Focus,24175,175825,0.9372,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,CLN_Flow,24175,175825,0.1327,4.3236463948238593e-246,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,CLN_Pressure,24175,175825,0.0,0.9966942280752407,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,CLN_Time,24175,175825,-0.0009,0.8195333983242504,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Coating_Flow,24175,175825,-0.0021,0.5950547991643651,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Laser_Head_Remain_Time,24175,175825,-0.0034,0.39476987456165946,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Vibration,24175,175825,0.9022,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Kerf_Width_Profile,24175,175825,0.9825,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Top_Kerf,24175,175825,0.978,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Bottom_Kerf,24175,175825,0.9794,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Kerf_Angle,24175,175825,0.8246,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Groove_Depth,24175,175825,-0.7993,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Package_Size_1,24175,175825,-0.6479,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Package_Size_2,24175,175825,-0.5788,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Package_Size_3,24175,175825,0.5739,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Package_Size_4,24175,175825,0.6466,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Coating_Thickness,24175,175825,0.0002,0.9673114668045636,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Coating_Uniformity,24175,175825,-0.0001,0.9724196981098001,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cutting_Offset,24175,175825,0.6566,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Surface_Roughness,24175,175825,0.5034,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cooling_Thermal_Load,24175,175825,0.3257,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Laser_Cleaning_Demand,24175,175825,-0.9123,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cleaning_Capacity,24175,175825,0.0773,8.447315781834515e-85,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Cleaning_Load_Ratio,24175,175825,-0.5112,0.0,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,A_jh_primary_vs_rest,Maintenance_Count,24175,175825,-0.0016,0.67988204871496,진혁님 방법 — 비교군 = 정상 + 다른 불량 전부 (판정 근거)
+combined,B_jun_pure_vs_notpure,Laser_Power,12468,187532,-0.8523,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Power_Efficiency,12468,187532,-0.8789,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Laser_Centering_Position,12468,187532,0.5757,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Laser_Current,12468,187532,0.0081,0.12822479144800447,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Laser_Voltage,12468,187532,0.0014,0.7898665215417138,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Beam_Diameter,12468,187532,0.0047,0.3772115224365059,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Feed_Speed,12468,187532,0.0024,0.6554065293340521,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Frequency,12468,187532,-0.0158,0.003039171586518518,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Alignment_Time,12468,187532,-0.0003,0.9538108965508248,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Process_Time,12468,187532,0.0046,0.38744268995290443,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cutting_X_Index,12468,187532,-0.0012,0.8217171097900628,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cutting_Y_Index,12468,187532,-0.0087,0.1044968741765401,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Head_Temp,12468,187532,0.8727,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cooling_Flow,12468,187532,-0.478,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cooling_Water_Temp,12468,187532,-0.0014,0.7899764353751171,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Focus,12468,187532,0.877,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,CLN_Flow,12468,187532,0.1247,1.278387679482238e-120,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,CLN_Pressure,12468,187532,0.0059,0.2710517054681758,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,CLN_Time,12468,187532,0.0016,0.7659256728586319,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Coating_Flow,12468,187532,0.0003,0.9484698175334068,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Laser_Head_Remain_Time,12468,187532,-0.0016,0.7604553577076457,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Vibration,12468,187532,0.8161,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Kerf_Width_Profile,12468,187532,0.9123,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Top_Kerf,12468,187532,0.9075,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Bottom_Kerf,12468,187532,0.9087,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Kerf_Angle,12468,187532,0.7702,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Groove_Depth,12468,187532,-0.7262,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Package_Size_1,12468,187532,-0.568,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Package_Size_2,12468,187532,-0.499,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Package_Size_3,12468,187532,0.4979,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Package_Size_4,12468,187532,0.5656,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Coating_Thickness,12468,187532,0.0084,0.11730945148261726,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Coating_Uniformity,12468,187532,0.0019,0.7196396050059359,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cutting_Offset,12468,187532,0.5741,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Surface_Roughness,12468,187532,0.3266,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cooling_Thermal_Load,12468,187532,0.3145,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Laser_Cleaning_Demand,12468,187532,-0.8417,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cleaning_Capacity,12468,187532,0.0767,8.982970854872667e-47,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Cleaning_Load_Ratio,12468,187532,-0.4607,0.0,승준님 방법 G — unified_full_methodology.py:253
+combined,B_jun_pure_vs_notpure,Maintenance_Count,12468,187532,-0.0003,0.9508032694855486,승준님 방법 G — unified_full_methodology.py:253
+combined,C_keep_pure_vs_clean,Laser_Power,12468,162049,-0.8445,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Power_Efficiency,12468,162049,-0.8716,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Laser_Centering_Position,12468,162049,0.5701,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Laser_Current,12468,162049,0.0074,0.16581571757526792,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Laser_Voltage,12468,162049,0.0003,0.9598902334015065,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Beam_Diameter,12468,162049,0.0046,0.3928613892592898,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Feed_Speed,12468,162049,0.0029,0.5898627099504472,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Frequency,12468,162049,-0.0144,0.007292094303759606,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Alignment_Time,12468,162049,0.0016,0.764663568378097,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Process_Time,12468,162049,0.0046,0.3929807058369017,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cutting_X_Index,12468,162049,-0.0013,0.8042667637314087,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cutting_Y_Index,12468,162049,-0.0086,0.10893613684049862,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Head_Temp,12468,162049,0.8695,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cooling_Flow,12468,162049,-0.4766,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cooling_Water_Temp,12468,162049,-0.0022,0.687616792415785,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Focus,12468,162049,0.8736,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,CLN_Flow,12468,162049,0.0939,1.6799778727363144e-68,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,CLN_Pressure,12468,162049,-0.0057,0.2888944862598146,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,CLN_Time,12468,162049,0.0022,0.6809603436058531,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Coating_Flow,12468,162049,0.001,0.8497860322902406,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Laser_Head_Remain_Time,12468,162049,-0.002,0.7148505177213136,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Vibration,12468,162049,0.82,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Kerf_Width_Profile,12468,162049,0.9046,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Top_Kerf,12468,162049,0.9001,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Bottom_Kerf,12468,162049,0.9011,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Kerf_Angle,12468,162049,0.7676,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Groove_Depth,12468,162049,-0.7195,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Package_Size_1,12468,162049,-0.5627,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Package_Size_2,12468,162049,-0.4941,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Package_Size_3,12468,162049,0.4929,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Package_Size_4,12468,162049,0.5604,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Coating_Thickness,12468,162049,0.0025,0.6352271322330764,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Coating_Uniformity,12468,162049,0.001,0.8452530792541197,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cutting_Offset,12468,162049,0.5685,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Surface_Roughness,12468,162049,0.384,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cooling_Thermal_Load,12468,162049,0.3129,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Laser_Cleaning_Demand,12468,162049,-0.8339,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cleaning_Capacity,12468,162049,0.0458,1.3815840204145242e-17,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Cleaning_Load_Ratio,12468,162049,-0.4392,0.0,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,C_keep_pure_vs_clean,Maintenance_Count,12468,162049,-0.0019,0.7230825073093975,keep 마스크 보정 — 다른 defect 있는 행 제외 (:498의 keep)
+combined,D_primary_vs_ok_only,Laser_Power,24175,149673,-0.9257,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Power_Efficiency,24175,149673,-0.9542,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Laser_Centering_Position,24175,149673,0.6597,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Laser_Current,24175,149673,0.0084,0.0365128519460805,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Laser_Voltage,24175,149673,-0.0005,0.89852458684714,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Beam_Diameter,24175,149673,0.0005,0.892920186850091,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Feed_Speed,24175,149673,0.0033,0.41469209201750323,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Frequency,24175,149673,0.0014,0.7208572816448959,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Alignment_Time,24175,149673,-0.0012,0.7698066317133938,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Process_Time,24175,149673,-0.0007,0.8670893993198059,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cutting_X_Index,24175,149673,-0.0024,0.5489062903904447,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cutting_Y_Index,24175,149673,0.0006,0.889710190775291,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Head_Temp,24175,149673,0.9384,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cooling_Flow,24175,149673,-0.5031,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cooling_Water_Temp,24175,149673,-0.0043,0.2783259262883724,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Focus,24175,149673,0.9436,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,CLN_Flow,24175,149673,0.1008,4.22484225251152e-140,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,CLN_Pressure,24175,149673,-0.0125,0.0017793191869846447,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,CLN_Time,24175,149673,-0.0002,0.9544155104342641,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Coating_Flow,24175,149673,-0.0012,0.7554765733694516,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Laser_Head_Remain_Time,24175,149673,-0.0038,0.3481221831576601,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Vibration,24175,149673,0.9162,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Kerf_Width_Profile,24175,149673,0.9862,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Top_Kerf,24175,149673,0.9819,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Bottom_Kerf,24175,149673,0.9831,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Kerf_Angle,24175,149673,0.8306,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Groove_Depth,24175,149673,-0.8017,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Package_Size_1,24175,149673,-0.6499,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Package_Size_2,24175,149673,-0.5806,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Package_Size_3,24175,149673,0.5754,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Package_Size_4,24175,149673,0.6488,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Coating_Thickness,24175,149673,-0.0061,0.12939689304638352,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Coating_Uniformity,24175,149673,-0.0011,0.7839933693063579,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cutting_Offset,24175,149673,0.6587,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Surface_Roughness,24175,149673,0.566,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cooling_Thermal_Load,24175,149673,0.3275,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Laser_Cleaning_Demand,24175,149673,-0.915,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cleaning_Capacity,24175,149673,0.0447,6.045695770875049e-29,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Cleaning_Load_Ratio,24175,149673,-0.4945,0.0,대호님 규약 — 정상군 = NG_Code=='OK'
+combined,D_primary_vs_ok_only,Maintenance_Count,24175,149673,-0.0034,0.3981303337478195,대호님 규약 — 정상군 = NG_Code=='OK'

@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-08-04T14:34:06.214303+00:00",
+  "target": "PARTICLE",
+  "n_rows": 200000,
+  "n_normal": 149673,
+  "n_features": 40,
+  "method": "진혁님(JHdaimma) chip_crack_factors_v2.py 방법론 이식 — 김시우 전처리 + 승준 통계방법론, SHAP 미사용(진혁님 08-03 결정)",
+  "label_equivalence_audit": {
+    "original": {
+      "n_primary": 6455,
+      "n_pure": 6450,
+      "mismatch": 5,
+      "mismatch_ng_code": {
+        "PARTICLE": 5
+      }
+    },
+    "r1": {
+      "n_primary": 4841,
+      "n_pure": 4022,
+      "mismatch": 819,
+      "mismatch_ng_code": {
+        "PARTICLE": 819
+      }
+    }
+  },
+  "rf_input_cleanup": {
+    "n_nan_replaced": 0,
+    "n_inf_replaced": 0
+  },
+  "verdicts": {
+    "n_primary": 11296,
+    "n_broad": 21371,
+    "n_pure": 10472,
+    "confirmed": [
+      "Surface_Roughness",
+      "Vibration"
+    ],
+    "needs_domain_review": [],
+    "weak_signal": [
+      "CLN_Flow",
+      "Kerf_Width_Profile",
+      "Top_Kerf",
+      "Bottom_Kerf",
+      "Focus",
+      "Cleaning_Load_Ratio",
+      "CLN_Pressure",
+      "Cleaning_Capacity"
+    ]
+  },
+  "baseline_sensitivity_verdict_changed": 0,
+  "vibration_by_comparison_group": {
+    "A_jh_primary_vs_rest": {
+      "original": 0.2195,
+      "r1": -0.024,
+      "combined": 0.0865
+    },
+    "B_jun_pure_vs_notpure": {
+      "original": 0.2192,
+      "r1": -0.0341,
+      "combined": 0.0773
+    },
+    "C_keep_pure_vs_clean": {
+      "original": 0.2191,
+      "r1": 0.1684,
+      "combined": 0.1935
+    },
+    "D_primary_vs_ok_only": {
+      "original": 0.2202,
+      "r1": 0.2892,
+      "combined": 0.251
+    }
+  }
+}

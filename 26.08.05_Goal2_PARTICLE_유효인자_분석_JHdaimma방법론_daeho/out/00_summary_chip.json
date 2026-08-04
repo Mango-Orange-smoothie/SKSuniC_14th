@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-08-04T15:00:19.479093+00:00",
+  "target": "CHIP",
+  "n_rows": 200000,
+  "n_normal": 149673,
+  "n_features": 40,
+  "method": "진혁님(JHdaimma) chip_crack_factors_v2.py 방법론 이식 — 김시우 전처리 + 승준 통계방법론, SHAP 미사용(진혁님 08-03 결정)",
+  "label_equivalence_audit": {
+    "original": {
+      "n_primary": 4,
+      "n_pure": 3,
+      "mismatch": 1,
+      "mismatch_ng_code": {
+        "CHIP": 1
+      }
+    },
+    "r1": {
+      "n_primary": 24171,
+      "n_pure": 12465,
+      "mismatch": 11706,
+      "mismatch_ng_code": {
+        "CHIP": 11706
+      }
+    }
+  },
+  "rf_input_cleanup": {
+    "n_nan_replaced": 0,
+    "n_inf_replaced": 0
+  },
+  "verdicts": {
+    "n_primary": 24175,
+    "n_broad": 24175,
+    "n_pure": 12468,
+    "confirmed": [
+      "Top_Kerf",
+      "Kerf_Width_Profile",
+      "Bottom_Kerf",
+      "Laser_Centering_Position",
+      "Vibration",
+      "Focus",
+      "Head_Temp"
+    ],
+    "needs_domain_review": [
+      "Power_Efficiency",
+      "Laser_Power",
+      "Laser_Cleaning_Demand"
+    ],
+    "weak_signal": [
+      "Package_Size_3",
+      "Kerf_Angle",
+      "Cutting_Offset",
+      "Surface_Roughness",
+      "Package_Size_1",
+      "Package_Size_2",
+      "Groove_Depth",
+      "Package_Size_4"
+    ]
+  },
+  "baseline_sensitivity_verdict_changed": 0,
+  "vibration_by_comparison_group": {
+    "A_jh_primary_vs_rest": {
+      "original": 0.3447,
+      "r1": 0.8694,
+      "combined": 0.9022
+    },
+    "B_jun_pure_vs_notpure": {
+      "original": 0.3392,
+      "r1": 0.7091,
+      "combined": 0.8161
+    },
+    "C_keep_pure_vs_clean": {
+      "original": 0.3508,
+      "r1": 0.7003,
+      "combined": 0.82
+    },
+    "D_primary_vs_ok_only": {
+      "original": 0.3581,
+      "r1": 0.8953,
+      "combined": 0.9162
+    }
+  }
+}

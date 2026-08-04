@@ -1,0 +1,59 @@
+﻿[0] 데이터 로드 및 통합 (원본 + r1)  |  TARGET = CHIP
+    통합 200,000행 (original 100,000 + r1 100,000), 정상군 149,673건
+[0] OPCOND 층 baseline 산출 및 강건 z-score 변환 (김시우 pipeline 방식)
+    primary(CHIP) = 24,175건 | broad(Chipping==1) = 24,175건 | pure = 12,468건 | 정상(OK) = 149,673건
+    [라벨 점검/original] primary=4 pure=3 불일치=1 {'CHIP': 1}
+    [라벨 점검/r1] primary=24,171 pure=12,465 불일치=11,706 {'CHIP': 11706}
+  [1] 발생률 sanity check
+  [2] Mann-Whitney U + BH-FDR + Cliff's delta
+  [3] RandomForest(200, depth8, balanced) + permutation importance(AP, 15회)
+  [4] 도메인 가설 + 통계 교차검증 병합
+
+  --- CHIP 판정 결과 ---
+  [confirmed] 7건
+     Top_Kerf                 delta_p=+0.978 delta_b=+0.978 imp=+0.06378 rank= 4
+     Kerf_Width_Profile       delta_p=+0.982 delta_b=+0.982 imp=+0.06341 rank= 5
+     Bottom_Kerf              delta_p=+0.979 delta_b=+0.979 imp=+0.05145 rank= 6
+     Laser_Centering_Position delta_p=+0.658 delta_b=+0.658 imp=+0.03473 rank= 7
+     Vibration                delta_p=+0.902 delta_b=+0.902 imp=+0.02481 rank= 8
+     Focus                    delta_p=+0.937 delta_b=+0.937 imp=+0.01061 rank= 9
+     Head_Temp                delta_p=+0.932 delta_b=+0.932 imp=+0.00454 rank=10
+  [candidate_needs_domain_review] 3건
+     Power_Efficiency         delta_p=-0.951 delta_b=-0.951 imp=+0.10770 rank= 1
+     Laser_Power              delta_p=-0.923 delta_b=-0.923 imp=+0.08595 rank= 2
+     Laser_Cleaning_Demand    delta_p=-0.912 delta_b=-0.912 imp=+0.07781 rank= 3
+  [candidate_weak_signal] 8건
+     Package_Size_3           delta_p=+0.574 delta_b=+0.574 imp=+0.00418 rank=11
+     Kerf_Angle               delta_p=+0.825 delta_b=+0.825 imp=+0.00092 rank=14
+     Cutting_Offset           delta_p=+0.657 delta_b=+0.657 imp=+0.00065 rank=15
+     Surface_Roughness        delta_p=+0.503 delta_b=+0.503 imp=+0.00029 rank=20
+     Package_Size_1           delta_p=-0.648 delta_b=-0.648 imp=-0.00015 rank=30
+     Package_Size_2           delta_p=-0.579 delta_b=-0.579 imp=-0.00079 rank=36
+     Groove_Depth             delta_p=-0.799 delta_b=-0.799 imp=-0.00134 rank=38
+     Package_Size_4           delta_p=+0.647 delta_b=+0.647 imp=-0.00157 rank=40
+
+  [8] 원본/r1 재현성 (진혁님 supplement_crossvalidation.py 방식)
+target                column  delta_original  delta_r1  delta_combined
+  CHIP    Kerf_Width_Profile          0.9998    0.9600          0.9825
+  CHIP           Bottom_Kerf          0.9446    0.9565          0.9794
+  CHIP              Top_Kerf          0.9090    0.9537          0.9780
+  CHIP      Power_Efficiency         -0.4454   -0.9246         -0.9506
+  CHIP                 Focus         -0.1815    0.8721          0.9372
+  CHIP             Head_Temp          0.0421    0.8665          0.9319
+  CHIP           Laser_Power         -0.9792   -0.9071         -0.9229
+  CHIP Laser_Cleaning_Demand         -0.9827   -0.8965         -0.9123
+
+  [9] baseline 민감도 (통합OK[사용] vs 전체행)
+      baseline 선택으로 판정이 바뀐 인자: 0건
+
+  [10] 비교군 4종 대조 — 팀 간 숫자 불일치의 원인 규명
+
+      Vibration — 비교군별 Cliff's delta (CHIP)
+dataset                original      r1  combined
+variant                                          
+A_jh_primary_vs_rest     0.3447  0.8694    0.9022
+B_jun_pure_vs_notpure    0.3392  0.7091    0.8161
+C_keep_pure_vs_clean     0.3508  0.7003    0.8200
+D_primary_vs_ok_only     0.3581  0.8953    0.9162
+
+완료 — ./out
