@@ -308,6 +308,13 @@ GROUP 방식 — 지금까지 쓴 OPCOND/Machine-더미 방식과는 또 다른 
 
 ## 12. SHAP 개별 스트립 설명 (`verify_v5_shap_explanation.py`)
 
+> **주의(JHdaimma 발견, 8/3)**: XGBoost+TreeSHAP을 4개 defect 전체에 판정 기준으로
+> 적용해보니 SHAP top10 방식이 오탐 24건 vs 누락 1건으로 심하게 편향됨을 확인 —
+> "판정은 통계검정+RandomForest+도메인 게이트로, SHAP은 개별 건 설명 전용"이 팀 결론.
+> 아래 분석은 SHAP을 **새 원인 확정 근거로 쓴 적이 없고**(전역순위는 이미 확정된
+> CLN_Pressure/Coating_Thickness와의 교차검증용, 개별 스트립 설명은 13번에서 원래도
+> "개별 건 설명 전용"으로 사용) — 이 발견과 상충하지 않는다.
+
 지금까지의 permutation importance는 "전체적으로 어떤 변수가 중요한가"만 답한다. SHAP는
 **스트립 하나하나의 예측에 각 변수가 얼마나 기여했는지**를 쪼개서 보여준다 — 현장에
 "이 스트립이 왜 불량 예측됐는지" 설명할 때 필요한 형태.
