@@ -22,7 +22,7 @@ pip install -r requirements.txt
 python3 -m pipeline.step0_preprocessing
 ```
 
-`analysis_outputs/preprocessing/`에 아래 7개 파일이 생성된다 (10만행 기준 약 8초 소요).
+`analysis_outputs/preprocessing/`에 아래 10개 파일이 생성된다 (10만행 기준 약 8초 소요).
 
 | 파일 | 내용 |
 |---|---|
@@ -32,7 +32,32 @@ python3 -m pipeline.step0_preprocessing
 | `00_missing_sensor_fault_flags.csv` | 결측/물리적으로 불가능한 0값/flatline(센서 고착) 플래그 |
 | `00_stratum_baseline_stats_by_opcond.csv` | Product×Recipe grain OK-baseline (mean/std/median/MAD/분위수) |
 | `00_stratum_baseline_stats_by_machine_opcond.csv` | Machine×Product×Recipe grain OK-baseline |
+| `00_baseline_AB.csv` | A(단조 drift형)/B(U자형·최적구간형) 컬럼 Baseline (Jun `26.07.29 Baseline 관련 작업/` 이식, 아래 설명) |
+| `00_baseline_C.csv` | C(편측 위험 threshold형) 컬럼의 결정트리 기반 위험 경계값 (Jun 이식) |
+| `00_baseline_E.csv` | E(대칭성/정렬형) 컬럼의 이론 상수 Baseline (Jun 이식) |
 | `00_preprocessing_summary.json` | 행 수/키/정상군 assert 결과 + 다운스트림 기본 포함 컬럼 목록 |
+
+### `00_baseline_AB.csv` / `00_baseline_C.csv` / `00_baseline_E.csv` — Jun의 baseline 이식 (26.08.04)
+
+원래 Jun 브랜치 `26.07.29 Baseline 관련 작업/`에 독립 스크립트(`compute_baseline_AB.py` 등)로
+따로 있던 A/B/C/E 열화 패턴 유형별 baseline을 Step0로 흡수했다. 그룹핑은 Jun의 원본 결정을
+그대로 따라 `Product_ID x Recipe_ID`(Machine_ID 배제, 이유는 `config.py` 주석 참고)다.
+
+- **A(단조 drift형, 8개)**: 그룹 내 시간순 정렬 후 초기 25개 표본 평균. `bad_direction`(up/down) 포함.
+- **B(U자형/최적구간형, 8개)**: 그룹별 OK median. CLN_Time은 원래 C 후보였으나 위험 방향이
+  그룹마다 불일치해(54그룹 중 29/25로 갈림) B로 재분류됨.
+- **C(편측 위험 threshold형)**: `CLN_Pressure→Remain_Coat`, `Surface_Roughness→Particle` 두 쌍만
+  대상. OK 데이터만으로는 위험선을 추정할 수 없어(정상 범위 내부 분포만으로는 어디부터 위험한지
+  모름) **OK+NG 전체 데이터**로 `DecisionTreeClassifier(max_depth=1)` 스텀프를 그룹별로 학습해
+  경계값(threshold)과 위험 방향(risky_direction)을 추정한다. NG 표본이 10개 미만인 그룹은 skip.
+  Groove_Depth는 매칭 defect(Chipping)가 전체 4건뿐이라 이 산출물에서 제외됨.
+- **E(대칭성/정렬형, 9개)**: 그룹핑 없이 공정 설계상 이론 상수(대부분 0, Kerf_Angle=90,
+  Package_Size_1~4=5)를 baseline으로 고정. 참고용으로 실측 OK mean/std도 같이 기록.
+
+**주의(OK 정의 차이)**: 위 3개 파일의 A/B/E는 Jun 원본 값을 그대로 재현하기 위해
+`df_normal`(`is_normal` = Yield==100 & NG_Code=='OK')이 아니라 Jun이 썼던
+`NG_Code=='OK'`만으로 별도 필터링한다 — Step0의 다른 산출물(`00_stratum_baseline_stats_*` 등)
+보다 느슨한 정의라는 점에 유의. C는 애초에 OK/NG 구분 없이 전체 df를 사용한다.
 
 ### `00_machine_daily_series.csv` — 왜 추가했는지 (26.08.02)
 

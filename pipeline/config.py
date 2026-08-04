@@ -262,5 +262,61 @@ DOMAIN_FEATURES = [
     "Package_Size_Asymmetry",
 ]
 
+# ---------------------------------------------------------------------------
+# Baseline 유형(A/B/C/E) — Jun 브랜치 `26.07.29 Baseline 관련 작업/`에서 이식.
+# 열화 패턴 성격이 컬럼마다 달라 baseline 산출 방식도 유형별로 다르다:
+#   A(단조 drift형)  = 초기 안정구간 평균, 악화 방향 존재
+#   B(U자형/최적구간형) = OK 데이터 median, 방향 없음(양쪽 다 위험)
+#   C(편측 위험 threshold형) = OK/NG 라벨로 결정트리 스텀프 학습한 위험 경계값
+#   E(대칭성/정렬형)  = 데이터가 아니라 공정 설계상 이론적 상수값
+# 그룹핑은 Product_ID x Recipe_ID(OPCOND)만 사용, Machine_ID는 배제한다 — Jun 실측 결과
+# A유형 컬럼의 Recipe별 평균 변동이 그룹 내부 변동의 1~2% 수준이라 Machine 구분 실익이 적었음.
+# ---------------------------------------------------------------------------
+
+BASELINE_A_INIT_WINDOW = 25  # A유형 "초기 안정구간"으로 볼 최초 표본 개수(그룹 내 시간순)
+
+# A유형(8개): 컬럼명 -> 악화 방향 (True = 값이 올라갈수록 악화, False = 값이 내려갈수록 악화)
+BASELINE_A_DIRECTION = {
+    "Head_Temp": True,
+    "Vibration": True,
+    "Alignment_Time": True,
+    "Process_Time": True,
+    "Cooling_Flow": False,
+    "Cooling_Water_Temp": True,
+    "CLN_Flow": False,
+    "Coating_Flow": False,
+}
+
+# B유형(8개 = 원 7개 + CLN_Time 재분류). CLN_Time은 원래 C유형(편측임계) 후보였으나
+# 그룹별 위험 방향이 일관되지 않아(54그룹 중 29 low-risky/25 high-risky, 신호도 약함)
+# B유형으로 재분류됨 — 근거는 BASELINE_C_DEFECT_MAP 학습 결과.
+BASELINE_B_COLUMNS = [
+    "Laser_Power", "Power_Efficiency", "Focus", "Beam_Diameter",
+    "Kerf_Width_Profile", "Top_Kerf", "Bottom_Kerf", "CLN_Time",
+]
+
+BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 경계값 추정 skip
+
+# C유형 컬럼 -> 매칭 Defect 플래그 컬럼. CLN_Time(방향 불일치 -> B로 재분류)과
+# Groove_Depth(매칭 defect인 Chipping 발생이 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
+BASELINE_C_DEFECT_MAP = {
+    "CLN_Pressure": "Remain_Coat",
+    "Surface_Roughness": "Particle",
+}
+
+# E유형(9개): 데이터 분포가 아니라 공정 설계상 "완벽하게 맞았을 때"의 이론 상수값.
+# 정렬/대칭 편차형(목표 대비 편차 -> 이상값 0, Kerf_Angle만 완전 수직 90도) + 치수형(목표 5).
+BASELINE_E_CONSTANTS = {
+    "Laser_Centering_Position": 0,
+    "Cutting_X_Index": 0,
+    "Cutting_Y_Index": 0,
+    "Cutting_Offset": 0,
+    "Kerf_Angle": 90,
+    "Package_Size_1": 5,
+    "Package_Size_2": 5,
+    "Package_Size_3": 5,
+    "Package_Size_4": 5,
+}
+
 EXPECTED_ROW_COUNT = 100_000
 EXPECTED_NORMAL_COUNT = 90_783

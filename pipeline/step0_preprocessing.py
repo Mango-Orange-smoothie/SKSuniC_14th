@@ -10,6 +10,9 @@ Goal 1~6(장비/제품 비교, 유효인자 발굴, 상호작용, 이상탐지, 
   00_missing_sensor_fault_flags.csv   결측/불가능한 0값/flatline(고착) 플래그
   00_stratum_baseline_stats_by_opcond.csv        Product×Recipe grain OK-baseline
   00_stratum_baseline_stats_by_machine_opcond.csv Machine×Product×Recipe grain OK-baseline
+  00_baseline_AB.csv                  A(단조 drift형)/B(U자형) 컬럼 Baseline (Jun 이식)
+  00_baseline_C.csv                   C(편측 위험 threshold형) 컬럼 위험 경계값 (Jun 이식)
+  00_baseline_E.csv                   E(대칭성/정렬형) 컬럼 이론 상수 Baseline (Jun 이식)
   00_preprocessing_summary.json       요약 통계 + assert 결과 + 다운스트림 기본 컬럼 목록
 """
 
@@ -21,6 +24,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from sklearn.tree import DecisionTreeClassifier
 
 from pipeline import config
 from pipeline.common import (
@@ -411,6 +415,117 @@ def build_column_classification(
 
 
 # ---------------------------------------------------------------------------
+# 6단계: Baseline 유형(A/B/C/E) — Jun 브랜치 `26.07.29 Baseline 관련 작업/` 이식
+# ---------------------------------------------------------------------------
+
+def compute_baseline_type_a(ok_df: pd.DataFrame) -> pd.DataFrame:
+    """A유형(단조 drift형): 그룹별 시간순 정렬 후 초기 안정구간 평균."""
+    ok_sorted = ok_df.sort_values("DateTime")
+    rows = []
+    for (product, recipe), group in ok_sorted.groupby(["Product_ID", "Recipe_ID"]):
+        initial_window = group.head(config.BASELINE_A_INIT_WINDOW)
+        for column, up_is_bad in config.BASELINE_A_DIRECTION.items():
+            rows.append({
+                "type": "A",
+                "column": column,
+                "group_key": f"{product}|{recipe}",
+                "baseline_method": f"initial_window_mean(n={config.BASELINE_A_INIT_WINDOW}, machine pooled)",
+                "baseline_value": round(initial_window[column].mean(), 5),
+                "bad_direction": "up" if up_is_bad else "down",
+            })
+    return pd.DataFrame(rows)
+
+
+def compute_baseline_type_b(ok_df: pd.DataFrame) -> pd.DataFrame:
+    """B유형(U자형/최적구간형): 그룹별 OK median."""
+    rows = []
+    for (product, recipe), group in ok_df.groupby(["Product_ID", "Recipe_ID"]):
+        for column in config.BASELINE_B_COLUMNS:
+            method = "OK_median (재분류: C->B)" if column == "CLN_Time" else "OK_median"
+            rows.append({
+                "type": "B",
+                "column": column,
+                "group_key": f"{product}|{recipe}",
+                "baseline_method": method,
+                "baseline_value": round(group[column].median(), 5),
+            })
+    return pd.DataFrame(rows)
+
+
+def _find_baseline_c_breakpoint(values: pd.Series, defect_flags: pd.Series) -> dict | None:
+    """단일 컬럼 x 단일 Defect 플래그에 대해 결정트리 스텀프로 위험 경계값을 추정한다."""
+    n_ng = int(defect_flags.sum())
+    if n_ng < config.BASELINE_C_MIN_SAMPLES_LEAF:
+        return None  # NG 표본 부족 -> 추정 불가
+
+    x = values.to_numpy().reshape(-1, 1)
+    y = defect_flags.to_numpy()
+
+    tree = DecisionTreeClassifier(
+        max_depth=1, min_samples_leaf=config.BASELINE_C_MIN_SAMPLES_LEAF, random_state=0
+    )
+    tree.fit(x, y)
+
+    if tree.tree_.feature[0] == -2:
+        return None  # 분기 자체가 생성되지 않음 (분리 불가능)
+
+    threshold = tree.tree_.threshold[0]
+    below = defect_flags[values < threshold]
+    above = defect_flags[values >= threshold]
+    if len(below) == 0 or len(above) == 0:
+        return None
+
+    ng_rate_below = below.mean()
+    ng_rate_above = above.mean()
+    risky_direction = "low_is_risky" if ng_rate_below > ng_rate_above else "high_is_risky"
+
+    return {
+        "threshold": round(float(threshold), 5),
+        "n_NG": n_ng,
+        "NG_rate_below": round(float(ng_rate_below), 5),
+        "NG_rate_above": round(float(ng_rate_above), 5),
+        "risky_direction": risky_direction,
+    }
+
+
+def compute_baseline_type_c(df: pd.DataFrame) -> pd.DataFrame:
+    """C유형(편측 위험 threshold형): OK+NG 전체 데이터로 그룹별 위험 경계값 학습.
+
+    OK 데이터만으로는 위험선을 추정할 수 없다(정상 범위 내부 분포만 보고서는
+    어디부터 위험한지 알 수 없음) — 그래서 다른 유형과 달리 df_normal이 아니라
+    전체 df를 입력으로 받는다.
+    """
+    rows = []
+    for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
+        for column, defect_col in config.BASELINE_C_DEFECT_MAP.items():
+            result = _find_baseline_c_breakpoint(group[column], group[defect_col])
+            if result is None:
+                continue
+            rows.append({
+                "column": column,
+                "matched_defect": defect_col,
+                "group_key": f"{product}|{recipe}",
+                **result,
+            })
+    return pd.DataFrame(rows)
+
+
+def compute_baseline_type_e(ok_df: pd.DataFrame) -> pd.DataFrame:
+    """E유형(대칭성/정렬형): 그룹핑 없는 이론 상수 + 참고용 실측 OK mean/std."""
+    rows = []
+    for column, constant in config.BASELINE_E_CONSTANTS.items():
+        rows.append({
+            "type": "E",
+            "column": column,
+            "baseline_method": "theoretical_constant",
+            "baseline_value": constant,
+            "reference_OK_mean": round(ok_df[column].mean(), 5),
+            "reference_OK_std": round(ok_df[column].std(), 5),
+        })
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -435,6 +550,21 @@ def main() -> None:
 
     classification = build_column_classification(df, df_normal, trend_summary, fault_flags)
     save_table(classification, "00_column_classification.csv", subdir="preprocessing")
+
+    # Baseline A/B/C/E는 원본(Jun) 산출물 값을 그대로 재현하기 위해 df_normal(is_normal=
+    # Yield==100 & NG_Code=='OK')이 아니라 Jun이 쓴 정의(NG_Code=='OK'만)로 별도 필터링한다.
+    # is_normal보다 느슨한 정의라 df_normal의 부분집합이 아닐 수 있음 — 의도된 차이.
+    ok_ng_code = df.loc[df["NG_Code"] == "OK"]
+    baseline_a = compute_baseline_type_a(ok_ng_code)
+    baseline_b = compute_baseline_type_b(ok_ng_code)
+    baseline_ab = pd.concat([baseline_a, baseline_b], ignore_index=True)
+    save_table(baseline_ab, "00_baseline_AB.csv", subdir="preprocessing")
+
+    baseline_c = compute_baseline_type_c(df)
+    save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
+
+    baseline_e = compute_baseline_type_e(ok_ng_code)
+    save_table(baseline_e, "00_baseline_E.csv", subdir="preprocessing")
 
     # 정합성 체크: Fail_Die와 (100-Yield)는 정의상 강하게 연관되어야 함 — 안 그러면 파이프라인 버그.
     consistency_check = df["Fail_Die"].corr(100 - df["Yield"], method="spearman")
