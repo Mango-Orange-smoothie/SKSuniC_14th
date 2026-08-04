@@ -1,0 +1,53 @@
+# spec.py
+SPEC = {
+"Laser_Power":{
+    "LSL":17.8,
+    "TARGET":18.5,
+    "USL":19.2
+},
+"Power_Efficiency":{
+    "LSL":92,
+    "TARGET":95,
+    "USL":98
+},
+"Laser_Centering_Position":{
+    "LSL":-3,
+    "TARGET":0,
+    "USL":3
+},
+"Frequency":{
+    "LSL":98,
+    "TARGET":100,
+    "USL":102
+},
+"Feed_Speed":{
+    "LSL":248,
+    "TARGET":250,
+    "USL":252
+},
+"Head_Temp":{
+    "LSL":38,
+    "TARGET":42,
+    "USL":47
+},
+"Focus":{
+    "LSL":-4,
+    "TARGET":0,
+    "USL":4
+},
+"Kerf_Profile":{
+    "LSL":49.2,
+    "TARGET":50,
+    "USL":50.8
+},
+"Coating_Thickness":{
+    "LSL":9.5,
+    "TARGET":10,
+    "USL":10.5
+},
+"Coating_Uniformity":{
+    "LSL":97,
+    "TARGET":99,
+    "USL":100
+}
+}

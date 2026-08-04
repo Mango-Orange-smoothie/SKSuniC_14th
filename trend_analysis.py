@@ -6,6 +6,10 @@ import pandas as pd
 from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from spec import SPEC  # noqa: E402  (프로젝트 루트의 실제 Spec LSL/TARGET/USL)
 
 RAW_INPUT_FILES = [
     ("HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "HealthIndex_Dataset.csv")),
@@ -18,6 +22,12 @@ MACHINE_TREND_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", 
 BASELINE_AB_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "26.07.29_1625_Baseline_AB_ProductRecipe_v2.csv")
 BASELINE_C_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "26.07.29_1625_Baseline_C_위험선_ProductRecipe_v2.csv")
 BASELINE_E_CSV = os.path.join(BASE_DIR, "26.07.29 Baseline 관련 작업", "Baseline_E_이론상수.csv")
+SPEC_PY = os.path.join(BASE_DIR, "spec.py")
+
+# spec.py의 키가 실제 데이터 컬럼명과 다른 경우의 매핑 (Kerf_Profile -> Kerf_Width_Profile)
+SPEC_COLUMN_RENAME = {
+    "Kerf_Profile": "Kerf_Width_Profile",
+}
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "trend_analysis_results.csv")
@@ -28,12 +38,13 @@ WINDOW = 10
 Z_THRESHOLD = 2.0
 VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
+APPROACH_MARGIN_RATIO = 0.2  # S유형: LSL~USL 폭의 이 비율 이하로 여유가 남으면 "접근 중"
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
-    "column", "type", "matched_defect", "baseline", "current_value", "rolling_mean", "rolling_std",
-    "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "early_warning", "message",
+    "column", "type", "matched_defect", "baseline", "lsl", "usl", "current_value",
+    "rolling_mean", "rolling_std", "std_slope", "difference", "slope",
+    "normalized_deviation", "trend_direction", "variability_warning", "early_warning", "message",
 ]
 
 
@@ -42,7 +53,8 @@ OUTPUT_COLUMNS = [
 # ----------------------------------------------------------------------
 def check_required_files():
     required = [p for _, p in RAW_INPUT_FILES] + [
-        CLASSIFICATION_CSV, STRATUM_STD_CSV, MACHINE_TREND_CSV, BASELINE_AB_CSV, BASELINE_C_CSV, BASELINE_E_CSV,
+        CLASSIFICATION_CSV, STRATUM_STD_CSV, MACHINE_TREND_CSV,
+        BASELINE_AB_CSV, BASELINE_C_CSV, BASELINE_E_CSV, SPEC_PY,
     ]
     missing = [p for p in required if not os.path.exists(p)]
     if missing:
@@ -106,6 +118,23 @@ def load_baseline_maps():
 
 
 # ----------------------------------------------------------------------
+# 3-1. 실제 Spec(LSL/TARGET/USL) 로드 -> S유형
+#      spec.py에 있는 컬럼은 기존 A/B/C/E 분류를 실제 공식 Spec 기준으로 대체한다.
+#      (데이터 기반 Baseline보다 실측 Spec이 더 신뢰할 수 있는 기준이므로)
+#      Product/Recipe 그룹과 무관하게 전 그룹 동일한 고정값이다.
+# ----------------------------------------------------------------------
+def load_spec_map():
+    lsl_map, target_map, usl_map = {}, {}, {}
+    for raw_col, bounds in SPEC.items():
+        col = SPEC_COLUMN_RENAME.get(raw_col, raw_col)
+        lsl_map[col] = bounds["LSL"]
+        target_map[col] = bounds["TARGET"]
+        usl_map[col] = bounds["USL"]
+    print(f"[Spec] spec.py 로드: {len(lsl_map)}개 컬럼 -> {sorted(lsl_map)}")
+    return lsl_map, target_map, usl_map
+
+
+# ----------------------------------------------------------------------
 # 4. std fallback 참조 테이블 (표준편차 0/NaN일 때 안전 대체용)
 #    기존 analysis_outputs/preprocessing/00_stratum_baseline_stats_by_opcond.csv 재사용
 #    (Product_ID x Recipe_ID x column 단위의 기존 표준편차)
@@ -165,6 +194,7 @@ def compute_std_trend(rolling_std):
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
                   ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
+                  spec_lsl_map, spec_target_map, spec_usl_map,
                   state):
     df = pd.read_csv(path)
     n_input_rows = len(df)
@@ -202,6 +232,8 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
             col_type = column_type.get(col)
             baseline = np.nan
+            lsl = np.nan
+            usl = np.nan
             extra = {}
             if col_type in ("A", "B"):
                 baseline = ab_value_map.get((col, group_key), np.nan)
@@ -212,8 +244,14 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     extra = info
             elif col_type == "E":
                 baseline = e_value_map.get(col, np.nan)
+            elif col_type == "S":
+                baseline = spec_target_map.get(col, np.nan)  # TARGET
+                lsl = spec_lsl_map.get(col, np.nan)
+                usl = spec_usl_map.get(col, np.nan)
 
             baseline_arr = np.full(len(current_value), baseline, dtype=float)
+            lsl_arr = np.full(len(current_value), lsl, dtype=float)
+            usl_arr = np.full(len(current_value), usl, dtype=float)
 
             # --- std 안전 대체 로직 ---
             eff_std = rolling_std.copy()
@@ -331,6 +369,51 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                         f"이론 기준값({baseline_arr[i]:.4f}) 대비 지속적으로 벌어지는 편차가 감지되었습니다."
                     )
+
+            elif col_type == "S":
+                # 실제 Spec(LSL/TARGET/USL) 기반 판정. 세 가지를 모두 본다.
+                valid_spec = ~np.isnan(lsl_arr) & ~np.isnan(usl_arr) & ~np.isnan(baseline_arr)
+
+                # 1) LSL/USL 이탈: 최초 진입 시점만 경고(C유형과 동일한 반복 경고 억제)
+                entered_raw = valid_spec & ((current_value <= lsl_arr) | (current_value >= usl_arr))
+                prev_entered = np.concatenate(([False], entered_raw[:-1]))
+                entered_first = entered_raw & ~prev_entered
+
+                # 2) 접근 중: 아직 Spec 이내지만, 가까운 한계선 쪽으로 지속 이동하며
+                #    남은 여유가 Spec 폭(USL-LSL)의 APPROACH_MARGIN_RATIO 이하로 좁혀짐
+                spec_width = usl_arr - lsl_arr
+                dist_to_lsl = current_value - lsl_arr
+                dist_to_usl = usl_arr - current_value
+                nearer_low = dist_to_lsl <= dist_to_usl
+                margin = np.where(nearer_low, dist_to_lsl, dist_to_usl)
+                slope_toward_risk = np.where(nearer_low, slope < 0, slope > 0)
+                approaching = (
+                    valid_spec & (~entered_raw) & slope_toward_risk
+                    & (margin <= spec_width * APPROACH_MARGIN_RATIO)
+                )
+
+                # 3) TARGET에서 지속적으로 벌어지는 추세 (B/E유형과 동일한 지속성 스타일)
+                dev_dir = np.where(rolling_mean > baseline_arr, "up", "down")
+                persistent = (trend_direction == dev_dir)
+                target_dev = calc_mask & (np.abs(normalized_deviation) >= Z_THRESHOLD) & persistent
+
+                ew = entered_first | approaching | target_dev
+                early_warning |= ew
+                for i in np.where(entered_first)[0]:
+                    messages[i] = (
+                        f"{machine_id} / {product_id} / {recipe_id}의 {col}이(가) "
+                        f"Spec 한계(LSL={lsl_arr[i]:.4f}, USL={usl_arr[i]:.4f})를 벗어났습니다."
+                    )
+                for i in np.where(approaching & ~entered_first)[0]:
+                    messages[i] = (
+                        f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
+                        f"현재 Spec 이내이지만, 한계선에 지속적으로 접근하는 추세가 감지되었습니다."
+                    )
+                for i in np.where(target_dev & ~entered_first & ~approaching)[0]:
+                    messages[i] = (
+                        f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                        f"Spec TARGET({baseline_arr[i]:.4f}) 대비 지속적으로 벌어지는 편차가 감지되었습니다."
+                    )
             # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
             # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
             for i in np.where(variability_warning)[0]:
@@ -354,6 +437,8 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "type": col_type if col_type else "NONE",
                 "matched_defect": matched_defect_arr,
                 "baseline": baseline_arr,
+                "lsl": lsl_arr,
+                "usl": usl_arr,
                 "current_value": current_value,
                 "rolling_mean": rolling_mean,
                 "rolling_std": rolling_std,
@@ -479,9 +564,18 @@ def main():
     column_type, direction_map, ab_value_map, c_map, e_value_map, e_std_map = load_baseline_maps()
     fallback_std_map = load_fallback_std_map()
 
+    spec_lsl_map, spec_target_map, spec_usl_map = load_spec_map()
+    # 실제 Spec이 있는 컬럼은 기존 A/B/C/E 분류를 덮어쓰고 S유형으로 통합한다.
+    overridden = {c: column_type[c] for c in spec_lsl_map if c in column_type}
+    for c in spec_lsl_map:
+        column_type[c] = "S"
+    if overridden:
+        print(f"[Spec 우선 적용] 기존 Baseline 유형을 S로 대체: {overridden}")
+
     mapped = [c for c in analysis_columns if c in column_type]
     unmapped = [c for c in analysis_columns if c not in column_type]
-    print(f"[Baseline 매핑] 유형 매핑된 컬럼 {len(mapped)}개 / 매핑 안 된 컬럼 {len(unmapped)}개")
+    n_spec = sum(1 for c in mapped if column_type[c] == "S")
+    print(f"[Baseline 매핑] 유형 매핑된 컬럼 {len(mapped)}개(이 중 S유형 {n_spec}개) / 매핑 안 된 컬럼 {len(unmapped)}개")
     print(f"  - 매핑 안 된 컬럼(참고용 rolling 통계만 계산, early_warning 미판정): {unmapped}")
 
     state = {"first_write": True}
@@ -492,7 +586,8 @@ def main():
         try:
             n_in, n_out, n_warn, samples = process_file(
                 source_name, path, analysis_columns, column_type, direction_map,
-                ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map, state,
+                ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
+                spec_lsl_map, spec_target_map, spec_usl_map, state,
             )
         except Exception as exc:
             print(f"[오류] {source_name} 처리 중 예외 발생: {exc}", file=sys.stderr)

@@ -4,15 +4,18 @@ compare_spec_vs_trend.py
 Goal4: 기존 Spec-Out 방식과 Trend Analysis 방식을 레코드 단위로 비교할 수 있는
 테이블을 만든다.
 
-- 기존 Spec-Out 방식: C유형(위험 Threshold가 정의된) 컬럼의 "순간값"이 그 시점에
-  위험영역을 넘었는지만 본다. 추세나 지속성은 고려하지 않는다(원래 방식 그대로 재현).
+- 기존 Spec-Out 방식: 컬럼의 "순간값"이 그 시점에 한계를 넘었는지만 본다. 추세나
+  지속성은 고려하지 않는다(원래 방식 그대로 재현). 두 출처를 함께 쓴다:
+  실제 공식 Spec(LSL/USL, ../spec.py)이 있는 10개 컬럼은 그걸 쓰고, 실제 Spec이
+  없는 CLN_Pressure/Surface_Roughness 2개는 여전히 Baseline_C(위험선)를 쓴다.
 - Trend Analysis 방식: ../trend_analysis.py가 이미 계산해 둔 early_warning=True를 그대로 쓴다.
 
 기존 프로젝트 파일을 최대한 재사용한다:
 - 원본 데이터 / NG_Code: ../HealthIndex_Dataset.csv, ../DP_HealthIndex_Dataset_r1.csv
 - Trend Analysis 결과: ../analysis_outputs/trend_analysis_results.csv
+- 실제 Spec: ../spec.py (trend_analysis.py의 S유형과 동일 소스)
 - Baseline(위험선) 정보: ../26.07.29 Baseline 관련 작업/26.07.29_1625_Baseline_C_위험선_ProductRecipe_v2.csv
-- 경로 상수(GROUP_KEYS, WINDOW, RAW_INPUT_FILES, BASELINE_C_CSV)는
+- 경로 상수(GROUP_KEYS, WINDOW, RAW_INPUT_FILES, BASELINE_C_CSV, SPEC, SPEC_COLUMN_RENAME)는
   ../trend_analysis.py 모듈을 그대로 import해서 재사용한다(읽기 전용, 수정 없음).
 
 이 파일은 기존 코드/CSV를 전혀 수정하지 않는다.
@@ -49,9 +52,14 @@ def load_baseline_c_map():
 
 
 def compute_spec_predictions(raw, c_map):
-    """레코드별 Spec-Out 방식 예측(spec_flag)과 연속 심각도 점수(spec_score)를 계산한다.
-    spec_score는 ROC/PR 곡선을 그리기 위한 참고용 연속 점수이며(위험선을 얼마나
-    벗어났는지), Spec 방식 자체의 판정 기준(spec_flag)은 이분법(넘었다/안 넘었다) 그대로다.
+    """레코드별 Spec-Out 방식 예측(spec_flag)과 정규화된 심각도 점수(spec_score)를 계산한다.
+    두 출처를 합친다:
+    1) spec.py의 실제 LSL/USL이 있는 10개 컬럼 (trend_analysis.py의 S유형과 동일 소스) ->
+       Spec 폭(USL-LSL) 대비 정규화한 여유(margin_ratio)를 사용
+    2) 실제 Spec이 없는 CLN_Pressure/Surface_Roughness는 여전히 Baseline_C(위험선) 사용 ->
+       threshold 크기 대비 정규화해 1)과 비슷한 스케일로 맞춘다
+    spec_score는 ROC/PR 곡선을 그리기 위한 참고용 연속 점수이고(클수록 위험),
+    Spec 방식 자체의 판정 기준(spec_flag)은 이분법(넘었다/안 넘었다) 그대로다.
     """
     n = len(raw)
     group_key = (raw["Product_ID"] + "|" + raw["Recipe_ID"]).to_numpy()
@@ -59,6 +67,22 @@ def compute_spec_predictions(raw, c_map):
     spec_flag = np.zeros(n, dtype=bool)
     spec_score = np.full(n, -np.inf)
 
+    # 1) 실제 Spec(LSL/USL)이 있는 10개 컬럼
+    for raw_col, bounds in ta.SPEC.items():
+        col = ta.SPEC_COLUMN_RENAME.get(raw_col, raw_col)
+        if col not in raw.columns:
+            continue
+        lsl, usl = bounds["LSL"], bounds["USL"]
+        width = usl - lsl
+        values = raw[col].to_numpy(dtype=float)
+
+        violated = (values <= lsl) | (values >= usl)
+        margin_ratio = np.minimum(values - lsl, usl - values) / width  # 양수=여유, 음수=이탈
+
+        spec_flag |= violated
+        spec_score = np.maximum(spec_score, -margin_ratio)  # 위험할수록 점수가 커지도록 부호 반전
+
+    # 2) 실제 Spec이 없는 CLN_Pressure/Surface_Roughness는 Baseline_C(위험선) 그대로 사용
     for column in COLUMN_TO_NG_CODE:
         sub = c_map[c_map["column"] == column].set_index("group_key")
         threshold = pd.Series(group_key).map(sub["threshold"]).to_numpy(dtype=float)
@@ -70,14 +94,14 @@ def compute_spec_predictions(raw, c_map):
         high_risky = has_th & (direction == "high_is_risky")
 
         violated = np.zeros(n, dtype=bool)
-        margin = np.full(n, -np.inf)
+        margin_ratio = np.full(n, -np.inf)
         violated[low_risky] = values[low_risky] <= threshold[low_risky]
         violated[high_risky] = values[high_risky] >= threshold[high_risky]
-        margin[low_risky] = threshold[low_risky] - values[low_risky]
-        margin[high_risky] = values[high_risky] - threshold[high_risky]
+        margin_ratio[low_risky] = (threshold[low_risky] - values[low_risky]) / np.abs(threshold[low_risky])
+        margin_ratio[high_risky] = (values[high_risky] - threshold[high_risky]) / np.abs(threshold[high_risky])
 
         spec_flag |= violated
-        spec_score = np.maximum(spec_score, margin)
+        spec_score = np.maximum(spec_score, margin_ratio)
 
     spec_score[np.isinf(spec_score)] = np.nan
     return spec_flag, spec_score
