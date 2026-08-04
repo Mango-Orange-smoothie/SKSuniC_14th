@@ -8,9 +8,11 @@ from scipy import stats
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 RAW_INPUT_FILES = [
-    ("HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "HealthIndex_Dataset.csv")),
-    ("DP_HealthIndex_Dataset_r1.csv", os.path.join(BASE_DIR, "DP_HealthIndex_Dataset_r1.csv")),
+    ("DP_HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "data", "raw", "DP_HealthIndex_Dataset.csv")),
 ]
+# r1(DP_HealthIndex_Dataset_r1.csv, 멘토 배포 파일)은 git에 없고 아직 로컬에도 없어서
+# 잠정 제외했다. 파일 받으면 여기에 다시 추가할 것 —
+# ("DP_HealthIndex_Dataset_r1.csv", os.path.join(BASE_DIR, "DP_HealthIndex_Dataset_r1.csv")),
 
 CLASSIFICATION_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_column_classification.csv")
 STRATUM_STD_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_stratum_baseline_stats_by_opcond.csv")

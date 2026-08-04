@@ -418,37 +418,53 @@ def build_column_classification(
 # 6단계: Baseline 유형(A/B/C/E) — Jun 브랜치 `26.07.29 Baseline 관련 작업/` 이식
 # ---------------------------------------------------------------------------
 
+def _ok_median_baseline(ok_df: pd.DataFrame, columns: list[str]) -> dict[tuple[str, str], float]:
+    """그룹(Product_ID x Recipe_ID)별 OK median. A/B유형이 공유하는 단일 계산 — 중복 방지.
+
+    (26.08.05 정정) A유형은 원래 "그룹 내 맨 처음 25행 평균"을 썼는데, Vibration/Head_Temp처럼
+    시간이 지나며 서서히 나빠지는 게 정상인 열화형 변수엔 이 방식이 구조적으로 안 맞았다 —
+    데이터 수집 초기(제일 양호했던 시점)를 기준으로 삼으니 이후 거의 모든 시점이 "비정상적으로
+    나쁘게" 보이는 편향이 생겼다(실측 확인: PKG_A|RCP_1에서 Vibration은 4개 장비 전부의 정상
+    median이 이 초기값보다 0.44~0.93 표준편차 높았음). A와 B의 차이는 baseline 계산법이 아니라
+    "방향성이 정해져 있는가(A)/양방향 다 위험한가(B)"에 있어야 하므로, 계산은 B와 통일한다.
+    """
+    result: dict[tuple[str, str], float] = {}
+    for (product, recipe), group in ok_df.groupby(["Product_ID", "Recipe_ID"]):
+        group_key = f"{product}|{recipe}"
+        for column in columns:
+            result[(column, group_key)] = round(group[column].median(), 5)
+    return result
+
+
 def compute_baseline_type_a(ok_df: pd.DataFrame) -> pd.DataFrame:
-    """A유형(단조 drift형): 그룹별 시간순 정렬 후 초기 안정구간 평균."""
-    ok_sorted = ok_df.sort_values("DateTime")
+    """A유형(방향성 있는 단조 drift형): 그룹별 OK median + 확정된 악화 방향."""
+    medians = _ok_median_baseline(ok_df, list(config.BASELINE_A_DIRECTION.keys()))
     rows = []
-    for (product, recipe), group in ok_sorted.groupby(["Product_ID", "Recipe_ID"]):
-        initial_window = group.head(config.BASELINE_A_INIT_WINDOW)
-        for column, up_is_bad in config.BASELINE_A_DIRECTION.items():
-            rows.append({
-                "type": "A",
-                "column": column,
-                "group_key": f"{product}|{recipe}",
-                "baseline_method": f"initial_window_mean(n={config.BASELINE_A_INIT_WINDOW}, machine pooled)",
-                "baseline_value": round(initial_window[column].mean(), 5),
-                "bad_direction": "up" if up_is_bad else "down",
-            })
+    for (column, group_key), baseline_value in medians.items():
+        rows.append({
+            "type": "A",
+            "column": column,
+            "group_key": group_key,
+            "baseline_method": "opcond_OK_median",
+            "baseline_value": baseline_value,
+            "bad_direction": "up" if config.BASELINE_A_DIRECTION[column] else "down",
+        })
     return pd.DataFrame(rows)
 
 
 def compute_baseline_type_b(ok_df: pd.DataFrame) -> pd.DataFrame:
-    """B유형(U자형/최적구간형): 그룹별 OK median."""
+    """B유형(U자형/최적구간형, 방향 무관): 그룹별 OK median."""
+    medians = _ok_median_baseline(ok_df, config.BASELINE_B_COLUMNS)
     rows = []
-    for (product, recipe), group in ok_df.groupby(["Product_ID", "Recipe_ID"]):
-        for column in config.BASELINE_B_COLUMNS:
-            method = "OK_median (재분류: C->B)" if column == "CLN_Time" else "OK_median"
-            rows.append({
-                "type": "B",
-                "column": column,
-                "group_key": f"{product}|{recipe}",
-                "baseline_method": method,
-                "baseline_value": round(group[column].median(), 5),
-            })
+    for (column, group_key), baseline_value in medians.items():
+        method = "opcond_OK_median (재분류: C->B)" if column == "CLN_Time" else "opcond_OK_median"
+        rows.append({
+            "type": "B",
+            "column": column,
+            "group_key": group_key,
+            "baseline_method": method,
+            "baseline_value": baseline_value,
+        })
     return pd.DataFrame(rows)
 
 
