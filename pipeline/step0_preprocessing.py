@@ -27,6 +27,7 @@ import statsmodels.api as sm
 from sklearn.tree import DecisionTreeClassifier
 
 from pipeline import config
+from pipeline.spec import SPEC
 from pipeline.common import (
     compute_stratum_baseline_stats,
     mann_kendall,
@@ -437,15 +438,24 @@ def _ok_median_baseline(ok_df: pd.DataFrame, columns: list[str]) -> dict[tuple[s
 
 
 def compute_baseline_type_a(ok_df: pd.DataFrame) -> pd.DataFrame:
-    """A유형(방향성 있는 단조 drift형): 그룹별 OK median + 확정된 악화 방향."""
+    """A유형(방향성 있는 단조 drift형): 그룹별 baseline + 확정된 악화 방향.
+
+    (26.08.05) SPEC(pipeline/spec.py, 멘토 실측)에 있는 컬럼은 OK median 대신
+    멘토의 TARGET을 baseline으로 쓴다 — "실측 중앙값"보다 "멘토가 맞다고 한 값"이
+    더 권위 있는 기준이라서다. SPEC에 없는 컬럼은 기존처럼 OK median.
+    """
     medians = _ok_median_baseline(ok_df, list(config.BASELINE_A_DIRECTION.keys()))
     rows = []
-    for (column, group_key), baseline_value in medians.items():
+    for (column, group_key), median_value in medians.items():
+        if column in SPEC:
+            baseline_value, method = SPEC[column]["TARGET"], "mentor_target"
+        else:
+            baseline_value, method = median_value, "opcond_OK_median"
         rows.append({
             "type": "A",
             "column": column,
             "group_key": group_key,
-            "baseline_method": "opcond_OK_median",
+            "baseline_method": method,
             "baseline_value": baseline_value,
             "bad_direction": "up" if config.BASELINE_A_DIRECTION[column] else "down",
         })
@@ -453,11 +463,19 @@ def compute_baseline_type_a(ok_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_baseline_type_b(ok_df: pd.DataFrame) -> pd.DataFrame:
-    """B유형(U자형/최적구간형, 방향 무관): 그룹별 OK median."""
+    """B유형(U자형/최적구간형, 방향 무관): 그룹별 baseline.
+
+    (26.08.05) A유형과 동일하게, SPEC에 있는 컬럼은 멘토 TARGET을 우선한다.
+    """
     medians = _ok_median_baseline(ok_df, config.BASELINE_B_COLUMNS)
     rows = []
-    for (column, group_key), baseline_value in medians.items():
-        method = "opcond_OK_median (재분류: C->B)" if column == "CLN_Time" else "opcond_OK_median"
+    for (column, group_key), median_value in medians.items():
+        if column in SPEC:
+            baseline_value, method = SPEC[column]["TARGET"], "mentor_target"
+        elif column == "CLN_Time":
+            baseline_value, method = median_value, "opcond_OK_median (재분류: C->B)"
+        else:
+            baseline_value, method = median_value, "opcond_OK_median"
         rows.append({
             "type": "B",
             "column": column,
