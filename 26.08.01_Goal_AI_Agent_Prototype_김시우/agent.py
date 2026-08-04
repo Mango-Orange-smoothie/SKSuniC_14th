@@ -16,6 +16,9 @@ get_machine_health가 반환하는 구조 핵심:
   - worst_defects / worst_factors: 나쁜 순서로 최대 3개 정렬된 목록 (1개만 보지 말 것)
   - current_value / lsl / usl / spec_status: 추상적 %가 아니라 실제 값 — spec_status가
     "SPEC_OUT"이면 이미 스펙을 벗어난 것, "OK"면 아직 스펙 안
+  - spec_source: "mentor_spec"(멘토가 26.08.05 직접 준 진짜 스펙, 10개 변수만)이면 신뢰도
+    높음. "provisional_percentile"(정상군 분포 기반 임시 대체값, 나머지 변수)이면 진짜
+    스펙이 아니라는 걸 반드시 같이 언급할 것 — 둘을 같은 확신으로 말하면 안 됨
   - estimated_days_to_spec_out: 나빠지는 중일 때만 값이 있고, 안정적이거나 좋아지는
     중이거나 이미 SPEC_OUT이면 null
   - actual_occurred_recent_7d: Health Index와 완전히 별개 — 이미 터진 불량 여부
@@ -211,6 +214,7 @@ def get_trend_chart_data(
         "baseline_median": float(spec["baseline_median"]),
         "lsl": float(spec["lsl"]),
         "usl": float(spec["usl"]),
+        "spec_source": spec["spec_source"],
         "spec_status": spec["spec_status"],
         "series": [
             {"date": d, "value": v}
@@ -253,6 +257,12 @@ SYSTEM_PROMPT = """\
     실제 발생 날짜를 찾고, 그 날짜를 get_trend_chart_data의 center_date로 넘겨서 그 주변(예: \
     앞뒤 3일씩 총 7일)을 보여줘라. Particle/Remain_Coat는 발생일이 매우 많을 수 있으니, 그럴 \
     땐 가장 최근 날짜 하나를 골라 쓰거나 사용자에게 어느 날짜를 원하는지 물어봐라.
+12. spec_source를 반드시 확인하고 다르게 말하라. "mentor_spec"(Laser_Power/Power_Efficiency/ \
+    Laser_Centering_Position/Frequency/Feed_Speed/Head_Temp/Kerf_Width_Profile/Coating_Thickness/ \
+    Coating_Uniformity 등 10개 변수만 해당)은 멘토가 준 진짜 스펙이라 "스펙 기준으로 봤을 때"라고 \
+    확실하게 말해도 된다. "provisional_percentile"(나머지 대부분)은 정상군 분포로 대체한 임시값일 \
+    뿐이니 "정상 범위 대비"라고만 말하고 "스펙"이라는 단어를 쓰지 마라 — 둘을 같은 확신으로 \
+    말하면 안 된다.
 """
 
 

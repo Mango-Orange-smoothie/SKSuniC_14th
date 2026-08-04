@@ -64,6 +64,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
+from pipeline.spec import SPEC
 from pipeline.step0_preprocessing import CONTINUOUS_TREND_COLS
 
 OUT_DIR = Path(__file__).resolve().parent
@@ -221,34 +222,66 @@ def compute_boundary_z(opcond_baseline: pd.DataFrame) -> dict[str, float]:
     return boundary_z
 
 
+def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, target: float, usl: float) -> pd.Series:
+    """멘토 실측 스펙(pipeline/spec.py) 기준 margin_used_pct. 0=TARGET, 100=USL/LSL 도달.
+
+    OPCOND 층별 정규화를 안 거치고 raw 값을 그대로 스펙과 비교한다 — 멘토가 준 스펙은
+    Product/Recipe에 상관없는 절대 물리적 기준이라, 상대적 z-score가 아니라 실측값
+    자체를 써야 맞다.
+    """
+    above = raw_values >= target
+    margin = pd.Series(np.nan, index=raw_values.index, dtype=float)
+    if usl > target:
+        margin[above] = (raw_values[above] - target) / (usl - target) * 100
+    if target > lsl:
+        margin[~above] = (target - raw_values[~above]) / (target - lsl) * 100
+    if direction == "up":
+        margin[~above] = 0.0  # 위로만 위험한 변수는 target 아래로 벗어나도 여유 소진 아님
+    elif direction == "down":
+        margin[above] = 0.0
+    return margin
+
+
 def compute_level_and_trend(
     daily_series: pd.DataFrame, boundary_z: dict[str, float], spec_values: dict[str, dict],
 ) -> pd.DataFrame:
     """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
-    레벨 원값은 daily_mean_z(00_machine_daily_series.csv, OPCOND baseline 대비 일별
-    정규화 잔차)를 그대로 쓴다 — 새 통계 계산이 아니라 기존 산출물 재사용. 방향(up/down/
-    either)에 따라 부호를 통일해서 "값이 클수록 위험"으로 맞춘 뒤, boundary_z로 나눠서
-    "스펙 경계까지 여유를 몇 % 썼는지"로 바꾼다. 실제 원래 단위 값(current_value/lsl/usl)도
-    같이 붙여서 "29.3% 사용"이 아니라 실제 수치로 보여줄 수 있게 한다.
+    두 가지 기준 소스를 컬럼별로 섞어 쓴다:
+      - SPEC(pipeline/spec.py)에 있는 10개 컬럼: 멘토가 준 진짜 LSL/TARGET/USL을 raw 값과
+        직접 비교(spec_source="mentor_spec") — 신뢰도 높음.
+      - 나머지 컬럼: daily_mean_z(OPCOND baseline 대비 일별 정규화 잔차)와 boundary_z(정상군
+        p0.5~p99.5 기반 임시 경계)로 계산(spec_source="provisional_percentile") — 진짜
+        스펙이 아니라 정상군 분포로 대체한 임시값이니 참고용으로만 쓸 것.
+    실제 원래 단위 값(current_value/lsl/usl)도 같이 붙여서 "29.3% 사용"이 아니라 실제
+    수치로 보여줄 수 있게 한다.
     """
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
-        b_z = boundary_z.get(col)
-        spec = spec_values.get(col)
-        if not b_z or not spec:
-            continue
-
         g = g.sort_values("date")
         direction = direction_of(col)
-        z = g["daily_mean_z"]
-        if direction == "down":
-            z = -z
-        elif direction == "either":
-            z = z.abs()
-        # direction == "up"은 그대로
+        real_spec = SPEC.get(col)
 
-        margin_pct = (z / b_z) * 100  # 0=baseline, 100=스펙 경계, 100 넘으면 스펙아웃
+        if real_spec is not None:
+            spec_source = "mentor_spec"
+            lsl_disp, usl_disp, baseline_disp = real_spec["LSL"], real_spec["USL"], real_spec["TARGET"]
+            margin_pct = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
+            margin_pct.index = g.index
+        else:
+            b_z = boundary_z.get(col)
+            spec = spec_values.get(col)
+            if not b_z or not spec:
+                continue
+            spec_source = "provisional_percentile"
+            lsl_disp, usl_disp, baseline_disp = spec["lsl"], spec["usl"], spec["baseline_median"]
+            z = g["daily_mean_z"]
+            if direction == "down":
+                z = -z
+            elif direction == "either":
+                z = z.abs()
+            # direction == "up"은 그대로
+            margin_pct = (z / b_z) * 100  # 0=baseline, 100=스펙 경계, 100 넘으면 스펙아웃
+
         valid = margin_pct.dropna()
         if valid.empty:
             continue
@@ -277,9 +310,10 @@ def compute_level_and_trend(
             "direction": direction,
             "latest_date": str(latest_date.date()),
             "current_value": round(current_value, 4),
-            "baseline_median": round(spec["baseline_median"], 4),
-            "lsl": round(spec["lsl"], 4),
-            "usl": round(spec["usl"], 4),
+            "baseline_median": round(baseline_disp, 4),
+            "lsl": round(lsl_disp, 4),
+            "usl": round(usl_disp, 4),
+            "spec_source": spec_source,
             "spec_status": "SPEC_OUT" if spec_out else "OK",
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),
@@ -396,6 +430,7 @@ def build_machine_snapshot(
                     "baseline_median": row["baseline_median"],
                     "lsl": row["lsl"],
                     "usl": row["usl"],
+                    "spec_source": row["spec_source"],
                     "spec_status": row["spec_status"],
                     "health_index": row["health_index"],
                     "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
@@ -424,6 +459,7 @@ def build_machine_snapshot(
                 "baseline_median": row["baseline_median"],
                 "lsl": row["lsl"],
                 "usl": row["usl"],
+                "spec_source": row["spec_source"],
                 "spec_status": row["spec_status"],
                 "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
                 "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
