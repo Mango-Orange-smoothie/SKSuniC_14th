@@ -32,8 +32,7 @@ n8n start
 
 브라우저에서 http://localhost:5678 접속 — **꼭 `localhost`로 접속할 것, `127.0.0.1`
 아님** (Safari가 `127.0.0.1` + secure cookie 조합을 막을 수 있음). 계정: 이메일
-`tldn6850@gmail.com` / 비밀번호 `Sugent2026team`(로그인 재확인 완료). 필요하면
-로그인 후 Settings → Personal → Change password로 바꿀 것.
+`tldn6850@gmail.com` / 비밀번호는 **팀 채널(카톡/노션) 참고 — git에는 올리지 않음**.
 
 ### 워크플로우 최초 등록
 
@@ -90,6 +89,26 @@ n8n 2.x부터 `Execute Command`/`Local File Trigger` 노드가 **기본적으로
 파이프라인 자동 실행은 정확히 그 기능이 필요해서, 로컬 전용으로만 쓴다는 전제 하에
 `NODES_EXCLUDE=[]`로 기본 차단 목록을 비워서 켰다. **외부에 노출하는 서버라면 이
 설정을 쓰면 안 됨** — 완전히 로컬(localhost)에서만 쓰는 용도로 만들었다.
+
+## 팀원과 같이 수정하기
+
+지금은 각자 로컬에서 n8n을 띄워 쓰는 구조라 실시간 동시편집은 안 되고, git으로
+비동기 협업한다.
+
+1. `git pull`로 최신 `health_index_pipeline_workflow.json`을 받는다.
+2. 로컬 n8n에 import: `n8n import:workflow --input=n8n/health_index_pipeline_workflow.json`
+   (이미 등록돼 있으면 n8n 화면에서 기존 워크플로우를 지우고 다시 import하거나,
+   화면에서 직접 노드를 고쳐도 됨)
+3. n8n 화면(캔버스)에서 노드 추가/수정 후 저장.
+4. 워크플로우를 다시 JSON으로 export해서 git 파일을 덮어쓴다:
+   `n8n export:workflow --id=sugentHealthIdxPipe1 --output=n8n/health_index_pipeline_workflow.json`
+5. `git diff`로 실제 바뀐 내용만 커밋됐는지 확인 후 커밋 → PR.
+   (credential id 등 민감정보는 워크플로우 JSON에 값으로는 안 들어가니 안전 —
+   단, 위 비밀번호 사고처럼 README나 커밋 메시지에 실제 비밀번호/키를 직접 적지 말 것)
+
+같은 워크플로우를 동시에 여러 명이 화면에서 고치면 나중에 저장한 사람 걸로
+덮어써지니, 수정 전엔 팀 채널에 "지금 n8n 워크플로우 건드릴게요" 정도만 얘기하고
+하면 충돌 없이 갈 수 있다.
 
 ## 다음 단계로 붙이면 좋은 것 (아직 안 함)
 
