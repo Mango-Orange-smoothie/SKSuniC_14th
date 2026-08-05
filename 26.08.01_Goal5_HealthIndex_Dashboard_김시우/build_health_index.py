@@ -15,12 +15,16 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
 다시 짰다.)
 
   1. **레벨 = 스펙 경계까지 남은 여유를 다 쓴 정도(margin_used_pct, 0~100+)**
-       스펙 경계 z(boundary_z) = baseline(median)에서 임시 USL/LSL(정상군 p0.5~p99.5,
-         00_stratum_baseline_stats_by_opcond.csv)까지의 거리를, robust z-scale로 잰 것.
-         OPCOND 층별로 계산한 뒤 컬럼당 중앙값을 대표값으로 씀.
-       margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
+       mentor_spec 컬럼(10개): 멘토 실측 LSL/TARGET/USL과 raw 값을 직접 비교.
+       provisional_percentile 컬럼(나머지 ~24개): 스펙 경계 z(boundary_z)는
+         **daily_mean_z 자기 자신의 분포**(p0.5~p99.5, compute_daily_boundary_z)로 잰 것.
+         margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
          0% = baseline 그대로, 100% = 스펙 경계 도달, 100% 넘으면 이미 스펙아웃.
        변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
+       (26.08.05: 예전엔 boundary_z를 raw 샷 노이즈 분포로 재고 daily_mean_z와 비교해서
+        granularity가 안 맞았다 — 일평균은 샷 평균이라 분산이 훨씬 작아 그 경계에 거의
+        못 미쳤고, "스펙아웃이 원래 잘 안 생긴다"는 결론으로 이어졌었다. daily_mean_z
+        자기 분포로 경계를 다시 재서 고침.)
   2. **추세 = 점수에 안 섞고, "예상 며칠 뒤 스펙아웃"으로 따로 보여준다.**
        margin_used_pct의 최근 14일 기울기(%/일)를 구해서, 나빠지는 방향이면
        (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃.
@@ -35,10 +39,12 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
   5. 실제 불량 발생 여부(최근 7일 defect rate)는 레벨/추세와 별개 필드로 분리한다
      — "이미 터진 것"과 "터지기 전 조짐"은 다른 층위의 정보라서 섞으면 안 된다.
 
-알려진 한계: boundary_z는 컬럼당 대표값 하나(OPCOND 층별 중앙값)라서, 장비/레시피마다
-실제 스펙 여유가 다를 수 있는 걸 다 못 담는다. margin_used_pct도 "일별 평균 z"를
-"개별 샷 기준 p0.5~p99.5"랑 비교하는 거라, 하루 평균은 개별 샷보다 덜 극단적으로 나와서
-실제보다 여유가 있어 보일 수 있다 — 다음 라운드에서 보완할 것.
+알려진 한계: provisional_percentile 컬럼의 boundary_z는 컬럼당 대표값 하나(4개 장비
+풀링한 p0.5~p99.5)라서, 장비/레시피마다 실제 스펙 여유가 다를 수 있는 걸 다 못 담는다.
+또한 정의상 "daily_mean_z의 상위/하위 0.5%"를 경계로 삼으므로, 89일치 데이터에서
+장비 전체를 통틀어도 경계를 넘는 사례가 매우 드물게(변수당 1~2건) 나온다 — 표본이
+작아서 리드타임 숫자(예상 며칠 뒤 스펙아웃) 자체의 통계적 신뢰도는 낮고, "점진적으로
+쌓이는 패턴이 있는지 없는지"를 보는 용도로 쓸 것.
 
 이 스크립트는 정적 HTML 대시보드를 만들지 않는다(v1의 build_dashboard_html.py는
 삭제됨) — 산출물은 AI Agent(agent.py)가 직접 읽는 health_index_data.json 하나뿐이다.
@@ -182,27 +188,36 @@ def direction_of(column: str) -> str:
 
 
 def compute_spec_values(opcond_baseline: pd.DataFrame) -> dict[str, dict]:
-    """컬럼별 baseline(median)과 임시 USL/LSL(p0.5~p99.5)을 원래 단위 그대로 대표값 하나로 정리.
+    """컬럼별 baseline(median)과 robust_z_scale(원래 단위)을 대표값 하나로 정리.
 
-    boundary_z(z-scale)와 별개로, 실제 값(원래 단위)을 그대로 보여주기 위한 것 —
-    "29.3% 사용" 같은 추상적 숫자 대신 "현재 293.08 / 하한 297.01"처럼 실제 값으로
-    보여주는 게 더 직관적이라는 피드백 반영.
+    lsl/usl은 여기서 안 정한다 — provisional 컬럼의 실제 경계(lsl/usl 표시값)는
+    margin 계산에 실제로 쓰는 boundary_z(compute_daily_boundary_z)에 맞춰
+    compute_level_and_trend에서 baseline ± boundary_z*scale로 다시 구성한다
+    (그래야 표시되는 lsl/usl과 margin_used_pct가 서로 어긋나지 않는다 — 26.08.05
+    granularity mismatch 버그의 재발 방지).
     """
     spec: dict[str, dict] = {}
     for col, g in opcond_baseline.groupby("column"):
+        scale = g["robust_z_scale"].where(g["robust_z_scale"].abs() > 1e-9)
         spec[col] = {
             "baseline_median": float(g["median"].median()),
-            "lsl": float(g["p0_5"].median()),
-            "usl": float(g["p99_5"].median()),
+            "robust_z_scale": float(scale.median()) if scale.notna().any() else None,
         }
     return spec
 
 
 def compute_boundary_z(opcond_baseline: pd.DataFrame) -> dict[str, float]:
-    """컬럼별 "baseline에서 임시 스펙 경계(p0.5~p99.5)까지 몇 z 떨어져 있는지"를 구한다.
+    """컬럼별 "baseline에서 임시 스펙 경계(p0.5~p99.5)까지 몇 z 떨어져 있는지" — RAW 샷 기준.
 
     OPCOND 층마다 살짝 다를 수 있어서, 층별로 계산한 뒤 중앙값을 컬럼의 대표값으로 쓴다.
     direction에 따라 어느 쪽 경계를 볼지 결정 — either는 둘 중 가까운 쪽(더 보수적인 쪽)을 쓴다.
+
+    주의: 이건 개별 샷(raw) 단위 노이즈 분포로 그은 경계라서, 개별 샷 z-score와
+    비교할 때만 맞다(예: analyze_lead_time.py — defect는 개별 샷 단위 사건이라 raw가
+    맞는 granularity). **일평균(daily_mean_z)과 비교하려면 이 경계를 쓰면 안 된다** —
+    일평균은 여러 샷을 평균내서 분산이 훨씬 작아 이 경계에 거의 못 미치고, 그 결과
+    "스펙아웃 사례 자체가 없다"는 잘못된 결론(및 리드타임 0일 오판)으로 이어졌다
+    (26.08.05 발견). 일평균 기준 경계는 compute_daily_boundary_z를 쓸 것.
     """
     boundary_z: dict[str, float] = {}
     for col, g in opcond_baseline.groupby("column"):
@@ -219,6 +234,34 @@ def compute_boundary_z(opcond_baseline: pd.DataFrame) -> dict[str, float]:
         candidate = candidate[candidate > 0].dropna()
         if len(candidate):
             boundary_z[col] = float(candidate.median())
+    return boundary_z
+
+
+def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> dict[str, float]:
+    """컬럼별 "일평균 자기 자신의 분포"로 스펙 경계(z)를 재계산 — DAILY 기준.
+
+    compute_boundary_z(raw 샷 p0.5~p99.5)를 daily_mean_z에 그대로 적용했더니 자와
+    저울이 다른 걸 섞어 쓴 셈이 돼서(일평균은 샷 평균이라 분산이 훨씬 작음) 스펙아웃이
+    사실상 감지가 안 됐다(26.08.05 발견, 상세 배경은 compute_boundary_z 참고). 여기서는
+    daily_mean_z 자신의 p0.5~p99.5로 경계를 그어서, 재는 값과 경계가 같은 granularity를
+    쓰게 만든다. Machine_ID 4대를 풀링해서 계산한다(장비 1대당 89일치뿐이라 p0.5/p99.5
+    같은 꼬리 분위수는 표본이 부족함).
+    """
+    boundary_z: dict[str, float] = {}
+    for col, g in daily_series.groupby("column"):
+        direction = direction_of(col)
+        z = g["daily_mean_z"].dropna()
+        if len(z) < min_days:
+            continue
+        p0_5, p99_5 = np.percentile(z, [0.5, 99.5])
+        if direction == "up":
+            candidate = p99_5
+        elif direction == "down":
+            candidate = -p0_5
+        else:
+            candidate = min(abs(p0_5), abs(p99_5))
+        if candidate > 0:
+            boundary_z[col] = float(candidate)
     return boundary_z
 
 
@@ -250,11 +293,15 @@ def compute_level_and_trend(
     두 가지 기준 소스를 컬럼별로 섞어 쓴다:
       - SPEC(pipeline/spec.py)에 있는 10개 컬럼: 멘토가 준 진짜 LSL/TARGET/USL을 raw 값과
         직접 비교(spec_source="mentor_spec") — 신뢰도 높음.
-      - 나머지 컬럼: daily_mean_z(OPCOND baseline 대비 일별 정규화 잔차)와 boundary_z(정상군
-        p0.5~p99.5 기반 임시 경계)로 계산(spec_source="provisional_percentile") — 진짜
-        스펙이 아니라 정상군 분포로 대체한 임시값이니 참고용으로만 쓸 것.
+      - 나머지 컬럼: daily_mean_z(OPCOND baseline 대비 일별 정규화 잔차)와 boundary_z(여기
+        쓰는 boundary_z는 daily_mean_z 자기 자신의 분포로 잰 경계 — compute_daily_boundary_z.
+        raw 샷 분포로 잰 경계를 쓰면 안 됨, 26.08.05 granularity mismatch 버그 참고)로
+        계산(spec_source="provisional_percentile") — 진짜 스펙이 아니라 정상군 분포로
+        대체한 임시값이니 참고용으로만 쓸 것.
     실제 원래 단위 값(current_value/lsl/usl)도 같이 붙여서 "29.3% 사용"이 아니라 실제
-    수치로 보여줄 수 있게 한다.
+    수치로 보여줄 수 있게 한다. provisional 컬럼의 lsl/usl 표시값은 margin 계산에 실제
+    쓰는 boundary_z와 같은 기준(baseline ± boundary_z*scale)으로 역산해서, 화면에 보이는
+    한계값과 margin_used_pct가 서로 어긋나지 않게 한다.
     """
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
@@ -270,10 +317,17 @@ def compute_level_and_trend(
         else:
             b_z = boundary_z.get(col)
             spec = spec_values.get(col)
-            if not b_z or not spec:
+            if not b_z or not spec or not spec.get("robust_z_scale"):
                 continue
             spec_source = "provisional_percentile"
-            lsl_disp, usl_disp, baseline_disp = spec["lsl"], spec["usl"], spec["baseline_median"]
+            baseline_disp = spec["baseline_median"]
+            scale = spec["robust_z_scale"]
+            if direction == "down":
+                lsl_disp, usl_disp = baseline_disp - b_z * scale, baseline_disp
+            elif direction == "up":
+                lsl_disp, usl_disp = baseline_disp, baseline_disp + b_z * scale
+            else:
+                lsl_disp, usl_disp = baseline_disp - b_z * scale, baseline_disp + b_z * scale
             z = g["daily_mean_z"]
             if direction == "down":
                 z = -z
@@ -480,7 +534,7 @@ def build_machine_snapshot(
 def main() -> None:
     opcond_baseline, daily_series_raw = load_step0_outputs()
 
-    boundary_z = compute_boundary_z(opcond_baseline)
+    boundary_z = compute_daily_boundary_z(daily_series_raw)
     spec_values = compute_spec_values(opcond_baseline)
 
     level_trend = compute_level_and_trend(daily_series_raw, boundary_z, spec_values)

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T23:56:42.229100",
+  "generated_at": "2026-08-05T11:09:41.232495",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -95,16 +95,16 @@
   },
   "machines": {
     "DP01": {
-      "health_index": 88.7,
+      "health_index": 56.8,
       "worst_defects": [
         {
           "defect": "Chipping",
-          "health_index": 88.7,
-          "worst_factor": "Kerf_Width_Profile"
+          "health_index": 56.8,
+          "worst_factor": "Top_Kerf"
         },
         {
           "defect": "Micro_Crack",
-          "health_index": 98.1,
+          "health_index": 69.2,
           "worst_factor": "Cooling_Flow"
         },
         {
@@ -130,13 +130,13 @@
             "Vibration": {
               "current_value": 0.1522,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": 0.378,
-              "estimated_days_to_spec_out": 277.4,
+              "margin_trend_pct_per_day": 1.084,
+              "estimated_days_to_spec_out": 104.9,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
               "source": "daeho / JHdaimma"
@@ -158,12 +158,12 @@
             "CLN_Pressure": {
               "current_value": 300.0623,
               "baseline_median": 300.0362,
-              "lsl": 295.0652,
-              "usl": 305.1411,
+              "lsl": 299.7163,
+              "usl": 300.0362,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": -0.14,
+              "margin_trend_pct_per_day": -2.158,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "세정 압력 부족 -> 코팅 미제거",
@@ -172,11 +172,11 @@
           }
         },
         "Micro_Crack": {
-          "health_index": 98.1,
+          "health_index": 69.2,
           "worst_factors": [
             {
               "factor": "Cooling_Flow",
-              "health_index": 98.1,
+              "health_index": 69.2,
               "spec_status": "OK"
             },
             {
@@ -191,12 +191,12 @@
             "Cooling_Flow": {
               "current_value": 9.9937,
               "baseline_median": 9.999,
-              "lsl": 9.7453,
-              "usl": 10.2577,
+              "lsl": 9.9831,
+              "usl": 9.999,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 98.1,
-              "margin_trend_pct_per_day": 0.005,
+              "health_index": 69.2,
+              "margin_trend_pct_per_day": 0.079,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
@@ -205,13 +205,13 @@
             "Vibration": {
               "current_value": 0.1522,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": 0.378,
-              "estimated_days_to_spec_out": 277.4,
+              "margin_trend_pct_per_day": 1.084,
+              "estimated_days_to_spec_out": 104.9,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
               "source": "daeho / JHdaimma"
@@ -219,21 +219,21 @@
           }
         },
         "Chipping": {
-          "health_index": 88.7,
+          "health_index": 56.8,
           "worst_factors": [
             {
-              "factor": "Kerf_Width_Profile",
-              "health_index": 88.7,
+              "factor": "Top_Kerf",
+              "health_index": 56.8,
               "spec_status": "OK"
             },
             {
               "factor": "Bottom_Kerf",
-              "health_index": 95.7,
+              "health_index": 59.6,
               "spec_status": "OK"
             },
             {
-              "factor": "Top_Kerf",
-              "health_index": 96.0,
+              "factor": "Kerf_Width_Profile",
+              "health_index": 88.7,
               "spec_status": "OK"
             }
           ],
@@ -243,12 +243,12 @@
             "Bottom_Kerf": {
               "current_value": 50.0844,
               "baseline_median": 50.0942,
-              "lsl": 49.8565,
-              "usl": 50.3585,
+              "lsl": 50.069,
+              "usl": 50.1194,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 95.7,
-              "margin_trend_pct_per_day": -0.127,
+              "health_index": 59.6,
+              "margin_trend_pct_per_day": -1.202,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
@@ -257,13 +257,13 @@
             "Groove_Depth": {
               "current_value": 45.0085,
               "baseline_median": 44.9894,
-              "lsl": 44.5763,
-              "usl": 45.403,
+              "lsl": 44.9355,
+              "usl": 44.9894,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": 0.066,
-              "estimated_days_to_spec_out": null,
+              "margin_trend_pct_per_day": 0.507,
+              "estimated_days_to_spec_out": 264.9,
               "direction": "down",
               "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
               "source": "Jun"
@@ -341,12 +341,12 @@
             "Top_Kerf": {
               "current_value": 50.0833,
               "baseline_median": 50.0931,
-              "lsl": 49.856,
-              "usl": 50.3477,
+              "lsl": 50.0713,
+              "usl": 50.1148,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 96.0,
-              "margin_trend_pct_per_day": -0.174,
+              "health_index": 56.8,
+              "margin_trend_pct_per_day": -1.878,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
@@ -355,35 +355,72 @@
           }
         }
       },
-      "unconfirmed_anomalies": []
+      "unconfirmed_anomalies": [
+        {
+          "column": "Cooling_Water_Temp",
+          "current_value": 21.9508,
+          "baseline_median": 22.001,
+          "lsl": 21.9563,
+          "usl": 22.0457,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 2.669,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cutting_Y_Index",
+          "current_value": 0.0585,
+          "baseline_median": -0.0008,
+          "lsl": -0.0766,
+          "usl": 0.0751,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 3.129,
+          "estimated_days_to_spec_out": 7.7,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.5863,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5877,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 2.129,
+          "estimated_days_to_spec_out": 15.1,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
     },
     "DP02": {
-      "health_index": 76.2,
+      "health_index": 0.0,
       "worst_defects": [
         {
           "defect": "Chipping",
-          "health_index": 76.2,
+          "health_index": 0.0,
           "worst_factor": "Bottom_Kerf"
         },
         {
           "defect": "Particle",
-          "health_index": 90.5,
+          "health_index": 72.6,
           "worst_factor": "Vibration"
         },
         {
           "defect": "Micro_Crack",
-          "health_index": 90.5,
+          "health_index": 72.6,
           "worst_factor": "Vibration"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 90.5,
+          "health_index": 72.6,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 90.5,
+              "health_index": 72.6,
               "spec_status": "OK"
             }
           ],
@@ -393,12 +430,12 @@
             "Vibration": {
               "current_value": 0.1603,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 90.5,
-              "margin_trend_pct_per_day": 0.012,
+              "health_index": 72.6,
+              "margin_trend_pct_per_day": 0.035,
               "estimated_days_to_spec_out": null,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
@@ -407,11 +444,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 99.4,
+          "health_index": 91.3,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 99.4,
+              "health_index": 91.3,
               "spec_status": "OK"
             }
           ],
@@ -421,12 +458,12 @@
             "CLN_Pressure": {
               "current_value": 300.0023,
               "baseline_median": 300.0362,
-              "lsl": 295.0652,
-              "usl": 305.1411,
+              "lsl": 299.7163,
+              "usl": 300.0362,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 99.4,
-              "margin_trend_pct_per_day": -0.125,
+              "health_index": 91.3,
+              "margin_trend_pct_per_day": -1.922,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "세정 압력 부족 -> 코팅 미제거",
@@ -435,11 +472,11 @@
           }
         },
         "Micro_Crack": {
-          "health_index": 90.5,
+          "health_index": 72.6,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 90.5,
+              "health_index": 72.6,
               "spec_status": "OK"
             },
             {
@@ -454,12 +491,12 @@
             "Cooling_Flow": {
               "current_value": 10.0092,
               "baseline_median": 9.999,
-              "lsl": 9.7453,
-              "usl": 10.2577,
+              "lsl": 9.9831,
+              "usl": 9.999,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": -0.148,
+              "margin_trend_pct_per_day": -2.398,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
@@ -468,12 +505,12 @@
             "Vibration": {
               "current_value": 0.1603,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 90.5,
-              "margin_trend_pct_per_day": 0.012,
+              "health_index": 72.6,
+              "margin_trend_pct_per_day": 0.035,
               "estimated_days_to_spec_out": null,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
@@ -482,21 +519,21 @@
           }
         },
         "Chipping": {
-          "health_index": 76.2,
+          "health_index": 0.0,
           "worst_factors": [
             {
               "factor": "Bottom_Kerf",
-              "health_index": 76.2,
-              "spec_status": "OK"
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
             },
             {
               "factor": "Top_Kerf",
-              "health_index": 80.7,
-              "spec_status": "OK"
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
             },
             {
-              "factor": "Kerf_Width_Profile",
-              "health_index": 81.3,
+              "factor": "Groove_Depth",
+              "health_index": 5.2,
               "spec_status": "OK"
             }
           ],
@@ -506,12 +543,12 @@
             "Bottom_Kerf": {
               "current_value": 50.1509,
               "baseline_median": 50.0942,
-              "lsl": 49.8565,
-              "usl": 50.3585,
+              "lsl": 50.069,
+              "usl": 50.1194,
               "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 76.2,
-              "margin_trend_pct_per_day": 0.034,
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "margin_trend_pct_per_day": 0.322,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
@@ -520,13 +557,13 @@
             "Groove_Depth": {
               "current_value": 44.9381,
               "baseline_median": 44.9894,
-              "lsl": 44.5763,
-              "usl": 45.403,
+              "lsl": 44.9355,
+              "usl": 44.9894,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 87.6,
-              "margin_trend_pct_per_day": 0.176,
-              "estimated_days_to_spec_out": null,
+              "health_index": 5.2,
+              "margin_trend_pct_per_day": 1.347,
+              "estimated_days_to_spec_out": 3.8,
               "direction": "down",
               "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
               "source": "Jun"
@@ -604,12 +641,12 @@
             "Top_Kerf": {
               "current_value": 50.1381,
               "baseline_median": 50.0931,
-              "lsl": 49.856,
-              "usl": 50.3477,
+              "lsl": 50.0713,
+              "usl": 50.1148,
               "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 80.7,
-              "margin_trend_pct_per_day": 0.186,
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "margin_trend_pct_per_day": 2.001,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
@@ -618,35 +655,144 @@
           }
         }
       },
-      "unconfirmed_anomalies": []
+      "unconfirmed_anomalies": [
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.5909,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5877,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 2.475,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cutting_Offset",
+          "current_value": 0.0381,
+          "baseline_median": 0.0061,
+          "lsl": -0.0241,
+          "usl": 0.0363,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": -3.401,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Time",
+          "current_value": 14.9495,
+          "baseline_median": 15.0013,
+          "lsl": 14.9405,
+          "usl": 15.062,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.569,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_1",
+          "current_value": 4.9999,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.184,
+          "estimated_days_to_spec_out": 20.8,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_3",
+          "current_value": 5.0001,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -5.005,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Process_Time",
+          "current_value": 5.008,
+          "baseline_median": 5.0005,
+          "lsl": 4.9886,
+          "usl": 5.0124,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.202,
+          "estimated_days_to_spec_out": 178.1,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Flow",
+          "current_value": 9.9999,
+          "baseline_median": 9.992,
+          "lsl": 9.9764,
+          "usl": 10.0076,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.939,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_4",
+          "current_value": 5.0001,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -3.269,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Laser_Current",
+          "current_value": 8.5075,
+          "baseline_median": 8.5,
+          "lsl": 8.4864,
+          "usl": 8.5136,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.537,
+          "estimated_days_to_spec_out": 32.2,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
     },
     "DP03": {
-      "health_index": 70.7,
+      "health_index": 0.0,
       "worst_defects": [
         {
+          "defect": "Chipping",
+          "health_index": 0.0,
+          "worst_factor": "Bottom_Kerf"
+        },
+        {
           "defect": "Particle",
-          "health_index": 70.7,
+          "health_index": 15.9,
           "worst_factor": "Vibration"
         },
         {
           "defect": "Micro_Crack",
-          "health_index": 70.7,
+          "health_index": 15.9,
           "worst_factor": "Vibration"
-        },
-        {
-          "defect": "Chipping",
-          "health_index": 85.8,
-          "worst_factor": "Kerf_Width_Profile"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 70.7,
+          "health_index": 15.9,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 70.7,
+              "health_index": 15.9,
               "spec_status": "OK"
             }
           ],
@@ -656,12 +802,12 @@
             "Vibration": {
               "current_value": 0.1714,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 70.7,
-              "margin_trend_pct_per_day": -0.186,
+              "health_index": 15.9,
+              "margin_trend_pct_per_day": -0.533,
               "estimated_days_to_spec_out": null,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
@@ -670,11 +816,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 99.1,
+          "health_index": 86.1,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 99.1,
+              "health_index": 86.1,
               "spec_status": "OK"
             }
           ],
@@ -684,12 +830,12 @@
             "CLN_Pressure": {
               "current_value": 299.9865,
               "baseline_median": 300.0362,
-              "lsl": 295.0652,
-              "usl": 305.1411,
+              "lsl": 299.7163,
+              "usl": 300.0362,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 99.1,
-              "margin_trend_pct_per_day": -0.041,
+              "health_index": 86.1,
+              "margin_trend_pct_per_day": -0.624,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "세정 압력 부족 -> 코팅 미제거",
@@ -698,16 +844,16 @@
           }
         },
         "Micro_Crack": {
-          "health_index": 70.7,
+          "health_index": 15.9,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 70.7,
+              "health_index": 15.9,
               "spec_status": "OK"
             },
             {
               "factor": "Cooling_Flow",
-              "health_index": 98.7,
+              "health_index": 78.2,
               "spec_status": "OK"
             }
           ],
@@ -717,13 +863,13 @@
             "Cooling_Flow": {
               "current_value": 9.9956,
               "baseline_median": 9.999,
-              "lsl": 9.7453,
-              "usl": 10.2577,
+              "lsl": 9.9831,
+              "usl": 9.999,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 98.7,
-              "margin_trend_pct_per_day": 0.047,
-              "estimated_days_to_spec_out": null,
+              "health_index": 78.2,
+              "margin_trend_pct_per_day": 0.755,
+              "estimated_days_to_spec_out": 103.7,
               "direction": "down",
               "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
               "source": "JHdaimma"
@@ -731,12 +877,12 @@
             "Vibration": {
               "current_value": 0.1714,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 70.7,
-              "margin_trend_pct_per_day": -0.186,
+              "health_index": 15.9,
+              "margin_trend_pct_per_day": -0.533,
               "estimated_days_to_spec_out": null,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
@@ -745,21 +891,21 @@
           }
         },
         "Chipping": {
-          "health_index": 85.8,
+          "health_index": 0.0,
           "worst_factors": [
             {
-              "factor": "Kerf_Width_Profile",
-              "health_index": 85.8,
-              "spec_status": "OK"
-            },
-            {
               "factor": "Bottom_Kerf",
-              "health_index": 88.7,
-              "spec_status": "OK"
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
             },
             {
               "factor": "Top_Kerf",
-              "health_index": 89.9,
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
+            },
+            {
+              "factor": "Kerf_Width_Profile",
+              "health_index": 85.8,
               "spec_status": "OK"
             }
           ],
@@ -769,12 +915,12 @@
             "Bottom_Kerf": {
               "current_value": 50.1214,
               "baseline_median": 50.0942,
-              "lsl": 49.8565,
-              "usl": 50.3585,
+              "lsl": 50.069,
+              "usl": 50.1194,
               "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 88.7,
-              "margin_trend_pct_per_day": 0.08,
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "margin_trend_pct_per_day": 0.751,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
@@ -783,12 +929,12 @@
             "Groove_Depth": {
               "current_value": 44.9897,
               "baseline_median": 44.9894,
-              "lsl": 44.5763,
-              "usl": 45.403,
+              "lsl": 44.9355,
+              "usl": 44.9894,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": -0.146,
+              "margin_trend_pct_per_day": -1.113,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
@@ -867,12 +1013,12 @@
             "Top_Kerf": {
               "current_value": 50.1165,
               "baseline_median": 50.0931,
-              "lsl": 49.856,
-              "usl": 50.3477,
+              "lsl": 50.0713,
+              "usl": 50.1148,
               "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 89.9,
-              "margin_trend_pct_per_day": 0.087,
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "margin_trend_pct_per_day": 0.94,
               "estimated_days_to_spec_out": null,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
@@ -881,35 +1027,132 @@
           }
         }
       },
-      "unconfirmed_anomalies": []
+      "unconfirmed_anomalies": [
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.592,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5877,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": -0.855,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cutting_Y_Index",
+          "current_value": -0.0807,
+          "baseline_median": -0.0008,
+          "lsl": -0.0766,
+          "usl": 0.0751,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 1.07,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Process_Time",
+          "current_value": 4.9881,
+          "baseline_median": 5.0005,
+          "lsl": 4.9886,
+          "usl": 5.0124,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 0.52,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Beam_Diameter",
+          "current_value": 34.9671,
+          "baseline_median": 34.9982,
+          "lsl": 34.9549,
+          "usl": 35.0416,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.486,
+          "estimated_days_to_spec_out": 49.0,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_1",
+          "current_value": 5.0,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.35,
+          "estimated_days_to_spec_out": 18.8,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_2",
+          "current_value": 5.0,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.653,
+          "estimated_days_to_spec_out": 62.4,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Flow",
+          "current_value": 9.9996,
+          "baseline_median": 9.992,
+          "lsl": 9.9764,
+          "usl": 10.0076,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.7,
+          "estimated_days_to_spec_out": 70.6,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Alignment_Time",
+          "current_value": 0.4012,
+          "baseline_median": 0.4,
+          "lsl": 0.3973,
+          "usl": 0.4027,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.142,
+          "estimated_days_to_spec_out": 43.6,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
     },
     "DP04": {
-      "health_index": 85.7,
+      "health_index": 58.9,
       "worst_defects": [
         {
           "defect": "Particle",
-          "health_index": 85.7,
+          "health_index": 58.9,
           "worst_factor": "Vibration"
         },
         {
           "defect": "Micro_Crack",
-          "health_index": 85.7,
+          "health_index": 58.9,
           "worst_factor": "Vibration"
         },
         {
           "defect": "Chipping",
-          "health_index": 89.1,
-          "worst_factor": "Kerf_Width_Profile"
+          "health_index": 66.7,
+          "worst_factor": "Top_Kerf"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 85.7,
+          "health_index": 58.9,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 85.7,
+              "health_index": 58.9,
               "spec_status": "OK"
             }
           ],
@@ -919,13 +1162,13 @@
             "Vibration": {
               "current_value": 0.1629,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 85.7,
-              "margin_trend_pct_per_day": 0.318,
-              "estimated_days_to_spec_out": 269.2,
+              "health_index": 58.9,
+              "margin_trend_pct_per_day": 0.913,
+              "estimated_days_to_spec_out": 64.5,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
               "source": "daeho / JHdaimma"
@@ -933,11 +1176,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 98.4,
+          "health_index": 75.2,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 98.4,
+              "health_index": 75.2,
               "spec_status": "OK"
             }
           ],
@@ -947,12 +1190,12 @@
             "CLN_Pressure": {
               "current_value": 299.9479,
               "baseline_median": 300.0362,
-              "lsl": 295.0652,
-              "usl": 305.1411,
+              "lsl": 299.7163,
+              "usl": 300.0362,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 98.4,
-              "margin_trend_pct_per_day": -0.174,
+              "health_index": 75.2,
+              "margin_trend_pct_per_day": -2.687,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "세정 압력 부족 -> 코팅 미제거",
@@ -961,11 +1204,11 @@
           }
         },
         "Micro_Crack": {
-          "health_index": 85.7,
+          "health_index": 58.9,
           "worst_factors": [
             {
               "factor": "Vibration",
-              "health_index": 85.7,
+              "health_index": 58.9,
               "spec_status": "OK"
             },
             {
@@ -980,12 +1223,12 @@
             "Cooling_Flow": {
               "current_value": 10.0087,
               "baseline_median": 9.999,
-              "lsl": 9.7453,
-              "usl": 10.2577,
+              "lsl": 9.9831,
+              "usl": 9.999,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": -0.145,
+              "margin_trend_pct_per_day": -2.339,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
@@ -994,13 +1237,13 @@
             "Vibration": {
               "current_value": 0.1629,
               "baseline_median": 0.1548,
-              "lsl": 0.1013,
-              "usl": 0.2112,
+              "lsl": 0.1548,
+              "usl": 0.1744,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 85.7,
-              "margin_trend_pct_per_day": 0.318,
-              "estimated_days_to_spec_out": 269.2,
+              "health_index": 58.9,
+              "margin_trend_pct_per_day": 0.913,
+              "estimated_days_to_spec_out": 64.5,
               "direction": "up",
               "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
               "source": "daeho / JHdaimma"
@@ -1008,21 +1251,21 @@
           }
         },
         "Chipping": {
-          "health_index": 89.1,
+          "health_index": 66.7,
           "worst_factors": [
             {
-              "factor": "Kerf_Width_Profile",
-              "health_index": 89.1,
-              "spec_status": "OK"
-            },
-            {
               "factor": "Top_Kerf",
-              "health_index": 96.9,
+              "health_index": 66.7,
               "spec_status": "OK"
             },
             {
               "factor": "Bottom_Kerf",
-              "health_index": 97.6,
+              "health_index": 76.9,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Kerf_Width_Profile",
+              "health_index": 89.1,
               "spec_status": "OK"
             }
           ],
@@ -1032,13 +1275,13 @@
             "Bottom_Kerf": {
               "current_value": 50.0888,
               "baseline_median": 50.0942,
-              "lsl": 49.8565,
-              "usl": 50.3585,
+              "lsl": 50.069,
+              "usl": 50.1194,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 97.6,
-              "margin_trend_pct_per_day": 0.037,
-              "estimated_days_to_spec_out": null,
+              "health_index": 76.9,
+              "margin_trend_pct_per_day": 0.349,
+              "estimated_days_to_spec_out": 220.6,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
               "source": "JHdaimma"
@@ -1046,12 +1289,12 @@
             "Groove_Depth": {
               "current_value": 45.003,
               "baseline_median": 44.9894,
-              "lsl": 44.5763,
-              "usl": 45.403,
+              "lsl": 44.9355,
+              "usl": 44.9894,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
               "health_index": 100.0,
-              "margin_trend_pct_per_day": 0.028,
+              "margin_trend_pct_per_day": 0.212,
               "estimated_days_to_spec_out": null,
               "direction": "down",
               "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
@@ -1130,13 +1373,13 @@
             "Top_Kerf": {
               "current_value": 50.0852,
               "baseline_median": 50.0931,
-              "lsl": 49.856,
-              "usl": 50.3477,
+              "lsl": 50.0713,
+              "usl": 50.1148,
               "spec_source": "provisional_percentile",
               "spec_status": "OK",
-              "health_index": 96.9,
-              "margin_trend_pct_per_day": 0.1,
-              "estimated_days_to_spec_out": null,
+              "health_index": 66.7,
+              "margin_trend_pct_per_day": 1.074,
+              "estimated_days_to_spec_out": 62.1,
               "direction": "either",
               "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
               "source": "JHdaimma"
@@ -1149,11 +1392,47 @@
           "column": "CLN_Flow",
           "current_value": 9.7674,
           "baseline_median": 9.992,
-          "lsl": 9.7059,
-          "usl": 10.1272,
+          "lsl": 9.9764,
+          "usl": 10.0076,
           "spec_source": "provisional_percentile",
           "spec_status": "SPEC_OUT",
-          "margin_trend_pct_per_day": 0.202,
+          "margin_trend_pct_per_day": 1.777,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.5877,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5877,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": -0.226,
+          "estimated_days_to_spec_out": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cooling_Water_Temp",
+          "current_value": 21.9722,
+          "baseline_median": 22.001,
+          "lsl": 21.9563,
+          "usl": 22.0457,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 3.575,
+          "estimated_days_to_spec_out": 9.4,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Beam_Diameter",
+          "current_value": 35.0264,
+          "baseline_median": 34.9982,
+          "lsl": 34.9549,
+          "usl": 35.0416,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.187,
           "estimated_days_to_spec_out": null,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         }
