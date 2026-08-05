@@ -43,14 +43,22 @@ python3 -m pipeline.step0_preprocessing
 따로 있던 A/B/C/E 열화 패턴 유형별 baseline을 Step0로 흡수했다. 그룹핑은 Jun의 원본 결정을
 그대로 따라 `Product_ID x Recipe_ID`(Machine_ID 배제, 이유는 `config.py` 주석 참고)다.
 
-- **A(단조 drift형, 8개)**: 그룹 내 시간순 정렬 후 초기 25개 표본 평균. `bad_direction`(up/down) 포함.
+- **A(단조 drift형, 9개)**: 그룹별 OK median(SPEC에 있는 컬럼은 멘토 TARGET 우선,
+  `compute_baseline_type_a` 참고) + `bad_direction`(up/down).
+  (26.08.05 정정: 이 문서에 "초기 25개 표본 평균"으로 적혀 있었는데, 그 방식은 초기값이
+  가장 깨끗한 시점에 편향되는 문제가 있어(Vibration/Head_Temp 같은 열화형 변수에서 OK
+  median보다 0.44~0.93 표준편차 낮게 나옴) 진작 B와 같은 OK median 방식으로 바꿨었다 —
+  문서만 안 따라와서 정정. 같은 날 Groove_Depth도 여기 추가됨: Chipping 확정 원인인데
+  A/B/C/E 어디에도 분류가 안 돼서 trend_analysis.py가 방향성 조기경보를 못 내고
+  있었음(변동성 경보만 가능했음) — 단일방향 편차형이라 A유형이 맞아서 추가.)
 - **B(U자형/최적구간형, 8개)**: 그룹별 OK median. CLN_Time은 원래 C 후보였으나 위험 방향이
   그룹마다 불일치해(54그룹 중 29/25로 갈림) B로 재분류됨.
 - **C(편측 위험 threshold형)**: `CLN_Pressure→Remain_Coat`, `Surface_Roughness→Particle` 두 쌍만
   대상. OK 데이터만으로는 위험선을 추정할 수 없어(정상 범위 내부 분포만으로는 어디부터 위험한지
   모름) **OK+NG 전체 데이터**로 `DecisionTreeClassifier(max_depth=1)` 스텀프를 그룹별로 학습해
   경계값(threshold)과 위험 방향(risky_direction)을 추정한다. NG 표본이 10개 미만인 그룹은 skip.
-  Groove_Depth는 매칭 defect(Chipping)가 전체 4건뿐이라 이 산출물에서 제외됨.
+  Groove_Depth는 매칭 defect(Chipping)가 전체 4건뿐이라 이 산출물에서는 계속 제외(위 A유형
+  참고 — 표본 부족 문제가 없는 A유형으로 대신 편입함).
 - **E(대칭성/정렬형, 9개)**: 그룹핑 없이 공정 설계상 이론 상수(대부분 0, Kerf_Angle=90,
   Package_Size_1~4=5)를 baseline으로 고정. 참고용으로 실측 OK mean/std도 같이 기록.
 

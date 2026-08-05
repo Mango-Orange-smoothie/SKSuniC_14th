@@ -87,7 +87,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
 from pipeline.spec import SPEC
-from pipeline.step0_preprocessing import CONTINUOUS_TREND_COLS
 
 OUT_DIR = Path(__file__).resolve().parent
 
@@ -299,8 +298,8 @@ def compute_boundary_z(opcond_baseline: pd.DataFrame) -> dict[str, float]:
     return boundary_z
 
 
-def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> dict[str, float]:
-    """컬럼별 "일평균 자기 자신의 분포"로 스펙 경계(z)를 재계산 — DAILY 기준.
+def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> dict[str, dict[str, float]]:
+    """컬럼별 "일평균 자기 자신의 분포"로 스펙 경계(z)를 위/아래 양쪽 다 재계산 — DAILY 기준.
 
     compute_boundary_z(raw 샷 p0.5~p99.5)를 daily_mean_z에 그대로 적용했더니 자와
     저울이 다른 걸 섞어 쓴 셈이 돼서(일평균은 샷 평균이라 분산이 훨씬 작음) 스펙아웃이
@@ -308,22 +307,28 @@ def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> 
     daily_mean_z 자신의 p0.5~p99.5로 경계를 그어서, 재는 값과 경계가 같은 granularity를
     쓰게 만든다. Machine_ID 4대를 풀링해서 계산한다(장비 1대당 89일치뿐이라 p0.5/p99.5
     같은 꼬리 분위수는 표본이 부족함).
+
+    {col: {"up": ..., "down": ...}} 형태로 위/아래 둘 다 반환한다 — direction="either"인
+    컬럼(확정 원인 중 U자형이거나, 방향을 아직 모르는 안전망 컬럼)을 예전처럼
+    min(|p0.5|,|p99.5|) 하나로 뭉개면, 분포가 한쪽으로 치우친 컬럼(예: CLN_Flow — 거의
+    항상 baseline보다 낮고 위로는 거의 안 벗어남)에서 "넓은 쪽으로 벗어난 값"을 "좁은 쪽"
+    경계로 잘못 나눠서 margin이 1000%가 넘게 튀는 문제가 있었다(26.08.05 발견). 이제
+    compute_level_and_trend에서 현재 값이 어느 쪽으로 벗어났는지 보고 그 방향의 경계를
+    쓴다 — mentor_spec 컬럼(_real_spec_margin_pct)이 이미 하던 방식과 통일.
     """
-    boundary_z: dict[str, float] = {}
+    boundary_z: dict[str, dict[str, float]] = {}
     for col, g in daily_series.groupby("column"):
-        direction = direction_of(col)
         z = g["daily_mean_z"].dropna()
         if len(z) < min_days:
             continue
         p0_5, p99_5 = np.percentile(z, [0.5, 99.5])
-        if direction == "up":
-            candidate = p99_5
-        elif direction == "down":
-            candidate = -p0_5
-        else:
-            candidate = min(abs(p0_5), abs(p99_5))
-        if candidate > 0:
-            boundary_z[col] = float(candidate)
+        entry = {}
+        if p99_5 > 0:
+            entry["up"] = float(p99_5)
+        if p0_5 < 0:
+            entry["down"] = float(-p0_5)
+        if entry:
+            boundary_z[col] = entry
     return boundary_z
 
 
@@ -385,26 +390,46 @@ def compute_level_and_trend(
             margin_pct = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
             margin_pct.index = g.index
         else:
-            b_z = boundary_z.get(col)
+            b = boundary_z.get(col)
             spec = spec_values.get(col)
-            if not b_z or not spec or not spec.get("robust_z_scale"):
+            if not b or not spec or not spec.get("robust_z_scale"):
+                continue
+            up_b, down_b = b.get("up"), b.get("down")
+            if direction == "up" and not up_b:
+                continue
+            if direction == "down" and not down_b:
+                continue
+            if direction == "either" and not up_b and not down_b:
                 continue
             spec_source = "provisional_percentile"
             baseline_disp = spec["baseline_median"]
             scale = spec["robust_z_scale"]
-            if direction == "down":
-                lsl_disp, usl_disp = baseline_disp - b_z * scale, baseline_disp
-            elif direction == "up":
-                lsl_disp, usl_disp = baseline_disp, baseline_disp + b_z * scale
-            else:
-                lsl_disp, usl_disp = baseline_disp - b_z * scale, baseline_disp + b_z * scale
+            # either인데 한쪽 경계가 없으면(분포가 한쪽으로만 벗어난 경우) 반대쪽 크기를
+            # 그대로 대칭 fallback으로 씀 — lsl/usl을 아예 안 보여줄 순 없어서.
+            up_disp = up_b if up_b else down_b
+            down_disp = down_b if down_b else up_b
+            lsl_disp = baseline_disp - down_disp * scale if direction != "up" else baseline_disp
+            usl_disp = baseline_disp + up_disp * scale if direction != "down" else baseline_disp
+
             z = g["daily_mean_z"]
-            if direction == "down":
-                z = -z
-            elif direction == "either":
-                z = z.abs()
-            # direction == "up"은 그대로
-            margin_pct = (z / b_z) * 100  # 0=baseline, 100=스펙 경계, 100 넘으면 스펙아웃
+            margin_pct = pd.Series(np.nan, index=z.index, dtype=float)
+            if direction == "up":
+                margin_pct[z >= 0] = (z[z >= 0] / up_b) * 100
+                margin_pct[z < 0] = 0.0
+            elif direction == "down":
+                margin_pct[z <= 0] = (-z[z <= 0] / down_b) * 100
+                margin_pct[z > 0] = 0.0
+            else:
+                # either: 지금 어느 쪽으로 벗어났는지 보고 그 방향의 경계로 나눈다 —
+                # 예전처럼 |z|를 min(up,down) 경계 하나로 재면, 분포가 한쪽으로 치우친
+                # 컬럼(예: CLN_Flow)에서 "넓은 쪽" 값이 "좁은 쪽" 경계에 걸려 margin이
+                # 1000%+ 로 튀는 문제가 있었다(26.08.05 발견). up_b/down_b 중 없는 쪽은
+                # 위 up_disp/down_disp와 같은 방식으로 대칭 fallback.
+                eff_up_b = up_b if up_b else down_b
+                eff_down_b = down_b if down_b else up_b
+                above = z >= 0
+                margin_pct[above] = (z[above] / eff_up_b) * 100
+                margin_pct[~above] = (-z[~above] / eff_down_b) * 100
 
         valid = margin_pct.dropna()
         if valid.empty:

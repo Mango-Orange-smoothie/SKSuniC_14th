@@ -273,7 +273,7 @@ DOMAIN_FEATURES = [
 # A유형 컬럼의 Recipe별 평균 변동이 그룹 내부 변동의 1~2% 수준이라 Machine 구분 실익이 적었음.
 # ---------------------------------------------------------------------------
 
-# A유형(8개): 컬럼명 -> 악화 방향 (True = 값이 올라갈수록 악화, False = 값이 내려갈수록 악화)
+# A유형(9개): 컬럼명 -> 악화 방향 (True = 값이 올라갈수록 악화, False = 값이 내려갈수록 악화)
 BASELINE_A_DIRECTION = {
     "Head_Temp": True,
     "Vibration": True,
@@ -283,6 +283,12 @@ BASELINE_A_DIRECTION = {
     "Cooling_Water_Temp": True,
     "CLN_Flow": False,
     "Coating_Flow": False,
+    # Groove_Depth(26.08.05 추가): Chipping 확정 원인(Jun, direction=down이 위험)인데
+    # A/B/C/E 어디에도 없어서 trend_analysis.py가 이 컬럼에 방향성 조기경보를 전혀 못
+    # 내고 있었다(variability_warning만 가능) — 단일 방향 편차형이라 A유형이 맞음.
+    # C유형에서 빠진 이유(BASELINE_C_DEFECT_MAP 주석 참고: 원본 데이터 Chipping 4건뿐이라
+    # 표본 부족)와는 별개 문제 — A유형은 OK-median 기준 baseline이라 표본 부족 문제 없음.
+    "Groove_Depth": False,
 }
 
 # B유형(8개 = 원 7개 + CLN_Time 재분류). CLN_Time은 원래 C유형(편측임계) 후보였으나
