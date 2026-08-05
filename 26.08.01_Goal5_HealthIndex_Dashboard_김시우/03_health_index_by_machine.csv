@@ -1,0 +1,5 @@
+﻿Machine_ID,health_index,worst_defect,worst_defects
+DP01,56.8,Chipping,"[{'defect': 'Chipping', 'health_index': 56.8, 'worst_factor': 'Top_Kerf'}, {'defect': 'Micro_Crack', 'health_index': 69.2, 'worst_factor': 'Cooling_Flow'}, {'defect': 'Particle', 'health_index': 100.0, 'worst_factor': 'Vibration'}]"
+DP02,5.2,Chipping,"[{'defect': 'Chipping', 'health_index': 5.2, 'worst_factor': 'Groove_Depth'}, {'defect': 'Particle', 'health_index': 72.6, 'worst_factor': 'Vibration'}, {'defect': 'Micro_Crack', 'health_index': 72.6, 'worst_factor': 'Vibration'}]"
+DP03,15.9,Particle,"[{'defect': 'Particle', 'health_index': 15.9, 'worst_factor': 'Vibration'}, {'defect': 'Micro_Crack', 'health_index': 15.9, 'worst_factor': 'Vibration'}, {'defect': 'Chipping', 'health_index': 53.4, 'worst_factor': 'Top_Kerf'}]"
+DP04,58.9,Particle,"[{'defect': 'Particle', 'health_index': 58.9, 'worst_factor': 'Vibration'}, {'defect': 'Micro_Crack', 'health_index': 58.9, 'worst_factor': 'Vibration'}, {'defect': 'Chipping', 'health_index': 66.7, 'worst_factor': 'Top_Kerf'}]"

@@ -1,0 +1,157 @@
+# Goal5 — Health Index 계산 (v3, 김시우)
+
+**대시보드는 없습니다.** 이 프로젝트 목표는 "데이터 분석해서 발표하는 것"이 아니라
+"엔지니어를 대신해서 분석해주는 AI Agent"라서, 정적 HTML 대시보드는 만들지 않습니다.
+이 폴더는 AI Agent(`26.08.01_Goal_AI_Agent_Prototype_김시우/`)가 읽는 데이터만 만듭니다.
+
+## 실행
+
+Step0(전처리/baseline)와 `trend_analysis.py`(추세판정/조기경보)를 먼저 돌려야 합니다 —
+이 스크립트는 그 둘의 산출물을 읽어서 레벨+추세를 종합합니다.
+
+```bash
+python pipeline/step0_preprocessing.py
+python trend_analysis.py
+python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
+```
+
+(`trend_analysis.py` 산출물이 없어도 실행은 되지만, 그 경우 추세 쪽 필드
+`trend_direction`/`early_warning_active`/`trend_message`는 비어서 나갑니다.)
+
+`health_index_data.json`이 생성되고, AI Agent(`agent.py`)가 이 파일을 바로 읽습니다.
+
+## Health Index가 답하는 질문
+
+**"다른 장비/변수 대비 몇 등인가"가 아니라 "스펙 아웃(임시 USL/LSL) 되기 전에 미리 알 수
+있는가"입니다.** (v1은 근거 없는 가중치로 만든 단일 점수였고, v2는 정규분포/순위 기반
+백분위로 만들었다가 "통계적으로 얼마나 특이한가"를 재는 거라 목적과 안 맞아서 폐기 —
+자세한 시행착오는 커밋 로그 참고.)
+
+## 계산 구조 (v3)
+
+```
+1) 스펙 경계까지 남은 여유 = 레벨
+   boundary_z(컬럼별) = baseline(median)에서 임시 USL/LSL(정상군 p0.5~p99.5)까지의
+     거리를 robust z-scale로 잰 것. OPCOND 층별로 계산 후 컬럼당 중앙값을 대표값으로.
+   margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
+     0% = baseline, 100% = 스펙 경계, 100% 넘으면 스펙아웃
+   변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
+
+2) 추세는 점수에 안 섞고, 두 가지를 같이 제공 (26.08.05부터)
+   (a) margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면
+       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃
+       (이미 스펙아웃이거나 좋아지는 중이면 계산 안 함 — null)
+   (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + 지속성 필터, Kendall tau
+       교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져 있는가"
+       → trend_direction("up"/"down"/"flat") / early_warning_active(bool) /
+       trend_message(사람이 읽는 설명)
+   (a)는 이 스크립트가 margin만 보고 직접 추정한 속도, (b)는 팀이 따로 만들고
+   검증한 추세분석 스크립트의 판정을 그대로 가져온 것 — 원래 "전처리 → 추세분석 →
+   Health Index가 그 결과를 읽어 씀" 구조를 이렇게 연결했습니다.
+
+3) defect별 Health Index = 그 defect 원인변수들 중 최솟값(최악이 전체를 끌어내림)
+   장비별 Health Index   = 그 장비 defect들 중 최솟값
+   -> 순위 상위 3개(worst_factors/worst_defects)까지 같이 제공, 1등만 안 보여줌
+
+4) 확정 원인이 아닌 나머지 변수(~24개)도 같은 계산 적용(안전망) — defect 연결/SOP는
+   안 붙이고, 여유를 50% 이상 썼을 때만 "미확인 이상"으로 표시
+
+5) 실제 불량 발생 여부(최근 7일 defect rate > 0)는 레벨/추세와 완전히 분리된 필드
+   -> "이미 터진 것"과 "터지기 전 조짐"을 안 섞기 위함
+```
+
+## 출력에 실제 값이 그대로 들어감
+
+"29.3% 사용" 같은 추상적 숫자 대신, 실제 값(`current_value`/`baseline_median`/`lsl`/`usl`)을
+그대로 줍니다. 스펙아웃이면 `spec_status: "SPEC_OUT"`만 표시하고(퍼센트 안 보여줌),
+아직 스펙 안이고 나빠지는 중이면 `estimated_days_to_spec_out`(예상 며칠 뒤)을 줍니다.
+
+## 데이터 출처 — 각자 확정한 유효인자를 그대로 가져옴
+
+- Particle → `Vibration` (daeho, `26.07.31_2058_Goal2_PARTICLE_후속검증/` — 선행신호 검증까지 완료된 것)
+- Remain_Coat → `CLN_Pressure` (전성재, `26.07.31_Goal2_REM_COAT_유효인자_분석_전성재/` — Machine 통제 다변량 v2)
+- Chipping → `Laser_Power`/`Power_Efficiency`/`Head_Temp`/`Laser_Centering_Position`/`Kerf_Width_Profile`/`Top_Kerf`/`Bottom_Kerf`/`Groove_Depth`
+  (JHdaimma `26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma/` 3방법 합의 + Jun confirmed 교차확인)
+- Micro_Crack → `Vibration`/`Cooling_Flow` (JHdaimma, Chipping과 공유 원인)
+- 전처리/baseline/일별 집계 → `pipeline/`(김시우 Step0)
+- 추세판정/조기경보(early_warning) → `trend_analysis.py`(이승연 원안, 김시우가 지속성
+  필터 추가 + 경로/입력 수정, 저장소 루트) — Health Index가 이 결과를 그대로 읽어 씀
+
+## 알려진 한계
+
+- **boundary_z/USL/LSL은 컬럼당 대표값 하나(장비 4대 풀링)**입니다 — 장비/레시피마다
+  실제 스펙 여유가 다를 수 있는 걸 다 못 담습니다.
+- **(26.08.05 발견 및 수정) margin_used_pct가 "일별 평균 z"를 "개별 샷 기준 p0.5~p99.5"랑
+  비교하던 버그가 있었습니다.** 하루 평균은 개별 샷보다 훨씬 덜 극단적으로 나오는데
+  (여러 샷을 평균내면 노이즈가 상쇄됨), 경계선은 개별 샷 노이즈 분포로 그어놔서
+  실제로는 거의 도달 못 하는 경계와 비교하고 있었습니다 — 그 결과 "스펙아웃 자체가
+  안 생긴다"는 잘못된 인상을 줬습니다. **수정: provisional 컬럼의 boundary_z를
+  `daily_mean_z` 자기 자신의 분포(p0.5~p99.5)로 다시 재계산**(`compute_daily_boundary_z`)
+  — 재는 값과 경계가 같은 granularity를 쓰도록 통일했습니다. 단, 정의상 "일평균의
+  상위/하위 0.5%"를 경계로 삼다 보니 89일치 데이터에서는 컬럼당 스펙아웃 사례가 1~2건
+  정도로 적습니다 — `estimated_days_to_spec_out` 숫자 자체의 통계적 신뢰도는 낮고,
+  "점진적으로 쌓이는 패턴이 있는지" 정성적으로 보는 용도로 쓸 것.
+- **(26.08.05 발견 및 수정) direction="either" 컬럼의 margin이 분포가 한쪽으로 치우친
+  경우 터무니없이 커지는 버그가 있었습니다.** `|z|`를 위/아래 중 더 좁은 쪽 경계
+  하나로만 나눴는데, CLN_Flow처럼 거의 항상 baseline보다 낮고 위로는 거의 안 벗어나는
+  컬럼은 "넓은 쪽(아래)"으로 벗어난 값이 "좁은 쪽(위)" 경계에 걸려 margin이 1443%까지
+  나온 사례가 있었습니다. **수정: `compute_daily_boundary_z`가 위/아래 경계를 따로
+  반환**하고, margin 계산 시 지금 값이 어느 쪽으로 벗어났는지 보고 그 방향의 경계를
+  씁니다(멘토 스펙 컬럼이 이미 하던 방식과 통일). 수정 후 provisional 컬럼 margin
+  분포: 평균 55.8→35.4, 표준편차 147.8→27.2, 최댓값 1443.7%→113.8%.
+- **(26.08.05 발견 및 수정) `Groove_Depth`(Chipping 확정 원인)가 trend_analysis.py의
+  A/B/C/E 어디에도 분류가 안 돼서, 방향성 조기경보(early_warning)가 전혀 안 나오고
+  있었습니다**(변동성 확대 경보만 가능). `pipeline/config.py`의 `BASELINE_A_DIRECTION`에
+  추가해서 고침 — 자세한 내용은 `pipeline/README.md` 참고.
+- **추세(기울기)는 통계적 유의성을 새로 검정한 게 아닙니다.** "최근 14일 방향/속도"를
+  서술하는 용도일 뿐입니다. (실측 검증: 이 데이터셋에서 가장 확실한 89일 전체 drift조차
+  30일 트레일링 윈도우로는 유의하지 않았음 — `pipeline/README.md` 참고.)
+- **안전망(2단) 임계값 50%는 관례적 컷오프**입니다 — 최적화된 값 아님.
+- Chipping/Micro_Crack은 JHdaimma의 r1(신규) 데이터로 교차검증됐지만, 이 계산 자체는
+  원본 데이터(`data/raw/`)로만 함 — **팀 결정(26.08.01)**: r1은 표본 부족 보완용
+  학습/검증 데이터로만 쓰고 원본과 합치지 않음(의도된 설계).
+- SOP 제안은 전부 `DRAFT_UNVERIFIED` — 멘토/현장 확인 전까지 참고용.
+- **"defect(불량) 발생"과 "spec-out(변수가 스펙 경계를 넘는 것)"은 리드타임이 다른
+  질문입니다** — 아래 두 항목은 서로 다른 이벤트를 잰 것이니 섞어서 읽지 말 것.
+
+- **확정 원인변수(단변량)로 "defect 발생"까지의 조기경보는 사실상 어렵습니다.**
+  `analyze_lead_time.py`로 defect 발생 전 원인변수가 며칠 전부터 위험 신호를 보였는지
+  실측한 결과(26.08.05, raw 샷 단위), 대부분 전조 자체가 없거나(0~50%), 전조가 있어도
+  평균 리드타임이 **0.0일** — 위험 상태가 defect 발생과 거의 동시에 나타나지 며칠 전부터
+  서서히 쌓이지 않습니다. defect는 개별 샷 단위 사건이라 raw 샷 기준으로 재는 게 맞고,
+  이 결과는 유효합니다 — 방법론/결과는 `05_lead_time_analysis.csv` 참고.
+- **(26.08.05 후속검증) 다변량(JHdaimma XGBoost 모델, `26.08.01_Goal_AI_Agent_Prototype_김시우/
+  train_defect_models.py`로 재현)도 defect 리드타임 0.0일로 동일합니다.** 그 순간 위험도를
+  훨씬 정확히 잡아내긴 함(Chipping 전조 탐지율 75%, Micro_Crack 39% — 단변량은
+  거의 0%였음) — 하지만 "며칠 전에 미리 아는" 건 방법론과 무관하게 안 됨. defect라는
+  사건 자체는 "서서히 쌓이다 터지는" 게 아니라 "그 순간 조건이 맞으면 바로 터지는"
+  방식으로 보임.
+- **(26.08.05 재검증, 위 결론 일부 정정) "spec-out(변수가 스펙 경계를 넘는 순간)"까지의
+  리드타임은 얘기가 다릅니다.** 처음엔 위 defect 결과와 똑같이 raw 샷 boundary_z를
+  일평균에 그대로 적용해서 "spec-out 자체가 없다"고 오판했는데(위 한계 항목 참고),
+  boundary_z를 daily_mean_z 자기 분포로 재계산해서 다시 재보니 — provisional 11개
+  원인변수 중 **9개가 스펙아웃 며칠~몇 주 전부터 여유(margin)가 서서히 줄어드는
+  패턴**을 보였습니다(예: Vibration 평균 25일 전, Power_Efficiency 48.5일 전 —
+  CLN_Pressure/Cooling_Flow 2개만 즉시형). 단, 컬럼당 스펙아웃 사례가 89일 데이터에서
+  1~2건뿐이라 표본이 매우 작습니다 — "점진적 패턴이 존재한다"는 정성적 결론까지만
+  신뢰할 것, 리드타임 숫자를 확정치로 쓰지 말 것.
+  **결론: "spec out 되기 전에 위험을 미리 알려준다"는 원래 목표는 여전히 유효합니다**
+  (레벨 1단계 margin_used_pct/estimated_days_to_spec_out으로 이미 반영). "defect 발생을
+  N일 전에 정확히 찍어서 예측"하는 건 안 되지만, 그건 이 시스템이 원래 약속한 것도
+  아닙니다 — Health Index는 처음부터 "다른 장비 대비 몇 등"이 아니라 "스펙 경계까지
+  남은 여유"를 보여주는 설계였고, 그 여유가 다변량 모델의 순간 탐지력(위 문단)과
+  결합하면 "서서히 다가오는 위험 + 그 순간 정확한 원인 설명"을 함께 줄 수 있습니다.
+
+## 산출물
+
+| 파일 | 내용 |
+|---|---|
+| `01_level_trend_by_machine_column.csv` | 장비×전체 연속형변수별 레벨/추세/실제값 (원인/비원인 다 포함, trend_direction/early_warning_active/trend_message 포함) |
+| `02_health_index_by_defect.csv` | 장비×defect별 Health Index + 최악 원인변수 |
+| `03_health_index_by_machine.csv` | 장비별 최종 Health Index + 최악 defect |
+| `04_defect_occurrence_recent7d.csv` | 장비×defect별 최근 7일 실제 발생 여부 |
+| `05_lead_time_analysis.csv` | 원인변수×defect별 조기경보 리드타임 실측(`analyze_lead_time.py` 산출물) |
+| `health_index_data.json` | **AI Agent가 읽는 통합 데이터** |
+
+입력(이 폴더 밖, 저장소 루트 기준): `pipeline/`(Step0 baseline/일별 시계열),
+`analysis_outputs/trend_analysis_results.csv`(`trend_analysis.py` 산출물, 추세판정).

@@ -1,0 +1,1598 @@
+{
+  "generated_at": "2026-08-05T12:14:20.598577",
+  "recent_window_days": 14,
+  "anomaly_margin_threshold_pct": 50.0,
+  "cause_factors": {
+    "Vibration": {
+      "direction": "up",
+      "defects": [
+        "Particle",
+        "Micro_Crack"
+      ],
+      "owner": "daeho / JHdaimma",
+      "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)"
+    },
+    "CLN_Pressure": {
+      "direction": "down",
+      "defects": [
+        "Remain_Coat"
+      ],
+      "owner": "전성재",
+      "mechanism": "세정 압력 부족 -> 코팅 미제거"
+    },
+    "Laser_Power": {
+      "direction": "down",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격"
+    },
+    "Power_Efficiency": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)"
+    },
+    "Head_Temp": {
+      "direction": "up",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping"
+    },
+    "Laser_Centering_Position": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "빔 중심 이탈 -> 비대칭 절단"
+    },
+    "Cooling_Flow": {
+      "direction": "down",
+      "defects": [
+        "Micro_Crack"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)"
+    },
+    "Kerf_Width_Profile": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "Jun / JHdaimma",
+      "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)"
+    },
+    "Top_Kerf": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)"
+    },
+    "Bottom_Kerf": {
+      "direction": "either",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)"
+    },
+    "Groove_Depth": {
+      "direction": "down",
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "Jun",
+      "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed."
+    }
+  },
+  "machines": {
+    "DP01": {
+      "health_index": 56.8,
+      "worst_defects": [
+        {
+          "defect": "Chipping",
+          "health_index": 56.8,
+          "worst_factor": "Top_Kerf"
+        },
+        {
+          "defect": "Micro_Crack",
+          "health_index": 69.2,
+          "worst_factor": "Cooling_Flow"
+        },
+        {
+          "defect": "Particle",
+          "health_index": 100.0,
+          "worst_factor": "Vibration"
+        }
+      ],
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "health_index": 100.0,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 100.0,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "current_value": 0.1522,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_A / RCP_2의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "health_index": 100.0,
+          "worst_factors": [
+            {
+              "factor": "CLN_Pressure",
+              "health_index": 100.0,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "current_value": 300.0623,
+              "baseline_median": 300.0362,
+              "lsl": 299.7163,
+              "usl": 300.0362,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": -1.498,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_A / RCP_7의 CLN_Pressure은(는) 현재 위험 Threshold 이내이지만, 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "health_index": 69.2,
+          "worst_factors": [
+            {
+              "factor": "Cooling_Flow",
+              "health_index": 69.2,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Vibration",
+              "health_index": 100.0,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "current_value": 9.9937,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 69.2,
+              "margin_trend_pct_per_day": -0.431,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_E / RCP_7의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "current_value": 0.1522,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_A / RCP_2의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "health_index": 56.8,
+          "worst_factors": [
+            {
+              "factor": "Top_Kerf",
+              "health_index": 56.8,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Bottom_Kerf",
+              "health_index": 59.6,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Kerf_Width_Profile",
+              "health_index": 88.7,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "current_value": 50.0844,
+              "baseline_median": 50.0942,
+              "lsl": 50.069,
+              "usl": 50.155,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 59.6,
+              "margin_trend_pct_per_day": -1.202,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_F / RCP_6의 Bottom_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "current_value": 45.0085,
+              "baseline_median": 44.9894,
+              "lsl": 44.9355,
+              "usl": 44.9894,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_F / RCP_1의 Groove_Depth 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "current_value": 41.9656,
+              "baseline_median": 42.0,
+              "lsl": 38.0,
+              "usl": 47.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": -0.014,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_D / RCP_4의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "current_value": 50.0903,
+              "baseline_median": 50.0,
+              "lsl": 49.2,
+              "usl": 50.8,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 88.7,
+              "margin_trend_pct_per_day": 0.036,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_C / RCP_2의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "current_value": 0.0062,
+              "baseline_median": 0.0,
+              "lsl": -3.0,
+              "usl": 3.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.8,
+              "margin_trend_pct_per_day": 0.002,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_A / RCP_9의 Laser_Centering_Position 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "current_value": 18.499,
+              "baseline_median": 18.5,
+              "lsl": 17.8,
+              "usl": 19.2,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.9,
+              "margin_trend_pct_per_day": 0.007,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_E / RCP_1의 Laser_Power 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "current_value": 94.996,
+              "baseline_median": 95.0,
+              "lsl": 92.0,
+              "usl": 98.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.9,
+              "margin_trend_pct_per_day": -0.002,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_A / RCP_2의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "current_value": 50.0833,
+              "baseline_median": 50.0931,
+              "lsl": 50.0713,
+              "usl": 50.144,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 56.8,
+              "margin_trend_pct_per_day": -1.878,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_D / RCP_6의 Top_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": [
+        {
+          "column": "Cooling_Water_Temp",
+          "current_value": 21.9508,
+          "baseline_median": 22.001,
+          "lsl": 21.9563,
+          "usl": 22.0498,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 2.724,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "down",
+          "early_warning_active": false,
+          "trend_message": "DP01 / PKG_E / RCP_2의 Cooling_Water_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cutting_Y_Index",
+          "current_value": 0.0585,
+          "baseline_median": -0.0008,
+          "lsl": -0.0796,
+          "usl": 0.0751,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 3.06,
+          "estimated_days_to_spec_out": 7.9,
+          "trend_direction": "up",
+          "early_warning_active": false,
+          "trend_message": "DP01 / PKG_B / RCP_6의 Cutting_Y_Index 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
+    },
+    "DP02": {
+      "health_index": 5.2,
+      "worst_defects": [
+        {
+          "defect": "Chipping",
+          "health_index": 5.2,
+          "worst_factor": "Groove_Depth"
+        },
+        {
+          "defect": "Particle",
+          "health_index": 72.6,
+          "worst_factor": "Vibration"
+        },
+        {
+          "defect": "Micro_Crack",
+          "health_index": 72.6,
+          "worst_factor": "Vibration"
+        }
+      ],
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "health_index": 72.6,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 72.6,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "current_value": 0.1603,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 72.6,
+              "margin_trend_pct_per_day": 0.035,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_F / RCP_4의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "health_index": 91.3,
+          "worst_factors": [
+            {
+              "factor": "CLN_Pressure",
+              "health_index": 91.3,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "current_value": 300.0023,
+              "baseline_median": 300.0362,
+              "lsl": 299.7163,
+              "usl": 300.0362,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 91.3,
+              "margin_trend_pct_per_day": -1.258,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_F / RCP_8의 CLN_Pressure은(는) 현재 위험 Threshold 이내이지만, 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "health_index": 72.6,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 72.6,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Cooling_Flow",
+              "health_index": 100.0,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "current_value": 10.0092,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": -0.16,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_B / RCP_2의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "current_value": 0.1603,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 72.6,
+              "margin_trend_pct_per_day": 0.035,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_F / RCP_4의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "health_index": 5.2,
+          "worst_factors": [
+            {
+              "factor": "Groove_Depth",
+              "health_index": 5.2,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Bottom_Kerf",
+              "health_index": 7.0,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Top_Kerf",
+              "health_index": 11.2,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "current_value": 50.1509,
+              "baseline_median": 50.0942,
+              "lsl": 50.069,
+              "usl": 50.155,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 7.0,
+              "margin_trend_pct_per_day": 0.134,
+              "estimated_days_to_spec_out": 52.3,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_C / RCP_1의 Bottom_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "current_value": 44.9381,
+              "baseline_median": 44.9894,
+              "lsl": 44.9355,
+              "usl": 44.9894,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 5.2,
+              "margin_trend_pct_per_day": 1.347,
+              "estimated_days_to_spec_out": 3.8,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_F / RCP_9의 Groove_Depth 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "current_value": 42.0215,
+              "baseline_median": 42.0,
+              "lsl": 38.0,
+              "usl": 47.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.6,
+              "margin_trend_pct_per_day": 0.04,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_E / RCP_3의 Head_Temp에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "current_value": 50.1493,
+              "baseline_median": 50.0,
+              "lsl": 49.2,
+              "usl": 50.8,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 81.3,
+              "margin_trend_pct_per_day": 0.063,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_B / RCP_9의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "current_value": 0.0378,
+              "baseline_median": 0.0,
+              "lsl": -3.0,
+              "usl": 3.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 98.7,
+              "margin_trend_pct_per_day": -0.02,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_F / RCP_1의 Laser_Centering_Position 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "current_value": 18.4414,
+              "baseline_median": 18.5,
+              "lsl": 17.8,
+              "usl": 19.2,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 91.6,
+              "margin_trend_pct_per_day": 0.066,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_F / RCP_5의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "current_value": 94.899,
+              "baseline_median": 95.0,
+              "lsl": 92.0,
+              "usl": 98.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 96.6,
+              "margin_trend_pct_per_day": 0.034,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_E / RCP_2의 Power_Efficiency에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "current_value": 50.1381,
+              "baseline_median": 50.0931,
+              "lsl": 50.0713,
+              "usl": 50.144,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 11.2,
+              "margin_trend_pct_per_day": 0.854,
+              "estimated_days_to_spec_out": 13.1,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_A / RCP_4의 Top_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": [
+        {
+          "column": "Cutting_Offset",
+          "current_value": 0.0381,
+          "baseline_median": 0.0061,
+          "lsl": -0.0241,
+          "usl": 0.048,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -2.453,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": null,
+          "early_warning_active": false,
+          "trend_message": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Time",
+          "current_value": 14.9495,
+          "baseline_median": 15.0013,
+          "lsl": 14.9259,
+          "usl": 15.062,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.641,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP02 / PKG_B / RCP_4의 CLN_Time 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_3",
+          "current_value": 5.0001,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -4.993,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP02 / PKG_D / RCP_6의 Package_Size_3 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Process_Time",
+          "current_value": 5.008,
+          "baseline_median": 5.0005,
+          "lsl": 4.9864,
+          "usl": 5.0124,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.297,
+          "estimated_days_to_spec_out": 121.0,
+          "trend_direction": "down",
+          "early_warning_active": false,
+          "trend_message": "DP02 / PKG_C / RCP_7의 Process_Time 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_1",
+          "current_value": 4.9999,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.976,
+          "estimated_days_to_spec_out": 47.2,
+          "trend_direction": "up",
+          "early_warning_active": false,
+          "trend_message": "DP02 / PKG_A / RCP_1의 Package_Size_1 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.5909,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5974,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.797,
+          "estimated_days_to_spec_out": 57.9,
+          "trend_direction": "down",
+          "early_warning_active": true,
+          "trend_message": "DP02 / PKG_A / RCP_3의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Flow",
+          "current_value": 9.9999,
+          "baseline_median": 9.992,
+          "lsl": 9.7649,
+          "usl": 10.0076,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.973,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": null,
+          "early_warning_active": false,
+          "trend_message": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Laser_Current",
+          "current_value": 8.5075,
+          "baseline_median": 8.5,
+          "lsl": 8.4844,
+          "usl": 8.5136,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.717,
+          "estimated_days_to_spec_out": 28.8,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP02 / PKG_E / RCP_8의 Laser_Current 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
+    },
+    "DP03": {
+      "health_index": 15.9,
+      "worst_defects": [
+        {
+          "defect": "Particle",
+          "health_index": 15.9,
+          "worst_factor": "Vibration"
+        },
+        {
+          "defect": "Micro_Crack",
+          "health_index": 15.9,
+          "worst_factor": "Vibration"
+        },
+        {
+          "defect": "Chipping",
+          "health_index": 53.4,
+          "worst_factor": "Top_Kerf"
+        }
+      ],
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "health_index": 15.9,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 15.9,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "current_value": 0.1714,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 15.9,
+              "margin_trend_pct_per_day": -0.533,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_C / RCP_5의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "health_index": 86.1,
+          "worst_factors": [
+            {
+              "factor": "CLN_Pressure",
+              "health_index": 86.1,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "current_value": 299.9865,
+              "baseline_median": 300.0362,
+              "lsl": 299.7163,
+              "usl": 300.0362,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 86.1,
+              "margin_trend_pct_per_day": -0.816,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_E / RCP_3의 CLN_Pressure은(는) 현재 위험 Threshold 이내이지만, 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "health_index": 15.9,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 15.9,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Cooling_Flow",
+              "health_index": 78.2,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "current_value": 9.9956,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 78.2,
+              "margin_trend_pct_per_day": 0.798,
+              "estimated_days_to_spec_out": 98.1,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP03 / PKG_F / RCP_2의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "current_value": 0.1714,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 15.9,
+              "margin_trend_pct_per_day": -0.533,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_C / RCP_5의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "health_index": 53.4,
+          "worst_factors": [
+            {
+              "factor": "Top_Kerf",
+              "health_index": 53.4,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Bottom_Kerf",
+              "health_index": 55.6,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Kerf_Width_Profile",
+              "health_index": 85.8,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "current_value": 50.1214,
+              "baseline_median": 50.0942,
+              "lsl": 50.069,
+              "usl": 50.155,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 55.6,
+              "margin_trend_pct_per_day": 0.311,
+              "estimated_days_to_spec_out": 178.8,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_B / RCP_5의 Bottom_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "current_value": 44.9897,
+              "baseline_median": 44.9894,
+              "lsl": 44.9355,
+              "usl": 44.9894,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": -1.312,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_B / RCP_2의 Groove_Depth 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "current_value": 42.1916,
+              "baseline_median": 42.0,
+              "lsl": 38.0,
+              "usl": 47.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 96.2,
+              "margin_trend_pct_per_day": -0.019,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_F / RCP_3의 Head_Temp에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "current_value": 50.1136,
+              "baseline_median": 50.0,
+              "lsl": 49.2,
+              "usl": 50.8,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 85.8,
+              "margin_trend_pct_per_day": -0.011,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_B / RCP_7의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "current_value": -0.0094,
+              "baseline_median": 0.0,
+              "lsl": -3.0,
+              "usl": 3.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.7,
+              "margin_trend_pct_per_day": -0.015,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_D / RCP_5의 Laser_Centering_Position 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "current_value": 18.4733,
+              "baseline_median": 18.5,
+              "lsl": 17.8,
+              "usl": 19.2,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 96.2,
+              "margin_trend_pct_per_day": 0.035,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP03 / PKG_C / RCP_2의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "current_value": 94.9659,
+              "baseline_median": 95.0,
+              "lsl": 92.0,
+              "usl": 98.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 98.9,
+              "margin_trend_pct_per_day": -0.004,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_D / RCP_6의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "current_value": 50.1165,
+              "baseline_median": 50.0931,
+              "lsl": 50.0713,
+              "usl": 50.144,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 53.4,
+              "margin_trend_pct_per_day": 0.401,
+              "estimated_days_to_spec_out": 133.0,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP03 / PKG_D / RCP_2의 Top_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": [
+        {
+          "column": "Cutting_Y_Index",
+          "current_value": -0.0807,
+          "baseline_median": -0.0008,
+          "lsl": -0.0796,
+          "usl": 0.0751,
+          "spec_source": "provisional_percentile",
+          "spec_status": "SPEC_OUT",
+          "margin_trend_pct_per_day": 0.938,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": false,
+          "trend_message": "DP03 / PKG_F / RCP_1의 Cutting_Y_Index 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Process_Time",
+          "current_value": 4.9881,
+          "baseline_median": 5.0005,
+          "lsl": 4.9864,
+          "usl": 5.0124,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.434,
+          "estimated_days_to_spec_out": 20.4,
+          "trend_direction": "down",
+          "early_warning_active": false,
+          "trend_message": "DP03 / PKG_E / RCP_8의 Process_Time 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_1",
+          "current_value": 5.0,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 1.665,
+          "estimated_days_to_spec_out": 15.2,
+          "trend_direction": "down",
+          "early_warning_active": true,
+          "trend_message": "DP03 / PKG_B / RCP_2의 Package_Size_1 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Beam_Diameter",
+          "current_value": 34.9671,
+          "baseline_median": 34.9982,
+          "lsl": 34.9527,
+          "usl": 35.0416,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.412,
+          "estimated_days_to_spec_out": 66.6,
+          "trend_direction": "up",
+          "early_warning_active": false,
+          "trend_message": "DP03 / PKG_F / RCP_3의 Beam_Diameter 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Surface_Roughness",
+          "current_value": 0.592,
+          "baseline_median": 0.5832,
+          "lsl": 0.5786,
+          "usl": 0.5974,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.275,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP03 / PKG_F / RCP_7의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Package_Size_2",
+          "current_value": 5.0,
+          "baseline_median": 5.0,
+          "lsl": 4.9999,
+          "usl": 5.0001,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.588,
+          "estimated_days_to_spec_out": 80.8,
+          "trend_direction": "up",
+          "early_warning_active": false,
+          "trend_message": "DP03 / PKG_C / RCP_9의 Package_Size_2 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "CLN_Flow",
+          "current_value": 9.9996,
+          "baseline_median": 9.992,
+          "lsl": 9.7649,
+          "usl": 10.0076,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.7,
+          "estimated_days_to_spec_out": 70.6,
+          "trend_direction": null,
+          "early_warning_active": false,
+          "trend_message": null,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
+    },
+    "DP04": {
+      "health_index": 58.9,
+      "worst_defects": [
+        {
+          "defect": "Particle",
+          "health_index": 58.9,
+          "worst_factor": "Vibration"
+        },
+        {
+          "defect": "Micro_Crack",
+          "health_index": 58.9,
+          "worst_factor": "Vibration"
+        },
+        {
+          "defect": "Chipping",
+          "health_index": 66.7,
+          "worst_factor": "Top_Kerf"
+        }
+      ],
+      "latest_date": "2026-03-30",
+      "defect_signals": {
+        "Particle": {
+          "health_index": 58.9,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 58.9,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Vibration": {
+              "current_value": 0.1629,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 58.9,
+              "margin_trend_pct_per_day": 0.913,
+              "estimated_days_to_spec_out": 64.5,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_C / RCP_4의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Remain_Coat": {
+          "health_index": 75.2,
+          "worst_factors": [
+            {
+              "factor": "CLN_Pressure",
+              "health_index": 75.2,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "CLN_Pressure": {
+              "current_value": 299.9479,
+              "baseline_median": 300.0362,
+              "lsl": 299.7163,
+              "usl": 300.0362,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 75.2,
+              "margin_trend_pct_per_day": -1.534,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "세정 압력 부족 -> 코팅 미제거",
+              "source": "전성재"
+            }
+          }
+        },
+        "Micro_Crack": {
+          "health_index": 58.9,
+          "worst_factors": [
+            {
+              "factor": "Vibration",
+              "health_index": 58.9,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Cooling_Flow",
+              "health_index": 100.0,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Cooling_Flow": {
+              "current_value": 10.0087,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": -1.114,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_D / RCP_8의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
+              "source": "JHdaimma"
+            },
+            "Vibration": {
+              "current_value": 0.1629,
+              "baseline_median": 0.1548,
+              "lsl": 0.1548,
+              "usl": 0.1744,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 58.9,
+              "margin_trend_pct_per_day": 0.913,
+              "estimated_days_to_spec_out": 64.5,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_C / RCP_4의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "direction": "up",
+              "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
+              "source": "daeho / JHdaimma"
+            }
+          }
+        },
+        "Chipping": {
+          "health_index": 66.7,
+          "worst_factors": [
+            {
+              "factor": "Top_Kerf",
+              "health_index": 66.7,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Bottom_Kerf",
+              "health_index": 76.9,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Kerf_Width_Profile",
+              "health_index": 89.1,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": false,
+          "occurred_days_recent_7d": 0,
+          "causes": {
+            "Bottom_Kerf": {
+              "current_value": 50.0888,
+              "baseline_median": 50.0942,
+              "lsl": 50.069,
+              "usl": 50.155,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 76.9,
+              "margin_trend_pct_per_day": 0.349,
+              "estimated_days_to_spec_out": 220.6,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_A / RCP_3의 Bottom_Kerf에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
+              "source": "JHdaimma"
+            },
+            "Groove_Depth": {
+              "current_value": 45.003,
+              "baseline_median": 44.9894,
+              "lsl": 44.9355,
+              "usl": 44.9894,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "margin_trend_pct_per_day": 0.065,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_D / RCP_5의 Groove_Depth 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
+              "source": "Jun"
+            },
+            "Head_Temp": {
+              "current_value": 42.0259,
+              "baseline_median": 42.0,
+              "lsl": 38.0,
+              "usl": 47.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.5,
+              "margin_trend_pct_per_day": -0.001,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_A / RCP_3의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "up",
+              "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
+              "source": "JHdaimma"
+            },
+            "Kerf_Width_Profile": {
+              "current_value": 50.0873,
+              "baseline_median": 50.0,
+              "lsl": 49.2,
+              "usl": 50.8,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 89.1,
+              "margin_trend_pct_per_day": 0.025,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_F / RCP_3의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "direction": "either",
+              "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
+              "source": "Jun / JHdaimma"
+            },
+            "Laser_Centering_Position": {
+              "current_value": 0.0021,
+              "baseline_median": 0.0,
+              "lsl": -3.0,
+              "usl": 3.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.9,
+              "margin_trend_pct_per_day": 0.001,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_F / RCP_4의 Laser_Centering_Position 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "빔 중심 이탈 -> 비대칭 절단",
+              "source": "JHdaimma"
+            },
+            "Laser_Power": {
+              "current_value": 18.4954,
+              "baseline_median": 18.5,
+              "lsl": 17.8,
+              "usl": 19.2,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.3,
+              "margin_trend_pct_per_day": -0.007,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_B / RCP_3의 Laser_Power 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "down",
+              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
+              "source": "JHdaimma"
+            },
+            "Power_Efficiency": {
+              "current_value": 94.9932,
+              "baseline_median": 95.0,
+              "lsl": 92.0,
+              "usl": 98.0,
+              "spec_source": "mentor_spec",
+              "spec_status": "OK",
+              "health_index": 99.8,
+              "margin_trend_pct_per_day": -0.011,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_B / RCP_4의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
+              "source": "JHdaimma"
+            },
+            "Top_Kerf": {
+              "current_value": 50.0852,
+              "baseline_median": 50.0931,
+              "lsl": 50.0713,
+              "usl": 50.144,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 66.7,
+              "margin_trend_pct_per_day": 1.074,
+              "estimated_days_to_spec_out": 62.1,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_D / RCP_7의 Top_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "direction": "either",
+              "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
+              "source": "JHdaimma"
+            }
+          }
+        }
+      },
+      "unconfirmed_anomalies": [
+        {
+          "column": "CLN_Flow",
+          "current_value": 9.7674,
+          "baseline_median": 9.992,
+          "lsl": 9.7649,
+          "usl": 10.0076,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 0.122,
+          "estimated_days_to_spec_out": 5.0,
+          "trend_direction": "down",
+          "early_warning_active": true,
+          "trend_message": "DP04 / PKG_C / RCP_4의 CLN_Flow에서 정상 Baseline 대비 지속적인 하강 추세가 감지되었습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Cooling_Water_Temp",
+          "current_value": 21.9722,
+          "baseline_median": 22.001,
+          "lsl": 21.9563,
+          "usl": 22.0498,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": 3.49,
+          "estimated_days_to_spec_out": 9.6,
+          "trend_direction": "down",
+          "early_warning_active": false,
+          "trend_message": "DP04 / PKG_B / RCP_1의 Cooling_Water_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Beam_Diameter",
+          "current_value": 35.0264,
+          "baseline_median": 34.9982,
+          "lsl": 34.9527,
+          "usl": 35.0416,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "margin_trend_pct_per_day": -0.148,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP04 / PKG_B / RCP_4의 Beam_Diameter 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+﻿Machine_ID,defect,actual_occurred_recent_7d,occurred_days_recent_7d
+DP01,Particle,True,7
+DP01,Remain_Coat,True,7
+DP01,Micro_Crack,False,0
+DP01,Chipping,False,0
+DP02,Particle,True,7
+DP02,Remain_Coat,True,7
+DP02,Micro_Crack,False,0
+DP02,Chipping,False,0
+DP03,Particle,True,7
+DP03,Remain_Coat,True,7
+DP03,Micro_Crack,False,0
+DP03,Chipping,False,0
+DP04,Particle,True,7
+DP04,Remain_Coat,True,7
+DP04,Micro_Crack,False,0
+DP04,Chipping,False,0

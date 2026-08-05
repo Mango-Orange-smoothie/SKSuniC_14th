@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>공정 품질 AI Agent</title>
+<style>
+:root{
+  --bg:#f5f4f8; --surface:#ffffff; --surface-2:#eeecf5;
+  --ink:#171523; --ink-muted:#6b6785; --ink-faint:#a4a0bd;
+  --accent:#5b54e8; --accent-soft:#eeecfc;
+  --border:#e1dff0;
+  --good:#0ca30c; --critical:#d03b3b;
+  --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    --bg:#0e0c16; --surface:#17142a; --surface-2:#1e1a35;
+    --ink:#ede9fb; --ink-muted:#a49dc9; --ink-faint:#726c99;
+    --accent:#9089f7; --accent-soft:#242052;
+    --border:#2c2650;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e0c16; --surface:#17142a; --surface-2:#1e1a35;
+  --ink:#ede9fb; --ink-muted:#a49dc9; --ink-faint:#726c99;
+  --accent:#9089f7; --accent-soft:#242052;
+  --border:#2c2650;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+
+header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;
+  justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.eyebrow{font:600 11px/1 var(--font-mono);letter-spacing:.08em;color:var(--accent);
+  text-transform:uppercase;margin:0 0 6px}
+h1{font-size:19px;margin:0;font-weight:700}
+.sub{font-size:12.5px;color:var(--ink-muted);margin:2px 0 0}
+
+.wrap{flex:1;max-width:820px;width:100%;margin:0 auto;padding:20px 20px 0;
+  display:flex;flex-direction:column;min-height:0}
+
+.suggestions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{font:600 12px var(--font-ui);background:var(--surface);border:1px solid var(--border);
+  padding:7px 13px;border-radius:20px;color:var(--ink-muted);cursor:pointer;transition:all .12s}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;
+  padding-bottom:16px;min-height:0}
+.msg{max-width:88%;padding:12px 15px;border-radius:12px;font-size:14px;line-height:1.6}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.msg.agent{align-self:flex-start;background:var(--surface);border:1px solid var(--border);
+  border-bottom-left-radius:3px}
+.msg.agent.error{border-color:var(--critical);color:var(--critical)}
+.msg h3{font-size:14.5px;margin:0 0 8px}
+.msg table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px}
+.msg th,.msg td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+.msg th{background:var(--surface-2);font-weight:600}
+.msg code{font-family:var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.msg ul{margin:6px 0;padding-left:20px}
+.msg p{margin:6px 0}
+.msg p:first-child{margin-top:0}
+.msg p:last-child{margin-bottom:0}
+
+.typing{align-self:flex-start;display:flex;gap:4px;padding:14px 15px;background:var(--surface);
+  border:1px solid var(--border);border-radius:12px;border-bottom-left-radius:3px}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);
+  animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+
+.inputbar{display:flex;gap:10px;padding:16px 0 20px;border-top:1px solid var(--border)}
+textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:10px;padding:11px 14px;
+  font:14px var(--font-ui);background:var(--surface);color:var(--ink);height:46px;max-height:120px}
+textarea:focus{outline:none;border-color:var(--accent)}
+button#send{background:var(--accent);color:#fff;border:none;border-radius:10px;
+  padding:0 20px;font:600 14px var(--font-ui);cursor:pointer;white-space:nowrap}
+button#send:disabled{opacity:.5;cursor:default}
+
+.disclaimer{font-size:11px;color:var(--ink-faint);text-align:center;padding-bottom:14px}
+
+.chart-wrap{margin-top:10px;overflow-x:auto}
+.chart-title{font:600 12px var(--font-ui);color:var(--ink-muted);margin-bottom:4px}
+.chart-wrap svg{display:block;min-width:420px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <p class="eyebrow">Prototype · v0</p>
+    <h1>공정 품질 통합 관리 AI Agent</h1>
+  </div>
+  <p class="sub">Health Index · 경보 · 확정 유효인자 · SOP 초안을 실시간 조회해서 답합니다</p>
+</header>
+
+<div class="wrap">
+  <div class="suggestions" id="suggestions">
+    <div class="chip" data-q="DP03 상태 어때? 문제 있으면 원인이랑 조치도 알려줘.">DP03 상태 어때?</div>
+    <div class="chip" data-q="Particle 불량 원인이 뭐야?">Particle 불량 원인?</div>
+    <div class="chip" data-q="Vibration 관련 SOP 알려줘.">Vibration SOP는?</div>
+    <div class="chip" data-q="DP01이랑 DP03 비교해줘.">DP01 vs DP03</div>
+    <div class="chip" data-q="DP03 Vibration 추세 그래프로 보여줘.">Vibration 그래프</div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="inputbar">
+    <textarea id="input" placeholder="예: DP02 지금 괜찮아?" rows="1"></textarea>
+    <button id="send">전송</button>
+  </div>
+  <p class="disclaimer">이 채팅은 초안입니다. 레벨/추세는 통계적 유의성 재검정 없이 계산된 최근 동향이고, SOP 제안은 DRAFT_UNVERIFIED입니다.</p>
+</div>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+
+// 아주 가벼운 markdown -> html (헤더/굵게/표/목록/문단만 지원, 데모용)
+function renderMarkdown(md){
+  const lines = md.split('\n');
+  let html = '';
+  let inTable = false, tableRows = [];
+  let inList = false;
+
+  function flushTable(){
+    if(!tableRows.length) return;
+    const [headerRow, sepRow, ...bodyRows] = tableRows;
+    const cells = r => r.split('|').map(c=>c.trim()).filter((c,i,arr)=> !(i===0&&c==='') && !(i===arr.length-1&&c===''));
+    let t = '<table><thead><tr>' + cells(headerRow).map(c=>`<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>';
+    for(const row of bodyRows){
+      t += '<tr>' + cells(row).map(c=>`<td>${inline(c)}</td>`).join('') + '</tr>';
+    }
+    t += '</tbody></table>';
+    html += t;
+    tableRows = [];
+  }
+  function inline(s){
+    return s
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+  }
+
+  for(const raw of lines){
+    const line = raw;
+    if(/^\s*\|.+\|\s*$/.test(line)){
+      inTable = true; tableRows.push(line); continue;
+    } else if(inTable){
+      inTable = false; flushTable();
+    }
+    if(/^#{1,3}\s+/.test(line)){
+      if(inList){ html += '</ul>'; inList=false; }
+      html += `<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`;
+    } else if(/^\s*-\s+/.test(line)){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${inline(line.replace(/^\s*-\s+/,''))}</li>`;
+    } else {
+      if(inList){ html += '</ul>'; inList = false; }
+      if(line.trim()==='') continue;
+      html += `<p>${inline(line)}</p>`;
+    }
+  }
+  if(inTable) flushTable();
+  if(inList) html += '</ul>';
+  return html;
+}
+
+// 장비×변수 시계열 데이터를 받아 선그래프(SVG)를 그린다. baseline/LSL/USL 기준선 포함.
+// 외부 차트 라이브러리 없이 직접 좌표 계산 — 데모용, 좌표계는 SVG viewBox 안에서 고정.
+function renderChart(cd){
+  const W = 640, H = 220, padL = 50, padR = 16, padT = 14, padB = 26;
+  const n = cd.series.length;
+  if(n < 2) return '';
+
+  const values = cd.series.map(p => p.value);
+  const allVals = values.concat([cd.lsl, cd.usl, cd.baseline_median]);
+  let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
+  vMin -= pad; vMax += pad;
+
+  const x = i => padL + (i / (n - 1)) * (W - padL - padR);
+  const y = v => padT + (1 - (v - vMin) / (vMax - vMin)) * (H - padT - padB);
+
+  const linePath = cd.series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const last = cd.series[n - 1];
+  const lastColor = cd.spec_status === 'SPEC_OUT' ? 'var(--critical)' : 'var(--accent)';
+
+  const hline = (v, color, dashed) =>
+    `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
+
+  return `<div class="chart-wrap">
+    <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+      ${hline(cd.usl, 'var(--critical)', true)}
+      ${hline(cd.lsl, 'var(--critical)', true)}
+      ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
+      <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+      <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
+      <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
+      <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
+      <text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>
+      <text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>
+    </svg>
+  </div>`;
+}
+
+function addMessage(role, text, isError, chartData){
+  const div = document.createElement('div');
+  div.className = 'msg ' + role + (isError ? ' error' : '');
+  if(role === 'agent'){
+    div.innerHTML = renderMarkdown(text) + (chartData ? renderChart(chartData) : '');
+  } else {
+    div.textContent = text;
+  }
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+
+function showTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function hideTyping(){
+  const el = document.getElementById('typing-indicator');
+  if(el) el.remove();
+}
+
+async function send(question){
+  if(!question.trim()) return;
+  addMessage('user', question);
+  inputEl.value = '';
+  sendBtn.disabled = true;
+  showTyping();
+  try{
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question})
+    });
+    const data = await res.json();
+    hideTyping();
+    if(!res.ok){
+      addMessage('agent', data.error || '오류가 발생했습니다.', true);
+    } else {
+      addMessage('agent', data.answer, false, data.chart_data);
+    }
+  } catch(err){
+    hideTyping();
+    addMessage('agent', '서버에 연결할 수 없습니다: ' + err.message, true);
+  } finally {
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+sendBtn.addEventListener('click', () => send(inputEl.value));
+inputEl.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    send(inputEl.value);
+  }
+});
+document.getElementById('suggestions').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if(chip) send(chip.dataset.q);
+});
+</script>
+</body>
+</html>
