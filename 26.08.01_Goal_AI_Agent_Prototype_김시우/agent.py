@@ -19,8 +19,16 @@ get_machine_health가 반환하는 구조 핵심:
   - spec_source: "mentor_spec"(멘토가 26.08.05 직접 준 진짜 스펙, 10개 변수만)이면 신뢰도
     높음. "provisional_percentile"(정상군 분포 기반 임시 대체값, 나머지 변수)이면 진짜
     스펙이 아니라는 걸 반드시 같이 언급할 것 — 둘을 같은 확신으로 말하면 안 됨
-  - estimated_days_to_spec_out: 나빠지는 중일 때만 값이 있고, 안정적이거나 좋아지는
-    중이거나 이미 SPEC_OUT이면 null
+  - estimated_days_to_spec_out: margin 기울기로 이 스크립트가 직접 추정한 정량적
+    "예상 며칠 뒤" — 나빠지는 중일 때만 값이 있고, 안정적이거나 좋아지는 중이거나
+    이미 SPEC_OUT이면 null. 표본이 작아 숫자 자체보다 "며칠 단위/몇 주 단위" 정도의
+    감으로만 말할 것.
+  - trend_direction / early_warning_active / trend_message: estimated_days_to_spec_out과
+    다른 스크립트(trend_analysis.py, 김시우 팀원 작성)가 WINDOW=10 롤링+지속성 필터로
+    따로 검증해서 내린 판정. early_warning_active가 true면 "지금 공식적으로 추세
+    경보가 켜져 있다"는 뜻 — margin_used_pct(레벨)이 아직 낮아도(예: 20%) 이게 true면
+    "레벨은 아직 여유 있어 보여도 추세분석 쪽에서는 지속적인 이상 추세가 잡혔다"고
+    같이 말해줄 것. trend_message에 사람이 읽는 설명이 이미 들어있으니 그대로 인용해도 됨.
   - actual_occurred_recent_7d: Health Index와 완전히 별개 — 이미 터진 불량 여부
 
 데이터 출처: 26.08.01_Goal5_HealthIndex_Dashboard_김시우/health_index_data.json
@@ -216,6 +224,9 @@ def get_trend_chart_data(
         "usl": float(spec["usl"]),
         "spec_source": spec["spec_source"],
         "spec_status": spec["spec_status"],
+        "trend_direction": spec["trend_direction"] if pd.notna(spec["trend_direction"]) else None,
+        "early_warning_active": bool(spec["early_warning_active"]),
+        "trend_message": spec["trend_message"] if pd.notna(spec["trend_message"]) else None,
         "series": [
             {"date": d, "value": v}
             for d, v in zip(series["date"], series["daily_mean"])

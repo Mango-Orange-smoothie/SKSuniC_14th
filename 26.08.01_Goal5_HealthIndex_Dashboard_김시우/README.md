@@ -6,9 +6,17 @@
 
 ## 실행
 
+Step0(전처리/baseline)와 `trend_analysis.py`(추세판정/조기경보)를 먼저 돌려야 합니다 —
+이 스크립트는 그 둘의 산출물을 읽어서 레벨+추세를 종합합니다.
+
 ```bash
+python pipeline/step0_preprocessing.py
+python trend_analysis.py
 python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 ```
+
+(`trend_analysis.py` 산출물이 없어도 실행은 되지만, 그 경우 추세 쪽 필드
+`trend_direction`/`early_warning_active`/`trend_message`는 비어서 나갑니다.)
 
 `health_index_data.json`이 생성되고, AI Agent(`agent.py`)가 이 파일을 바로 읽습니다.
 
@@ -29,10 +37,17 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
      0% = baseline, 100% = 스펙 경계, 100% 넘으면 스펙아웃
    변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
 
-2) 추세는 점수에 안 섞고 "예상 며칠 뒤 스펙아웃"으로 따로 제공
-   margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면
-   (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃
-   (이미 스펙아웃이거나 좋아지는 중이면 계산 안 함 — null)
+2) 추세는 점수에 안 섞고, 두 가지를 같이 제공 (26.08.05부터)
+   (a) margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면
+       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃
+       (이미 스펙아웃이거나 좋아지는 중이면 계산 안 함 — null)
+   (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + 지속성 필터, Kendall tau
+       교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져 있는가"
+       → trend_direction("up"/"down"/"flat") / early_warning_active(bool) /
+       trend_message(사람이 읽는 설명)
+   (a)는 이 스크립트가 margin만 보고 직접 추정한 속도, (b)는 팀이 따로 만들고
+   검증한 추세분석 스크립트의 판정을 그대로 가져온 것 — 원래 "전처리 → 추세분석 →
+   Health Index가 그 결과를 읽어 씀" 구조를 이렇게 연결했습니다.
 
 3) defect별 Health Index = 그 defect 원인변수들 중 최솟값(최악이 전체를 끌어내림)
    장비별 Health Index   = 그 장비 defect들 중 최솟값
@@ -58,7 +73,9 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 - Chipping → `Laser_Power`/`Power_Efficiency`/`Head_Temp`/`Laser_Centering_Position`/`Kerf_Width_Profile`/`Top_Kerf`/`Bottom_Kerf`/`Groove_Depth`
   (JHdaimma `26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma/` 3방법 합의 + Jun confirmed 교차확인)
 - Micro_Crack → `Vibration`/`Cooling_Flow` (JHdaimma, Chipping과 공유 원인)
-- 전처리/추세검정/baseline/일별 집계 → `pipeline/`(김시우 Step0)
+- 전처리/baseline/일별 집계 → `pipeline/`(김시우 Step0)
+- 추세판정/조기경보(early_warning) → `trend_analysis.py`(이승연 원안, 김시우가 지속성
+  필터 추가 + 경로/입력 수정, 저장소 루트) — Health Index가 이 결과를 그대로 읽어 씀
 
 ## 알려진 한계
 
@@ -117,9 +134,12 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 
 | 파일 | 내용 |
 |---|---|
-| `01_level_trend_by_machine_column.csv` | 장비×전체 연속형변수별 레벨/추세/실제값 (원인/비원인 다 포함) |
+| `01_level_trend_by_machine_column.csv` | 장비×전체 연속형변수별 레벨/추세/실제값 (원인/비원인 다 포함, trend_direction/early_warning_active/trend_message 포함) |
 | `02_health_index_by_defect.csv` | 장비×defect별 Health Index + 최악 원인변수 |
 | `03_health_index_by_machine.csv` | 장비별 최종 Health Index + 최악 defect |
 | `04_defect_occurrence_recent7d.csv` | 장비×defect별 최근 7일 실제 발생 여부 |
 | `05_lead_time_analysis.csv` | 원인변수×defect별 조기경보 리드타임 실측(`analyze_lead_time.py` 산출물) |
 | `health_index_data.json` | **AI Agent가 읽는 통합 데이터** |
+
+입력(이 폴더 밖, 저장소 루트 기준): `pipeline/`(Step0 baseline/일별 시계열),
+`analysis_outputs/trend_analysis_results.csv`(`trend_analysis.py` 산출물, 추세판정).

@@ -25,12 +25,21 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         granularity가 안 맞았다 — 일평균은 샷 평균이라 분산이 훨씬 작아 그 경계에 거의
         못 미쳤고, "스펙아웃이 원래 잘 안 생긴다"는 결론으로 이어졌었다. daily_mean_z
         자기 분포로 경계를 다시 재서 고침.)
-  2. **추세 = 점수에 안 섞고, "예상 며칠 뒤 스펙아웃"으로 따로 보여준다.**
-       margin_used_pct의 최근 14일 기울기(%/일)를 구해서, 나빠지는 방향이면
-       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃.
+  2. **추세 = 점수에 안 섞고, 따로 보여준다.** 두 가지를 같이 담는다:
+       (a) margin_used_pct의 최근 14일 기울기(%/일)로 뽑은 정량적 "예상 며칠 뒤
+           스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out) — 이 스크립트가
+           직접 추정.
+       (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + PERSIST_WINDOW=5 지속성
+           필터, Kendall tau로 교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져
+           있는가"(trend_direction/early_warning_active/trend_message,
+           load_trend_warning_status) — 팀이 따로 검증한 판정 로직을 그대로 신뢰.
+       (26.08.05: 원래 (b)가 없어서 Health Index가 (a)만으로 자체적으로 "추세"를
+        다 떠맡고 있었다 — 원래 설계 의도("전처리에서 변동성 확인 → 추세분석에서
+        방향 판단 → 그 결과로 위험을 알려줌")와 다르게, 추세분석 스크립트의 산출물이
+        Health Index에 전혀 연결이 안 된 채 따로 돌고 있었다. 여기서 연결.)
        레벨(z)과 추세(z/일)는 단위가 달라 그냥 더하면 한쪽이 묻히는 문제가 있었어서,
        "점수 하나로 억지로 합치기"를 그만두고 서로 다른 질문에 각자 답하게 했다 —
-       레벨은 "지금 얼마나 급한가", 추세는 "언제쯤 더 급해지는가".
+       레벨은 "지금 얼마나 급한가", 추세는 "언제쯤/왜 더 급해지는가".
   3. defect별 Health Index = 그 defect 원인변수들 중 최솟값(제일 나쁜 게 전체를 끌어내림)
      장비별 Health Index   = 그 장비 defect들 중 최솟값
   4. 확정 원인이 아닌 나머지 변수도 같은 레벨/추세 계산을 적용한다(안전망) — 단 defect
@@ -49,7 +58,14 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
 이 스크립트는 정적 HTML 대시보드를 만들지 않는다(v1의 build_dashboard_html.py는
 삭제됨) — 산출물은 AI Agent(agent.py)가 직접 읽는 health_index_data.json 하나뿐이다.
 
-실행 (저장소 루트에서):
+입력 의존성: pipeline/step0_preprocessing.py(Step0)의 baseline/일별 시계열 산출물이
+꼭 있어야 한다(없으면 실행 자체가 안 됨). trend_analysis.py(analysis_outputs/
+trend_analysis_results.csv)는 있으면 읽어서 trend_direction/early_warning_active/
+trend_message를 채우고, 없으면 그 필드들만 비운 채(None/False) 나머지는 그대로
+계산한다(load_trend_warning_status가 조용히 빈 dict 반환) — 필수는 아니지만 최신
+경보 판정을 반영하려면 먼저 돌려둘 것:
+  python pipeline/step0_preprocessing.py
+  python trend_analysis.py
   python "26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py"
 
 산출물 (이 폴더 안):
@@ -173,12 +189,58 @@ ANOMALY_MARGIN_THRESHOLD_PCT = 50.0
 RECENT_WINDOW_DAYS = 14
 RECENT_DEFECT_WINDOW_DAYS = 7
 
+TREND_ANALYSIS_CSV = REPO_ROOT / "analysis_outputs" / "trend_analysis_results.csv"
+# early_warning이 언제 마지막으로 켜졌는지가 최신 데이터로부터 이만큼(일) 이내면
+# "지금도 활성 상태"로 본다. trend_analysis.py의 early_warning은 상태형(조건이 유지되는
+# 동안 계속 True)이라 마지막 발생일이 최신 데이터와 가까우면 지금도 켜져 있다는 뜻이다.
+TREND_WARNING_ACTIVE_WITHIN_DAYS = 1
+
 
 def load_step0_outputs():
     opcond_baseline = pd.read_csv(config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv")
     daily_series = pd.read_csv(config.PREPROCESSING_DIR / "00_machine_daily_series.csv")
     daily_series["date"] = pd.to_datetime(daily_series["date"])
     return opcond_baseline, daily_series
+
+
+def load_trend_warning_status() -> dict[tuple[str, str], dict]:
+    """trend_analysis.py(이승연 원안, 김시우 지속성 필터 수정)의 산출물을 장비×컬럼별 최신 상태로 요약.
+
+    trend_analysis_results.csv는 early_warning=True인 행만 저장된 이벤트 로그다
+    (Machine_ID x Product_ID x Recipe_ID x column x DateTime, 샷 단위). Health Index는
+    OPCOND로 안 나누고 장비×컬럼 단위로 보므로, 같은 (Machine_ID, column)의 모든 OPCOND
+    조합을 합쳐서 "가장 최근에 경보가 켜졌던 시점"을 찾는다. 그 시점이 데이터 전체의
+    최신 시점과 가깝다면(TREND_WARNING_ACTIVE_WITHIN_DAYS 이내) 지금도 경보가 켜져
+    있다는 뜻이다(early_warning은 지속성 필터를 거친 상태형 플래그라 순간 노이즈가 아님).
+
+    Health Index의 "레벨(margin_used_pct)"과 별개 축인 "추세"를 여기서 가져온다 —
+    margin 기울기(OLS)로 직접 추정하지 않고, 팀이 따로 검증한 trend_analysis.py의
+    판정(WINDOW=10 롤링 + PERSIST_WINDOW=5 지속성 필터, Kendall tau 교차검증됨)을
+    그대로 신뢰해서 쓴다. (26.08.05: 원래는 Health Index가 자체적으로 14일 선형회귀
+    기울기만으로 추세를 다시 계산해서, trend_analysis.py와 완전히 분리된 채 돌고
+    있었다 — 원래 설계 의도(전처리→추세분석→Health Index가 그 결과를 읽어 씀)와
+    안 맞아서 여기서 연결.)
+    """
+    if not TREND_ANALYSIS_CSV.exists():
+        return {}
+    tr = pd.read_csv(
+        TREND_ANALYSIS_CSV,
+        usecols=["DateTime", "Machine_ID", "column", "trend_direction", "message"],
+    )
+    tr["DateTime"] = pd.to_datetime(tr["DateTime"])
+    dataset_latest = tr["DateTime"].max()
+
+    status: dict[tuple[str, str], dict] = {}
+    for (machine, col), g in tr.groupby(["Machine_ID", "column"]):
+        latest_row = g.loc[g["DateTime"].idxmax()]
+        days_since = (dataset_latest - latest_row["DateTime"]) / pd.Timedelta(days=1)
+        status[(machine, col)] = {
+            "trend_direction": latest_row["trend_direction"],
+            "early_warning_active": bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS),
+            "trend_message": latest_row["message"],
+            "days_since_last_warning": round(float(days_since), 1),
+        }
+    return status
 
 
 def direction_of(column: str) -> str:
@@ -287,6 +349,7 @@ def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, tar
 
 def compute_level_and_trend(
     daily_series: pd.DataFrame, boundary_z: dict[str, float], spec_values: dict[str, dict],
+    trend_status: dict[tuple[str, str], dict] | None = None,
 ) -> pd.DataFrame:
     """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
@@ -302,7 +365,14 @@ def compute_level_and_trend(
     수치로 보여줄 수 있게 한다. provisional 컬럼의 lsl/usl 표시값은 margin 계산에 실제
     쓰는 boundary_z와 같은 기준(baseline ± boundary_z*scale)으로 역산해서, 화면에 보이는
     한계값과 margin_used_pct가 서로 어긋나지 않게 한다.
+
+    추세는 두 가지를 같이 담는다: margin_used_pct의 최근 14일 기울기로 뽑은 정량적
+    "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out)과,
+    trend_analysis.py(load_trend_warning_status)가 판정한 "지금 공식적으로 경보가
+    켜져 있는가"(trend_direction/early_warning_active/trend_message) — 전자는 이
+    스크립트가 직접 추정한 속도, 후자는 팀이 따로 검증한 판정 로직의 결과다.
     """
+    trend_status = trend_status or {}
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
         g = g.sort_values("date")
@@ -358,6 +428,8 @@ def compute_level_and_trend(
                 est_days = round(projected, 1) if projected <= 365 else None  # 1년 넘게 남으면 "임박 아님" 취급
             # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
 
+        ta_status = trend_status.get((machine, col), {})
+
         rows.append({
             "Machine_ID": machine,
             "column": col,
@@ -373,6 +445,9 @@ def compute_level_and_trend(
             "health_index": round(health_index_var, 1),
             "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
             "estimated_days_to_spec_out": est_days,
+            "trend_direction": ta_status.get("trend_direction"),
+            "early_warning_active": ta_status.get("early_warning_active", False),
+            "trend_message": ta_status.get("trend_message"),
             "is_cause_factor": col in CAUSE_COLS,
         })
     return pd.DataFrame(rows)
@@ -489,6 +564,9 @@ def build_machine_snapshot(
                     "health_index": row["health_index"],
                     "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
                     "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                    "trend_direction": _none_if_nan(row["trend_direction"]),
+                    "early_warning_active": bool(row["early_warning_active"]),
+                    "trend_message": _none_if_nan(row["trend_message"]),
                     "direction": meta["direction"],
                     "mechanism": meta["mechanism"],
                     "source": meta["owner"],
@@ -517,6 +595,9 @@ def build_machine_snapshot(
                 "spec_status": row["spec_status"],
                 "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
                 "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                "trend_direction": _none_if_nan(row["trend_direction"]),
+                "early_warning_active": bool(row["early_warning_active"]),
+                "trend_message": _none_if_nan(row["trend_message"]),
                 "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용",
             })
 
@@ -536,8 +617,9 @@ def main() -> None:
 
     boundary_z = compute_daily_boundary_z(daily_series_raw)
     spec_values = compute_spec_values(opcond_baseline)
+    trend_status = load_trend_warning_status()
 
-    level_trend = compute_level_and_trend(daily_series_raw, boundary_z, spec_values)
+    level_trend = compute_level_and_trend(daily_series_raw, boundary_z, spec_values, trend_status)
     level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 
     defect_index, machine_index = aggregate_health_index(level_trend)
