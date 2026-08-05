@@ -1,0 +1,66 @@
+{
+  "id": "sugentHealthIdxPipe1",
+  "name": "SUGENT Health Index 파이프라인",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-health-pipeline",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1a1a1a1a-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 0],
+      "webhookId": "run-health-pipeline"
+    },
+    {
+      "parameters": {
+        "command": "cd \"/Users/gimsiu/Downloads/suni c 14조\" && python3 -m pipeline.step0_preprocessing > /dev/null && python3 trend_analysis.py > /dev/null && python3 \"26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py\" > /dev/null && cat \"26.08.01_Goal5_HealthIndex_Dashboard_김시우/health_index_data.json\""
+      },
+      "id": "1a1a1a1a-0002-4000-8000-000000000002",
+      "name": "Run Pipeline",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [20, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = JSON.parse($input.first().json.stdout);\nconst ALERT_THRESHOLD = 30;\n\nconst machines = Object.entries(data.machines).map(([id, m]) => ({\n  machine_id: id,\n  health_index: m.health_index,\n  worst_defect: m.worst_defects && m.worst_defects[0] ? m.worst_defects[0].defect : null,\n}));\n\nmachines.sort((a, b) => (a.health_index ?? 100) - (b.health_index ?? 100));\n\nconst warnings = machines.filter(m => m.health_index !== null && m.health_index < ALERT_THRESHOLD);\n\nconst lines = machines.map(m => `${m.machine_id}: Health Index ${m.health_index} (최악 defect: ${m.worst_defect})`);\nconst summaryText = warnings.length\n  ? `⚠️ 위험 장비 ${warnings.length}대: ` + warnings.map(w => `${w.machine_id}(${w.health_index})`).join(', ')\n  : '현재 임계값(30) 이하로 위험한 장비 없음';\n\nreturn [{\n  json: {\n    generated_at: data.generated_at,\n    alert_threshold: ALERT_THRESHOLD,\n    summary: summaryText,\n    has_warning: warnings.length > 0,\n    warnings,\n    machines,\n  },\n}];"
+      },
+      "id": "1a1a1a1a-0003-4000-8000-000000000003",
+      "name": "Summarize Health Index",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "1a1a1a1a-0004-4000-8000-000000000004",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [460, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Run Pipeline", "type": "main", "index": 0 }]]
+    },
+    "Run Pipeline": {
+      "main": [[{ "node": "Summarize Health Index", "type": "main", "index": 0 }]]
+    },
+    "Summarize Health Index": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
