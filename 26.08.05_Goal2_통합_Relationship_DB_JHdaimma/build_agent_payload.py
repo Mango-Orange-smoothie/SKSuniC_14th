@@ -84,14 +84,50 @@ def main() -> None:
         if not any(d in e["defects"] for e in causes.values())
     }
 
+    # 티어를 인자 항목에 직접 얹는다 — Agent가 답변 어조를 티어로 고를 수 있게.
+    tiers = pd.read_csv(OUT / "rel_12_tiers.csv", encoding="utf-8-sig")
+    for _, r in tiers.iterrows():
+        bucket = causes if r.track.startswith("원인") else monitors
+        if r.factor in bucket:
+            bucket[r.factor]["tier"] = r.tier
+            bucket[r.factor]["tier_meaning"] = r.tier_meaning
+
+    # 경보에 쓸 수 있는 경계값만 (기각된 인자의 경계값은 제외)
+    th = pd.read_csv(OUT / "rel_05_thresholds.csv", encoding="utf-8-sig")
+    th = th[th.usable_for_alert].drop_duplicates(["defect", "factor"], keep="first")
+
+    sop = pd.read_csv(OUT / "rel_06_sop_draft.csv", encoding="utf-8-sig")
+    hil = pd.read_csv(OUT / "rel_07_health_index_link.csv", encoding="utf-8-sig")
+
     payload = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/rel_01_factors.csv",
         "cause_factors": causes,
         "monitor_factors": monitors,
         "defects_without_confirmed_cause": no_cause,
         "agent_rules": meta["rules_for_agent"],
+        "tier_legend": {
+            "C1": "원인 · 실행 준비 완료 — 조치 지시 가능",
+            "C2": "원인 · 조건부 — 단서를 붙여 제시",
+            "C3": "원인 · 관찰 — 확정 표현 금지, 확인 요청으로",
+            "M1": "감시지표 · 경보 가능",
+            "M2": "감시지표 · 경보 가능하나 단서 필요",
+            "M3": "감시지표 · 결과 공변 — 사후 탐지만. 예측·조치 불가",
+            "P1/P2": "후보 — 원인이라고 답하면 안 됨",
+        },
+        # 위험 경계값: "z가 이 값을 넘으면 불량률 X%" — Agent 경보 문구의 근거
+        "thresholds": th[["defect", "factor", "threshold_z", "risky_direction",
+                          "defect_rate_safe_pct", "defect_rate_risky_pct",
+                          "risk_ratio", "current_status"]].to_dict("records"),
+        # SOP 재료. 전부 DRAFT_UNVERIFIED이고, staleness_warning이 있으면 그대로 쓰면 안 됨
+        "sop_draft": sop[["defect", "factor", "tier", "action_type", "inspection_target",
+                          "normal_range", "warning_signal", "recommended_action",
+                          "status", "current_status", "actionable_now",
+                          "staleness_warning"]].to_dict("records"),
+        # 김시우님 Goal5 cause_factors를 어떻게 고쳐야 하는지
+        "health_index_actions": hil[["factor", "defect", "current_status",
+                                     "current_role", "required_action"]].to_dict("records"),
         "disputes": pd.read_csv(OUT / "rel_03_disputes.csv", encoding="utf-8-sig")[
             ["defect", "factor", "owner", "owner_verdict", "jun_verdict", "dispute_reason"]
         ].to_dict("records"),

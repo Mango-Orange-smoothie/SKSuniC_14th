@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.0",
-  "generated_at": "2026-08-05T05:59:59.779967+00:00",
+  "schema_version": "1.1",
+  "generated_at": "2026-08-05T06:15:17.990666+00:00",
   "source": "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/rel_01_factors.csv",
   "cause_factors": {
     "Power_Efficiency": {
@@ -15,7 +15,9 @@
       "confidence": "높음(2개 방법론 일치)",
       "effect_size_pure": -0.8989,
       "cross_check": "일치",
-      "caution": null
+      "caution": null,
+      "tier": "C1",
+      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
     },
     "Head_Temp": {
       "defects": [
@@ -29,7 +31,9 @@
       "confidence": "높음(2개 방법론 일치)",
       "effect_size_pure": 0.8867,
       "cross_check": "일치",
-      "caution": null
+      "caution": null,
+      "tier": "C1",
+      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
     },
     "Laser_Power": {
       "defects": [
@@ -43,7 +47,9 @@
       "confidence": "높음(2개 방법론 일치)",
       "effect_size_pure": -0.8724,
       "cross_check": "일치",
-      "caution": null
+      "caution": null,
+      "tier": "C1",
+      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
     },
     "Vibration": {
       "defects": [
@@ -58,7 +64,9 @@
       "confidence": "높음(2개 방법론 일치)",
       "effect_size_pure": 0.8443,
       "cross_check": "일치",
-      "caution": "확정이지만 엄격(pure/primary) 라벨 효과크기 |delta|<0.2 — 다른 defect가 섞인 넓은 라벨에 의존한 결론일 수 있음. 재확인 필요"
+      "caution": "확정이지만 엄격(pure/primary) 라벨 효과크기 |delta|<0.2 — 다른 defect가 섞인 넓은 라벨에 의존한 결론일 수 있음. 재확인 필요",
+      "tier": "C3",
+      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
     },
     "Laser_Centering_Position": {
       "defects": [
@@ -72,7 +80,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": 0.6067,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "C3",
+      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
     },
     "CLN_Pressure": {
       "defects": [
@@ -86,7 +96,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": -0.2466,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "C3",
+      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
     }
   },
   "monitor_factors": {
@@ -102,7 +114,9 @@
       "confidence": "높음(2개 방법론 일치)",
       "effect_size_pure": 0.9306,
       "cross_check": "일치",
-      "caution": null
+      "caution": null,
+      "tier": "P1",
+      "tier_meaning": "한쪽 방법만 통과 — 확정 아님"
     },
     "Bottom_Kerf": {
       "defects": [
@@ -116,7 +130,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": 0.9272,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "P1",
+      "tier_meaning": "한쪽 방법만 통과 — 확정 아님"
     },
     "Top_Kerf": {
       "defects": [
@@ -130,7 +146,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": 0.926,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "P1",
+      "tier_meaning": "한쪽 방법만 통과 — 확정 아님"
     },
     "Laser_Cleaning_Demand": {
       "defects": [
@@ -144,7 +162,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": -0.8622,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "M2",
+      "tier_meaning": "경보 사용 가능하나 대조 불일치 — 문구에 단서 필요"
     },
     "Groove_Depth": {
       "defects": [
@@ -158,7 +178,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": -0.7504,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "M2",
+      "tier_meaning": "경보 사용 가능하나 대조 불일치 — 문구에 단서 필요"
     },
     "Package_Size_Asymmetry": {
       "defects": [
@@ -172,7 +194,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": 0.6005,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "M2",
+      "tier_meaning": "경보 사용 가능하나 대조 불일치 — 문구에 단서 필요"
     },
     "Surface_Roughness": {
       "defects": [
@@ -188,7 +212,9 @@
       "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
       "effect_size_pure": 0.3982,
       "cross_check": "불일치",
-      "caution": null
+      "caution": null,
+      "tier": "P2",
+      "tier_meaning": "통계는 통과, 도메인 근거 미확인 — 멘토 확인 대기"
     }
   },
   "defects_without_confirmed_cause": {
@@ -204,6 +230,587 @@
     "Remain_Coat에 대해 '며칠 뒤 발생' 형태의 사전 예측을 하지 말 것 (감시지표 부재 — 즉시성 현상).",
     "Surface_Roughness를 원인으로 제시하지 말 것 (결과 공변).",
     "Micro_Crack의 확정 원인은 현재 0건이다. 없다고 답하고, 다이싱 단계 컬럼 부재를 이유로 밝힐 것. 억지로 후보를 제시하지 말 것."
+  ],
+  "tier_legend": {
+    "C1": "원인 · 실행 준비 완료 — 조치 지시 가능",
+    "C2": "원인 · 조건부 — 단서를 붙여 제시",
+    "C3": "원인 · 관찰 — 확정 표현 금지, 확인 요청으로",
+    "M1": "감시지표 · 경보 가능",
+    "M2": "감시지표 · 경보 가능하나 단서 필요",
+    "M3": "감시지표 · 결과 공변 — 사후 탐지만. 예측·조치 불가",
+    "P1/P2": "후보 — 원인이라고 답하면 안 됨"
+  },
+  "thresholds": [
+    {
+      "defect": "Chipping",
+      "factor": "Bottom_Kerf",
+      "threshold_z": 3.65,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.236,
+      "defect_rate_risky_pct": 42.46,
+      "risk_ratio": 180.16,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Kerf_Width_Profile",
+      "threshold_z": 3.4511,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.29,
+      "defect_rate_risky_pct": 50.255,
+      "risk_ratio": 173.17,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Top_Kerf",
+      "threshold_z": 3.4838,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.304,
+      "defect_rate_risky_pct": 42.689,
+      "risk_ratio": 140.4,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Head_Temp",
+      "threshold_z": 2.5796,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.638,
+      "defect_rate_risky_pct": 47.107,
+      "risk_ratio": 73.88,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Power_Efficiency",
+      "threshold_z": -2.2606,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 47.274,
+      "defect_rate_risky_pct": 1.252,
+      "risk_ratio": 37.75,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Laser_Power",
+      "threshold_z": -2.3866,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 51.886,
+      "defect_rate_risky_pct": 2.284,
+      "risk_ratio": 22.71,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Laser_Cleaning_Demand",
+      "threshold_z": -2.292,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 42.479,
+      "defect_rate_risky_pct": 2.324,
+      "risk_ratio": 18.28,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Vibration",
+      "threshold_z": 2.2718,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 2.557,
+      "defect_rate_risky_pct": 45.937,
+      "risk_ratio": 17.96,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Laser_Centering_Position",
+      "threshold_z": 3.4457,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 3.136,
+      "defect_rate_risky_pct": 55.912,
+      "risk_ratio": 17.83,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Package_Size_Asymmetry",
+      "threshold_z": 3.7999,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 3.417,
+      "defect_rate_risky_pct": 55.893,
+      "risk_ratio": 16.36,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Groove_Depth",
+      "threshold_z": -2.4344,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 52.984,
+      "defect_rate_risky_pct": 3.564,
+      "risk_ratio": 14.87,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Kerf_Angle",
+      "threshold_z": 1.8611,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 2.678,
+      "defect_rate_risky_pct": 34.825,
+      "risk_ratio": 13.0,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Package_Size_1",
+      "threshold_z": -2.5456,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 43.297,
+      "defect_rate_risky_pct": 3.516,
+      "risk_ratio": 12.32,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Package_Size_4",
+      "threshold_z": 2.5481,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 3.55,
+      "defect_rate_risky_pct": 43.242,
+      "risk_ratio": 12.18,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Package_Size_2",
+      "threshold_z": -1.9676,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 34.516,
+      "defect_rate_risky_pct": 4.673,
+      "risk_ratio": 7.39,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Package_Size_3",
+      "threshold_z": 1.9095,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 4.613,
+      "defect_rate_risky_pct": 33.879,
+      "risk_ratio": 7.34,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Surface_Roughness",
+      "threshold_z": 0.8908,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 4.799,
+      "defect_rate_risky_pct": 14.149,
+      "risk_ratio": 2.95,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Micro_Crack",
+      "factor": "Surface_Roughness",
+      "threshold_z": -0.0683,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.188,
+      "defect_rate_risky_pct": 5.092,
+      "risk_ratio": 27.07,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Micro_Crack",
+      "factor": "Process_Time",
+      "threshold_z": -1.9829,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 2.132,
+      "defect_rate_risky_pct": 2.989,
+      "risk_ratio": 1.4,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Surface_Roughness",
+      "threshold_z": 0.5721,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 0.118,
+      "defect_rate_risky_pct": 17.066,
+      "risk_ratio": 144.76,
+      "current_status": "confirmed_monitor"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Top_Kerf",
+      "threshold_z": 10.4703,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 6.153,
+      "defect_rate_risky_pct": 3.16,
+      "risk_ratio": 1.95,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Bottom_Kerf",
+      "threshold_z": 11.0924,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 6.163,
+      "defect_rate_risky_pct": 3.226,
+      "risk_ratio": 1.91,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Kerf_Width_Profile",
+      "threshold_z": 8.9762,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 6.161,
+      "defect_rate_risky_pct": 3.235,
+      "risk_ratio": 1.9,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Vibration",
+      "threshold_z": 0.0374,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 4.32,
+      "defect_rate_risky_pct": 7.749,
+      "risk_ratio": 1.79,
+      "current_status": "confirmed_cause"
+    },
+    {
+      "defect": "Particle",
+      "factor": "CLN_Flow",
+      "threshold_z": -16.5469,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 4.732,
+      "defect_rate_risky_pct": 6.109,
+      "risk_ratio": 1.29,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Cleaning_Load_Ratio",
+      "threshold_z": -1.897,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 4.926,
+      "defect_rate_risky_pct": 6.128,
+      "risk_ratio": 1.24,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "CLN_Pressure",
+      "threshold_z": -1.0908,
+      "risky_direction": "high_is_risky",
+      "defect_rate_safe_pct": 5.649,
+      "defect_rate_risky_pct": 6.171,
+      "risk_ratio": 1.09,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Particle",
+      "factor": "Cleaning_Capacity",
+      "threshold_z": 1.0531,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 6.157,
+      "defect_rate_risky_pct": 5.739,
+      "risk_ratio": 1.07,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Remain_Coat",
+      "factor": "CLN_Flow",
+      "threshold_z": -5.0565,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 20.504,
+      "defect_rate_risky_pct": 0.945,
+      "risk_ratio": 21.7,
+      "current_status": "candidate"
+    },
+    {
+      "defect": "Remain_Coat",
+      "factor": "CLN_Pressure",
+      "threshold_z": -1.5343,
+      "risky_direction": "low_is_risky",
+      "defect_rate_safe_pct": 9.756,
+      "defect_rate_risky_pct": 1.656,
+      "risk_ratio": 5.89,
+      "current_status": "confirmed_cause"
+    }
+  ],
+  "sop_draft": [
+    {
+      "defect": "Chipping",
+      "factor": "Head_Temp",
+      "tier": "Tier1_실행준비완료",
+      "action_type": "즉시조치",
+      "inspection_target": "Head_Temp (레이저 헤드 온도)",
+      "normal_range": "OPCOND 층별 median 기준 z <= +2.58",
+      "warning_signal": "z > +2.58 (위험구간 불량률 40.67% vs 정상구간 0.65%, 위험비 63배)",
+      "recommended_action": "헤드 온도 상승 원인(냉각계통) 점검, 굴절률 변화로 인한 센터링/Kerf 불균일 재확인",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Power_Efficiency",
+      "tier": "Tier1_실행준비완료",
+      "action_type": "즉시조치",
+      "inspection_target": "Power_Efficiency (레이저 효율)",
+      "normal_range": "OPCOND 층별 median 기준 -2.25 <= z (U자형, 상하한 모두 주의)",
+      "warning_signal": "z < -2.25 (위험구간 불량률 40.36% vs 정상 1.24%, 위험비 32.5배). 상방 이탈도 멘토 지적 U자형 특성상 별도 감시 필요",
+      "recommended_action": "레이저 조사 에너지 이상(과다/과소 모두) 점검. 단조 상관만으로 판단 금지 — 멘토 지적",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Laser_Power",
+      "tier": "Tier1_실행준비완료",
+      "action_type": "즉시조치",
+      "inspection_target": "Laser_Power (레이저 출력)",
+      "normal_range": "OPCOND 층별 median 기준 z >= -2.19",
+      "warning_signal": "z < -2.19 (위험구간 불량률 41.93% vs 정상 2.04%, 위험비 20.5배)",
+      "recommended_action": "레이저 출력 저하 원인 점검 — 출력 부족시 low-k 불완전 승화로 블레이드가 잔류물 타격",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Vibration",
+      "tier": "Tier1_실행준비완료",
+      "action_type": "즉시조치",
+      "inspection_target": "Vibration (설비 진동)",
+      "normal_range": "OPCOND 층별 median 기준 z <= +2.06",
+      "warning_signal": "z > +2.06 (위험구간 불량률 38.22% vs 정상 2.21%, 위험비 17.3배)",
+      "recommended_action": "스테이지 축 진동 점검(베어링/정렬), 장비 노후도 평가 — 나이프 자국형 대형 불량 사고사례 있음",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Chipping",
+      "factor": "Kerf_Width_Profile",
+      "tier": "Tier1_감시지표",
+      "action_type": "감시(조치대상아님)",
+      "inspection_target": "Kerf_Width_Profile (절단 폭, 측정 결과값)",
+      "normal_range": "OPCOND 층별 median 기준 z <= +3.36",
+      "warning_signal": "z > +3.36 (위험구간 불량률 43.07% vs 정상 0.28%, 위험비 154배 — 가장 강한 사후 신호)",
+      "recommended_action": "Chipping 발생의 선행 경고로 활용. 조치는 상류 원인(Laser_Power/Head_Temp/Power_Efficiency)에서 수행",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_monitor",
+      "actionable_now": false,
+      "staleness_warning": "역할 변경: 감시지표 — 조치 SOP가 아니라 경보 문구로 바꿔야 함"
+    },
+    {
+      "defect": "Remain_Coat",
+      "factor": "CLN_Pressure",
+      "tier": "Tier2c_방향일치_크기데이터셋의존",
+      "action_type": "조건부조치(실시간 알람형)",
+      "inspection_target": "CLN_Pressure (세정 압력, 스트립별 순간값)",
+      "normal_range": "OPCOND 층별 median 기준 z >= -1.53 (원본 데이터 기준, 현장값 재확인 필요)",
+      "warning_signal": "z < -1.53 (원본 데이터 위험구간 불량률 9.76% vs 정상 1.66%, 위험비 5.9배) — 수치는 데이터셋별 편차 큼(원본 delta -0.53 vs r1 -0.14), 확정 전 현장 재검증 요망",
+      "recommended_action": "스트립별 실시간 급락 알람으로 설계 (추세 감시 아님 — 전성재 검증9: 즉시적 현상). 압력 급락 감지 시 해당 스트립 즉시 재검사",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Particle",
+      "factor": "Vibration",
+      "tier": "Tier2d_데이터셋특정적_재현안됨",
+      "action_type": "관찰만(조치 보류)",
+      "inspection_target": "Vibration (설비 진동)",
+      "normal_range": "※ 목표 임계값 설정 보류 (원본/r1 부호 불일치)",
+      "warning_signal": "정성적 추이 관찰만 — 원본 기준으로는 z > 0 부근에서 위험 증가 추정되나 r1에서 반증됨. 수치 임계값 지시 금지",
+      "recommended_action": "Particle 조기경보 후보 변수로 등록해 추이만 관찰. 원본 데이터가 실제 라인과 더 가까운지 확인되면 재평가",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_cause",
+      "actionable_now": true,
+      "staleness_warning": NaN
+    },
+    {
+      "defect": "Particle",
+      "factor": "Surface_Roughness",
+      "tier": "monitor_only",
+      "action_type": "감시(조치대상아님)",
+      "inspection_target": "Surface_Roughness (표면 거칠기, 측정 결과값)",
+      "normal_range": "OPCOND 층별 median 기준 z <= +0.57",
+      "warning_signal": "z > +0.57 (위험구간 불량률 17.07% vs 정상 0.12%, 위험비 145배 — 사후 탐지력 매우 높음)",
+      "recommended_action": "Particle 발생 사후 탐지 지표로만 사용(원인 아님, 박대호 검증: 선행신호 잔존율 7.5%). 조치는 하지 않음",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_monitor",
+      "actionable_now": false,
+      "staleness_warning": "역할 변경: 감시지표 — 조치 SOP가 아니라 경보 문구로 바꿔야 함"
+    },
+    {
+      "defect": "Micro_Crack",
+      "factor": "Vibration",
+      "tier": "Tier2d_데이터셋특정적_재현안됨",
+      "action_type": "관찰만(조치 보류)",
+      "inspection_target": "Vibration (설비 진동)",
+      "normal_range": "※ 목표 임계값 설정 보류 (원본/r1 모두 약하고 부호 불일치)",
+      "warning_signal": "정성적 추이 관찰만 — 임계값 지시 금지",
+      "recommended_action": "이번 4개 defect 중 근거가 가장 약함. 그루빙 계열 16개 컬럼 제외 후 남는 유일한 후보라 '원인 미확정'에 가까움 — 추가 데이터/현장 확인 전까지 조치 설계 보류",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "insufficient",
+      "actionable_now": false,
+      "staleness_warning": "판정 강등됨 — 이 SOP는 현재 근거가 없다. 사용 중지 권고"
+    },
+    {
+      "defect": "Micro_Crack",
+      "factor": "Surface_Roughness",
+      "tier": "monitor_only",
+      "action_type": "감시(조치대상아님)",
+      "inspection_target": "Surface_Roughness (표면 거칠기, 측정 결과값)",
+      "normal_range": "참고용 — 위험선 미산출(표본 부족)",
+      "warning_signal": "정성적 추이만 참고",
+      "recommended_action": "Vibration의 압도적 드라이버라 균열과 공통원인을 공유하는 동반지표로 추정(JHdaimma). 조치는 하지 않음",
+      "status": "DRAFT_UNVERIFIED",
+      "current_status": "confirmed_monitor",
+      "actionable_now": false,
+      "staleness_warning": "역할 변경: 감시지표 — 조치 SOP가 아니라 경보 문구로 바꿔야 함"
+    }
+  ],
+  "health_index_actions": [
+    {
+      "factor": "Cooling_Flow",
+      "defect": "Micro_Crack",
+      "current_status": "insufficient",
+      "current_role": "원인(조치가능)",
+      "required_action": "삭제 — 현재 확정 원인 아님. Agent가 원인이라고 답하면 안 됨"
+    },
+    {
+      "factor": "Vibration",
+      "defect": "Micro_Crack",
+      "current_status": "insufficient",
+      "current_role": "원인(조치가능)",
+      "required_action": "삭제 — 현재 확정 원인 아님. Agent가 원인이라고 답하면 안 됨"
+    },
+    {
+      "factor": "Bottom_Kerf",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로"
+    },
+    {
+      "factor": "Groove_Depth",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로"
+    },
+    {
+      "factor": "Kerf_Width_Profile",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로"
+    },
+    {
+      "factor": "Top_Kerf",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로"
+    },
+    {
+      "factor": "Head_Temp",
+      "defect": "Chipping",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "Laser_Centering_Position",
+      "defect": "Chipping",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "Laser_Power",
+      "defect": "Chipping",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "Power_Efficiency",
+      "defect": "Chipping",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "Vibration",
+      "defect": "Particle",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "CLN_Pressure",
+      "defect": "Remain_Coat",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "유지 — 원인. SOP 생성 가능"
+    },
+    {
+      "factor": "Laser_Cleaning_Demand",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "추가 — Goal5에 없음"
+    },
+    {
+      "factor": "Package_Size_Asymmetry",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(관찰만)",
+      "required_action": "추가 — Goal5에 없음"
+    },
+    {
+      "factor": "Surface_Roughness",
+      "defect": "Chipping",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(결과공변·사후)",
+      "required_action": "추가 — Goal5에 없음"
+    },
+    {
+      "factor": "Vibration",
+      "defect": "Chipping",
+      "current_status": "confirmed_cause",
+      "current_role": "원인(조치가능)",
+      "required_action": "추가 — Goal5에 없음"
+    },
+    {
+      "factor": "Surface_Roughness",
+      "defect": "Micro_Crack",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(결과공변·사후)",
+      "required_action": "추가 — Goal5에 없음"
+    },
+    {
+      "factor": "Surface_Roughness",
+      "defect": "Particle",
+      "current_status": "confirmed_monitor",
+      "current_role": "감시지표(결과공변·사후)",
+      "required_action": "추가 — Goal5에 없음"
+    }
   ],
   "disputes": [
     {

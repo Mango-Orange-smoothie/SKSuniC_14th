@@ -1,7 +1,17 @@
 # 팀 통합 Relationship DB — 4개 defect
 
 작성 JHdaimma · 기준일 2026-08-05
-재현 `python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_unified_relationship_db.py"`
+
+재현 — **순서대로** 실행 (저장소 루트에서):
+```bash
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_unified_relationship_db.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_full_db_extension.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_agent_payload.py"
+```
+Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 접근이 필요**합니다.
+
+> **방침: 걸러내지 않습니다.** 확신이 낮은 것도 `status`/`confidence`/`caution`을 달아 전부 싣습니다.
+> Agent가 무엇을 말하면 안 되는지는 **필드로 판단**하게 합니다.
 
 각 담당자가 따로 낸 유효인자 판정을 **하나의 스키마**로 합쳤습니다.
 AI Agent가 **원인(조치 가능) / 감시지표(관찰만) / 불량결과**를 구분해 답하기 위한 기반입니다.
@@ -131,7 +141,56 @@ Jun 통합본도 같은 인자를 `Tier2d(관찰만)`로 봤습니다. **회의 
 
 ---
 
+## 티어표 (`rel_12_tiers.csv`)
+
+**원인 트랙과 감시지표 트랙을 절대 한 줄로 세우지 않습니다.**
+섞으면 `Groove_Depth`(측정값)가 상위 티어에 올라가고 Agent가 "조치하라"고 말하게 됩니다.
+
+### 원인 트랙 — 조치 지시 가능
+
+| Tier | 의미 | 인자 |
+|---|---|---|
+| **C1** | 실행 준비 완료 (2개 방법론 일치 + 재현) | Chipping `Power_Efficiency` `Head_Temp` `Laser_Power` `Vibration` |
+| **C3** | 관찰 (대조 불일치 + 재현 안 됨) | Chipping `Laser_Centering_Position` · **Particle `Vibration`** ⚠️ · Remain_Coat `CLN_Pressure` |
+
+### 감시지표 트랙 — 경보 전용
+
+| Tier | 의미 | 인자 |
+|---|---|---|
+| **M1** | 경보 가능 | Chipping `Kerf_Width_Profile` |
+| **M2** | 경보 가능하나 단서 필요 | `Bottom_Kerf` `Top_Kerf` `Laser_Cleaning_Demand` `Groove_Depth` `Package_Size_Asymmetry` |
+| **M3** | 결과 공변 — 사후 탐지만 | `Surface_Roughness` ×3 defect |
+
+### 후보 — 원인이라고 답하면 안 됨
+**P1** 15건 (한쪽 방법만 통과) · **P2** 13건 (도메인 근거 미확인)
+
+---
+
+## 🔧 김시우님 Goal5 반영 필요 (`rel_07_health_index_link.csv`)
+
+현재 `health_index_data.json`의 `cause_factors` 11개 중 **6건을 고쳐야 합니다.**
+
+| 조치 | 건수 | 대상 |
+|---|---|---|
+| **삭제** | 2 | Micro_Crack `Vibration` `Cooling_Flow` — **Agent가 지금 원인이라고 답하고 있음** |
+| **역할 변경** | 4 | Chipping `Kerf_Width_Profile` `Top_Kerf` `Bottom_Kerf` `Groove_Depth` → **감시지표. SOP 대상 제외** |
+| 유지 | 6 | Chipping 4개 + Particle `Vibration` + Remain_Coat `CLN_Pressure` |
+| 추가 | 6 | Chipping `Vibration` 외 감시지표 5개 |
+
+### 낡은 SOP 4건 (`rel_06_sop_draft.csv`)
+
+| defect / 인자 | 경고 |
+|---|---|
+| Micro_Crack `Vibration` | **판정 강등 — 사용 중지 권고** |
+| Chipping `Kerf_Width_Profile` | 역할 변경 — 조치 SOP → 경보 문구 |
+| Micro_Crack `Surface_Roughness` | 위와 같음 |
+| Particle `Surface_Roughness` | 위와 같음 |
+
+---
+
 ## 파일
+
+### 판정 (`build_unified_relationship_db.py`)
 
 | 파일 | 내용 | 행 |
 |---|---|---|
@@ -140,7 +199,26 @@ Jun 통합본도 같은 인자를 `Tier2d(관찰만)`로 봤습니다. **회의 
 | `rel_02_relationships.csv` | 관계 그래프 (causes / monitors / co_varies_with) | 31 |
 | `rel_03_disputes.csv` | 교차대조 불일치 + 사유 | 9 |
 | `rel_04_domain_knowledge.csv` | 도메인 지식 (확정/추정 등급 포함) | 82 |
-| `rel_05_thresholds.csv` | 위험 경계값 | 16 |
+
+### Agent 출력용 (`build_full_db_extension.py`)
+
+| 파일 | 내용 | 행 |
+|---|---|---|
+| `rel_05_thresholds.csv` | **위험 경계값 — 4개 defect 전부.** `usable_for_alert` 플래그 | 156 |
+| `rel_06_sop_draft.csv` | **SOP 초안** (Jun Goal6) + 낡음 경고 | 10 |
+| `rel_07_health_index_link.csv` | **Goal5 연결표** + 필요 조치 | 18 |
+| `rel_08_binning.csv` | 구간별 불량률 — "이 값이면 몇 %" | 110 |
+| `rel_09_shap_global.csv` | SHAP 전역 — **설명 전용** | 100 |
+| `rel_10_shap_local.csv` | SHAP 개별 건 — "이 LOT은 왜 위험한가" | 50 |
+| `rel_11_method_agreement.csv` | 3방법 순위 대조 | 100 |
+| `rel_12_tiers.csv` | **티어표** — 원인/감시 트랙 분리 | 44 |
+| `rel_13_vibration_entanglement.csv` | daeho Goal3 — Vibration 얽힘 구조 | 6 |
+
+### Agent 입력 (`build_agent_payload.py`)
+
+| 파일 | 내용 |
+|---|---|
+| `agent_cause_factors.json` | **위 전부를 하나로 묶은 Agent 입력.** `cause_factors` 6 / `monitor_factors` 7 / `thresholds` 30 / `sop_draft` 10 / `health_index_actions` 18 / `disputes` 9 / `agent_rules` 5 / `tier_legend` |
 
 ### `rel_01_factors.csv` 주요 컬럼
 
