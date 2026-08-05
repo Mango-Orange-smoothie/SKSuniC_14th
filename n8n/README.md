@@ -25,14 +25,15 @@ LTS**로 따로 설치해서 n8n을 그 위에 올렸다(`brew install node@22`,
 
 ```bash
 export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-export NODES_EXCLUDE='[]'   # 아래 "왜 필요한가" 참고 — 이거 없으면 Execute Command 노드가 비활성화됨
+export NODES_EXCLUDE='[]'        # 아래 "왜 필요한가" 참고 — 이거 없으면 Execute Command 노드가 비활성화됨
+export N8N_SECURE_COOKIE=false   # Safari로 http://localhost 접속 시 "secure cookie" 에러 방지(로컬 전용이라 안전)
 n8n start
 ```
 
-브라우저에서 http://localhost:5678 접속. (이미 owner 계정 하나 만들어뒀음 —
-이메일 tldn6850@gmail.com. 비밀번호는 설정 중 화면 좌표가 꼬여서 정확히 뭐가
-저장됐는지 확신이 없다. 이미 로그인된 브라우저 세션에서 Settings → Personal로
-들어가서 바로 원하는 비밀번호로 바꿔두는 게 안전함.)
+브라우저에서 http://localhost:5678 접속 — **꼭 `localhost`로 접속할 것, `127.0.0.1`
+아님** (Safari가 `127.0.0.1` + secure cookie 조합을 막을 수 있음). 계정: 이메일
+`tldn6850@gmail.com` / 비밀번호 `Sugent2026team`(로그인 재확인 완료). 필요하면
+로그인 후 Settings → Personal → Change password로 바꿀 것.
 
 ### 워크플로우 최초 등록
 
@@ -63,6 +64,24 @@ curl -X POST http://localhost:5678/webhook/run-health-pipeline
   "machines": [...]
 }
 ```
+
+## 위험 장비 있으면 메일로 리포트 발송
+
+`위험 장비 있음?`(IF) 노드가 `has_warning`을 보고 분기 — 위험 장비가 있으면
+`위험 메일 발송`(SMTP) 노드가 HTML 리포트를 보낸다. 리포트에는 장비 전체 개요 표
+(Health Index 색상 표시) + 위험 장비별 defect/원인변수 상세(현재값/기준값/정상범위/
+스펙출처/추세)까지 담긴다 — `causes` 딕셔너리를 그대로 표로 풀어낸 것.
+
+메일 발송은 Gmail SMTP(`smtp.gmail.com:465`, SSL)를 쓴다. n8n Credentials에
+"SMTP account"라는 이름으로 이미 등록돼 있고(Host/Port/User/앱 비밀번호), 워크플로우
+JSON의 이메일 노드가 그 credential id를 직접 참조한다 — **이 credential은 로컬 n8n
+DB에만 있고 git에는 안 올라간다**(워크플로우 JSON은 credential id만 참조, 실제
+비밀번호는 안 들어있음). 다른 컴퓨터에서 이 워크플로우를 다시 쓰려면 Credentials에서
+동일한 이름으로 새로 만들고 이메일 노드에서 다시 연결해야 함.
+
+**주의**: 워크플로우를 n8n 화면에서 수정(노드 추가/credential 연결 등)하면 "Publish"를
+눌러야 반영되고, `n8n start`로 띄운 서버는 재시작해야 그 발행분을 읽는다 — 편집 후
+바로 웹훅을 호출하면 예전 버전으로 실행된다.
 
 ## 왜 NODES_EXCLUDE='[]'가 필요한가
 
