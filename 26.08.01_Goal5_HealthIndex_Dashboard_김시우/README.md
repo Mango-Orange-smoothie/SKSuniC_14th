@@ -74,6 +74,13 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
   원본 데이터(`data/raw/`)로만 함 — **팀 결정(26.08.01)**: r1은 표본 부족 보완용
   학습/검증 데이터로만 쓰고 원본과 합치지 않음(의도된 설계).
 - SOP 제안은 전부 `DRAFT_UNVERIFIED` — 멘토/현장 확인 전까지 참고용.
+- **확정 원인변수(단변량)로는 "조기" 경보가 사실상 어렵습니다.** `analyze_lead_time.py`로
+  defect 발생 전 원인변수가 며칠 전부터 위험 신호를 보였는지 실측한 결과(26.08.05),
+  대부분 전조 자체가 없거나(0~50%), 전조가 있어도 평균 리드타임이 **0.0일** — 위험
+  상태가 defect 발생과 거의 동시에 나타나지 며칠 전부터 서서히 쌓이지 않습니다.
+  단변량 확인 원인만으로는 예측할 시간적 여유가 이 데이터엔 거의 없다는 뜻 — 방법론/
+  결과는 `05_lead_time_analysis.csv` 참고. JHdaimma의 다변량(SHAP/RandomForest) 모델
+  같은 조합 신호를 봐야 진짜 조기경보가 가능할 가능성이 높음(다음 단계 후보).
 
 ## 산출물
 
@@ -83,4 +90,5 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 | `02_health_index_by_defect.csv` | 장비×defect별 Health Index + 최악 원인변수 |
 | `03_health_index_by_machine.csv` | 장비별 최종 Health Index + 최악 defect |
 | `04_defect_occurrence_recent7d.csv` | 장비×defect별 최근 7일 실제 발생 여부 |
+| `05_lead_time_analysis.csv` | 원인변수×defect별 조기경보 리드타임 실측(`analyze_lead_time.py` 산출물) |
 | `health_index_data.json` | **AI Agent가 읽는 통합 데이터** |
