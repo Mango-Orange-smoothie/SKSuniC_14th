@@ -115,6 +115,19 @@ n8n 2.x부터 `Execute Command`/`Local File Trigger` 노드가 **기본적으로
 - **알림 연결**: 지금은 Respond to Webhook이 요약을 그대로 돌려줄 뿐, 실제 Slack/이메일
   발송은 안 함 — Slack/Gmail 노드를 `Summarize Health Index` 뒤에 추가하고
   `{{ $json.has_warning }}`으로 IF 분기하면 됨(그 서비스 자격증명은 각자 넣어야 함).
+- **(26.08.06 추가) 메일 발송 트리거는 "매일 재확인"이 아니라 "새 이상 시작"/"악화" 기준으로
+  나가야 함** — early_warning은 상태형이라 하나의 이상이 며칠~몇십일 지속되면 파이프라인을
+  돌릴 때마다(=n8n이 재실행될 때마다) 같은 이상을 계속 "위험"으로 반환한다. 그대로 스케줄
+  트리거를 걸면 엔지니어가 같은 문제로 매일 메일을 받게 됨(알림 피로). `health_index_data.json`의
+  `causes`/`anomalies` 항목에 이제 `alert_since`(이 이상이 시작된 날짜)와
+  `alert_active_days`(며칠째 지속 중인지)가 들어있으니, n8n Code 노드에서
+  - 직전 실행에서 보낸 `alert_since` 값을 저장해뒀다가(예: n8n 워크플로우 static data,
+    또는 별도 상태 파일) 이번 실행의 `alert_since`와 같으면 "이미 보낸 사건"으로 보고 스킵
+  - 다르면(새 사건 시작) 또는 `alert_active_days`가 특정 기준(예: 7일 단위)을 넘어서면
+    "장기 미해결" 재알림으로 다시 발송
+  하는 분기를 추가하는 걸 추천. 리포트 메일 본문에도 "이 이상은 {alert_since}부터
+  {alert_active_days}일째 지속 중"을 넣으면 엔지니어가 처음 보는 문제인지 계속 보던
+  문제인지 바로 구분할 수 있다.
 - **스케줄 트리거**: 지금 데이터는 정적(2026-01-01~03-30 고정)이라 "매일 재실행"이
   의미가 없어서 스케줄은 안 걸었음 — 실제 라이브 데이터가 들어오면 Webhook 대신/같이
   Schedule Trigger를 추가하면 됨.

@@ -1,4 +1,4 @@
-"""Health Index 재설계 v2 — "오늘 뭐부터 봐야 하는가"를 위한 우선순위 신호 계산.
+"""Health Index 재설계 v3 — "오늘 뭐부터 봐야 하는가"를 위한 우선순위 신호 계산.
 
 배경: 이전 버전(v1)은 불량페널티+안정성페널티+추세페널티를 가중치(3/8/5)로 더해
 하나의 점수로 뭉갰다. 근거 없는 가중치 문제도 있었지만, 더 근본적으로는 목적과
@@ -25,10 +25,11 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         granularity가 안 맞았다 — 일평균은 샷 평균이라 분산이 훨씬 작아 그 경계에 거의
         못 미쳤고, "스펙아웃이 원래 잘 안 생긴다"는 결론으로 이어졌었다. daily_mean_z
         자기 분포로 경계를 다시 재서 고침.)
-  2. **추세 = 점수에 안 섞고, 따로 보여준다.** 두 가지를 같이 담는다:
+  2. **추세는 두 가지를 별도 정보로 계속 제공하면서, 그중 (b)만 점수에도 작게 반영한다.**
        (a) margin_used_pct의 최근 14일 기울기(%/일)로 뽑은 정량적 "예상 며칠 뒤
            스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out) — 이 스크립트가
-           직접 추정.
+           직접 추정. 이건 여전히 점수에 안 섞고 별도 필드로만 준다(리드타임 추정치라
+           "점수"로 만들 단위가 없음).
        (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + PERSIST_WINDOW=5 지속성
            필터, Kendall tau로 교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져
            있는가"(trend_direction/early_warning_active/trend_message,
@@ -37,9 +38,23 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         다 떠맡고 있었다 — 원래 설계 의도("전처리에서 변동성 확인 → 추세분석에서
         방향 판단 → 그 결과로 위험을 알려줌")와 다르게, 추세분석 스크립트의 산출물이
         Health Index에 전혀 연결이 안 된 채 따로 돌고 있었다. 여기서 연결.)
-       레벨(z)과 추세(z/일)는 단위가 달라 그냥 더하면 한쪽이 묻히는 문제가 있었어서,
-       "점수 하나로 억지로 합치기"를 그만두고 서로 다른 질문에 각자 답하게 했다 —
-       레벨은 "지금 얼마나 급한가", 추세는 "언제쯤/왜 더 급해지는가".
+       (26.08.06: (b)를 "따로 보여주기만" 했더니, margin은 안 닳았는데 CUSUM은 이미
+        지속적 이상을 확정한 변수가 점수만 보면 100점(완전 건강)으로 나오는 사각지대가
+        생겼다(예: 막 CUSUM 경보가 뜬 DP01 Head_Temp). "Health Index는 장비 상태를
+        보라고 만든 것"이라는 목적에 안 맞아서, early_warning_active가 true인 변수는
+        레벨 점수에 (1 - TREND_PENALTY_MAX_CUT × maturity) 배율을 곱한다 — maturity는
+        alert_since부터 지속된 일수를 RECENT_WINDOW_DAYS로 나눈 값(0~1). 막 뜬 경보는
+        거의 안 깎이고, RECENT_WINDOW_DAYS 이상 지속된 "성숙한" 경보라야 최대폭
+        (TREND_PENALTY_MAX_CUT)을 다 받는다 — 자세한 근거는 TREND_PENALTY_MAX_CUT
+        정의부 주석 참고. v1의 "근거 없는 가중치로 여러 페널티를 섞는" 방식으로 돌아가지
+        않도록, (a)는 여전히 안 섞고 (b) 하나만, 그것도 "레벨 70%+추세 30%" 식 평균이
+        아니라 레벨에 곱하는 배율로만 반영한다 — 평균이면 "추세 미확인=100점"이 되어
+        margin은 이미 위험한데 CUSUM만 안 켜진 컬럼의 점수가 오히려 올라가는 문제가
+        생기기 때문.)
+       레벨(z)과 추세(z/일)는 단위가 달라 그냥 더하면 한쪽이 묻히는 문제가 있어서,
+       여전히 "점수 하나로 억지로 합치기"는 하지 않는다 — 레벨은 "지금 얼마나 급한가",
+       추세는 "언제쯤/왜 더 급해지는가"에 각자 답하되, (b)가 확정한 이상만큼은 레벨
+       점수에도 최소한의 흔적을 남긴다.
   3. defect별 Health Index = 그 defect 원인변수들 중 최솟값(제일 나쁜 게 전체를 끌어내림)
      장비별 Health Index   = 그 장비 defect들 중 최솟값
   4. 확정 원인이 아닌 나머지 변수도 같은 레벨/추세 계산을 적용한다(안전망) — 단 defect
@@ -132,6 +147,35 @@ RECIPE_HOTSPOT_TOP_N = 3
 # 전반의 문제라는 뜻이라 agent가 그렇게 말해야 한다.
 RECIPE_HOTSPOT_CONCENTRATION_RATIO = 2.0
 
+# (26.08.06 추가, 08.06 개정) Health Index는 원래 margin_used_pct(스펙 경계까지 남은
+# 여유)로만 점수를 매겨서, trend_analysis.py가 CUSUM/threshold로 통계적으로 확정한
+# "지속적 이상 추세"(early_warning_active)가 켜져 있어도 margin이 아직 안 닳았으면
+# 점수가 100에 가깝게 나왔다(예: DP01 Head_Temp가 방금 CUSUM 경보가 떴는데도 100.0으로
+# 표시됨) — "장비 상태를 보여준다"는 목적에 안 맞는 사각지대였다.
+#
+# 처음엔 "켜져 있으면 -15점" 고정폭으로 최소 반영했는데, 실제로 보니 레벨이 여전히
+# 점수를 거의 다 좌우했다(100점짜리가 85점까지밖에 안 내려감 — "레벨 비중이 너무 크다"는
+# 피드백). 그렇다고 "레벨 70% + 추세 30%"처럼 두 값을 평균내는 것도 안 된다 — 추세가
+# 아직 "미확인"(false)일 뿐인데 그걸 "건강함(100)"으로 취급해 평균에 넣으면, margin을
+# 91% 써서 이미 스펙아웃 직전인데 CUSUM만 아직 안 켜진 컬럼(예: DP03 Process_Time,
+# level=8.8)의 점수가 8.8×0.7+100×0.3=36.2로 오히려 올라가 버린다.
+#
+# 그래서 "레벨에 비율(%)을 곱해서 깎는" 방식을 쓰되, 그 비율 자체를 alert_active_days
+# (이 경보가 며칠째 지속 중인지, load_trend_warning_status가 계산)로 0에서
+# TREND_PENALTY_MAX_CUT까지 선형으로 키운다 — 막 뜬 지 몇 시간 안 된 경보(대부분이
+# 이 경우: 활성 경보 75건의 중앙값이 0.5일)는 아직 증거가 얕으니 레벨을 거의 안 건드리고,
+# RECENT_WINDOW_DAYS(14일, 위 상수 재사용) 이상 지속된 "성숙한" 경보라야 최대폭을
+# 다 받는다. 이건 이 프로젝트 전체에서 반복된 원칙과 같다 — PERSIST_WINDOW/episode_id/
+# CUSUM 누적합 모두 "순간 튐"보다 "계속 유지되는 신호"를 신뢰하는 방향으로 만들어졌다.
+#
+# TREND_PENALTY_MAX_CUT=0.5로 잡은 근거: 이미 있는 ANOMALY_MARGIN_THRESHOLD_PCT(50) —
+# "margin만으로도 이 정도면 눈여겨봐야 한다"는 팀의 기존 기준선 — 과 맞춘 것이다.
+# 즉 레벨이 100(margin 전혀 안 씀)이어도 성숙한 추세 경보 하나만으로 그 기존 기준선
+# (50점)까지는 끌어내릴 수 있게 했다. 실제 데이터(75건의 활성 경보)로 검증한 결과
+# 30점(n8n 위험장비 기준)을 새로 넘는 경우는 1건뿐이었다 — 대부분이 아직 신선한
+# 경보라 이 정도 상한으로는 위험장비 알림이 쏟아지지 않는다.
+TREND_PENALTY_MAX_CUT = 0.5
+
 
 def load_step0_outputs():
     opcond_baseline = pd.read_csv(config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv")
@@ -174,7 +218,8 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
         return {}
     tr = pd.read_csv(
         TREND_ANALYSIS_CSV,
-        usecols=["DateTime", "Machine_ID", "Product_ID", "Recipe_ID", "column", "trend_direction", "message"],
+        usecols=["DateTime", "Machine_ID", "Product_ID", "Recipe_ID", "column",
+                 "trend_direction", "message", "episode_id"],
     )
     tr["DateTime"] = pd.to_datetime(tr["DateTime"])
     dataset_latest = tr["DateTime"].max()
@@ -183,6 +228,20 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
     for (machine, col), g in tr.groupby(["Machine_ID", "column"]):
         latest_row = g.loc[g["DateTime"].idxmax()]
         days_since = (dataset_latest - latest_row["DateTime"]) / pd.Timedelta(days=1)
+
+        # (26.08.06 추가) "언제부터 이 이상이 시작됐는지"는 가장 최근 경고 행이 속한
+        # episode(같은 Product×Recipe 안에서 early_warning이 끊기지 않고 이어진 구간)의
+        # 첫 행 시각이다. 여기서 알림을 매 행(=매일)마다 새로 보내면 40일 넘게 지속되는
+        # 문제도 40번 알림이 나가버리므로(엔지니어 알림 피로), n8n 등 실제 알림 트리거는
+        # early_warning 행 자체가 아니라 이 episode 시작 시점(alert_since)이 바뀔 때만
+        # 새 알림으로 취급해야 한다.
+        same_episode = g[
+            (g["Product_ID"] == latest_row["Product_ID"])
+            & (g["Recipe_ID"] == latest_row["Recipe_ID"])
+            & (g["episode_id"] == latest_row["episode_id"])
+        ]
+        alert_since = same_episode["DateTime"].min()
+        alert_active_days = (dataset_latest - alert_since) / pd.Timedelta(days=1)
 
         combo_counts = g.groupby(["Product_ID", "Recipe_ID"]).size().sort_values(ascending=False)
         n_combos_affected = int(combo_counts.size)
@@ -198,6 +257,8 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
             "early_warning_active": bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS),
             "trend_message": latest_row["message"],
             "days_since_last_warning": round(float(days_since), 1),
+            "alert_since": alert_since.strftime("%Y-%m-%d") if bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS) else None,
+            "alert_active_days": round(float(alert_active_days), 1) if bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS) else None,
             "recipe_hotspots": recipe_hotspots,
             "n_product_recipe_combos_affected": n_combos_affected,
             "recipe_hotspot_concentrated": bool(top1_count >= RECIPE_HOTSPOT_CONCENTRATION_RATIO * avg_per_combo),
@@ -437,6 +498,15 @@ def compute_level_and_trend(
         # "정상 기준" = 전 장비 풀링한 일별 비율의 median(로버스트). 특정 장비가 나빠진
         # 구간이 있어도 기준 자체가 끌려가지 않게 median을 쓴다.
         zone_base_rate = zone_rate_df.groupby("column")["defect_zone_rate"].median().to_dict()
+        # (26.08.06 추가) CLN_Flow처럼 위험구간에 아예 안 들어가는 장비가 4대 중 3대라
+        # 풀링 median이 정확히 0으로 나오는 컬럼이 생겼다(median의 절반 이상이 "항상 0"인
+        # 장비들 몫이라) — 그러면 뒤에서 이 값으로 나눠 전체 컬럼이 NaN이 돼서 통째로
+        # 빠진다. median이 0인 컬럼만 mean으로 대체(소수 장비의 값이라도 반영되게) —
+        # median이 이미 0이 아닌 CLN_Pressure/Surface_Roughness는 그대로 median을 쓴다.
+        for _col, _rate in list(zone_base_rate.items()):
+            if not _rate:
+                _mean = zone_rate_df.loc[zone_rate_df["column"] == _col, "defect_zone_rate"].mean()
+                zone_base_rate[_col] = float(_mean) if _mean and _mean > 0 else zone_base_rate[_col]
 
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
@@ -545,6 +615,9 @@ def compute_level_and_trend(
             # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
 
         ta_status = trend_status.get((machine, col), {})
+        if ta_status.get("early_warning_active"):
+            maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
+            health_index_var = health_index_var * (1 - TREND_PENALTY_MAX_CUT * maturity)
 
         rows.append({
             "Machine_ID": machine,
@@ -574,6 +647,8 @@ def compute_level_and_trend(
             "trend_direction": ta_status.get("trend_direction"),
             "early_warning_active": ta_status.get("early_warning_active", False),
             "trend_message": ta_status.get("trend_message"),
+            "alert_since": ta_status.get("alert_since"),
+            "alert_active_days": ta_status.get("alert_active_days"),
             "recipe_hotspots": ta_status.get("recipe_hotspots", []),
             "n_product_recipe_combos_affected": ta_status.get("n_product_recipe_combos_affected"),
             "recipe_hotspot_concentrated": ta_status.get("recipe_hotspot_concentrated", False),
@@ -698,6 +773,8 @@ def build_machine_snapshot(
                     "trend_direction": _none_if_nan(row["trend_direction"]),
                     "early_warning_active": bool(row["early_warning_active"]),
                     "trend_message": _none_if_nan(row["trend_message"]),
+                    "alert_since": _none_if_nan(row["alert_since"]),
+                    "alert_active_days": _none_if_nan(row["alert_active_days"]),
                     "recipe_hotspots": row["recipe_hotspots"],
                     "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                     "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
@@ -734,6 +811,8 @@ def build_machine_snapshot(
                 "trend_direction": _none_if_nan(row["trend_direction"]),
                 "early_warning_active": bool(row["early_warning_active"]),
                 "trend_message": _none_if_nan(row["trend_message"]),
+                "alert_since": _none_if_nan(row["alert_since"]),
+                "alert_active_days": _none_if_nan(row["alert_active_days"]),
                 "recipe_hotspots": row["recipe_hotspots"],
                 "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                 "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),

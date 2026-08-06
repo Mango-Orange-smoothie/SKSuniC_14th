@@ -5,7 +5,6 @@ A,Alignment_Time,PKG_A|RCP_1,opcond_OK_median,0.3993,up
 A,Process_Time,PKG_A|RCP_1,opcond_OK_median,5.005,up
 A,Cooling_Flow,PKG_A|RCP_1,opcond_OK_median,10.003,down
 A,Cooling_Water_Temp,PKG_A|RCP_1,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_A|RCP_1,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_A|RCP_1,opcond_OK_median,49.996,down
 A,Groove_Depth,PKG_A|RCP_1,opcond_OK_median,44.9853,down
 A,Head_Temp,PKG_A|RCP_2,mentor_target,42.0,up
@@ -14,7 +13,6 @@ A,Alignment_Time,PKG_A|RCP_2,opcond_OK_median,0.4007,up
 A,Process_Time,PKG_A|RCP_2,opcond_OK_median,5.001,up
 A,Cooling_Flow,PKG_A|RCP_2,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_A|RCP_2,opcond_OK_median,22.0015,up
-A,CLN_Flow,PKG_A|RCP_2,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_A|RCP_2,opcond_OK_median,50.023,down
 A,Groove_Depth,PKG_A|RCP_2,opcond_OK_median,44.99895,down
 A,Head_Temp,PKG_A|RCP_3,mentor_target,42.0,up
@@ -23,7 +21,6 @@ A,Alignment_Time,PKG_A|RCP_3,opcond_OK_median,0.4001,up
 A,Process_Time,PKG_A|RCP_3,opcond_OK_median,5.001,up
 A,Cooling_Flow,PKG_A|RCP_3,opcond_OK_median,9.997,down
 A,Cooling_Water_Temp,PKG_A|RCP_3,opcond_OK_median,21.9925,up
-A,CLN_Flow,PKG_A|RCP_3,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_A|RCP_3,opcond_OK_median,49.986,down
 A,Groove_Depth,PKG_A|RCP_3,opcond_OK_median,44.99445,down
 A,Head_Temp,PKG_A|RCP_4,mentor_target,42.0,up
@@ -32,7 +29,6 @@ A,Alignment_Time,PKG_A|RCP_4,opcond_OK_median,0.40115,up
 A,Process_Time,PKG_A|RCP_4,opcond_OK_median,5.003,up
 A,Cooling_Flow,PKG_A|RCP_4,opcond_OK_median,9.9965,down
 A,Cooling_Water_Temp,PKG_A|RCP_4,opcond_OK_median,21.9925,up
-A,CLN_Flow,PKG_A|RCP_4,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_A|RCP_4,opcond_OK_median,50.0145,down
 A,Groove_Depth,PKG_A|RCP_4,opcond_OK_median,44.9828,down
 A,Head_Temp,PKG_A|RCP_5,mentor_target,42.0,up
@@ -41,7 +37,6 @@ A,Alignment_Time,PKG_A|RCP_5,opcond_OK_median,0.4002,up
 A,Process_Time,PKG_A|RCP_5,opcond_OK_median,5.005,up
 A,Cooling_Flow,PKG_A|RCP_5,opcond_OK_median,9.9975,down
 A,Cooling_Water_Temp,PKG_A|RCP_5,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_A|RCP_5,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_A|RCP_5,opcond_OK_median,50.007,down
 A,Groove_Depth,PKG_A|RCP_5,opcond_OK_median,44.9946,down
 A,Head_Temp,PKG_A|RCP_6,mentor_target,42.0,up
@@ -50,7 +45,6 @@ A,Alignment_Time,PKG_A|RCP_6,opcond_OK_median,0.3997,up
 A,Process_Time,PKG_A|RCP_6,opcond_OK_median,5.001,up
 A,Cooling_Flow,PKG_A|RCP_6,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_A|RCP_6,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_A|RCP_6,opcond_OK_median,9.99,down
 A,Coating_Flow,PKG_A|RCP_6,opcond_OK_median,49.991,down
 A,Groove_Depth,PKG_A|RCP_6,opcond_OK_median,44.9891,down
 A,Head_Temp,PKG_A|RCP_7,mentor_target,42.0,up
@@ -59,7 +53,6 @@ A,Alignment_Time,PKG_A|RCP_7,opcond_OK_median,0.3995,up
 A,Process_Time,PKG_A|RCP_7,opcond_OK_median,5.004,up
 A,Cooling_Flow,PKG_A|RCP_7,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_A|RCP_7,opcond_OK_median,22.005,up
-A,CLN_Flow,PKG_A|RCP_7,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_A|RCP_7,opcond_OK_median,50.0185,down
 A,Groove_Depth,PKG_A|RCP_7,opcond_OK_median,44.99535,down
 A,Head_Temp,PKG_A|RCP_8,mentor_target,42.0,up
@@ -68,7 +61,6 @@ A,Alignment_Time,PKG_A|RCP_8,opcond_OK_median,0.3998,up
 A,Process_Time,PKG_A|RCP_8,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_A|RCP_8,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_A|RCP_8,opcond_OK_median,22.0025,up
-A,CLN_Flow,PKG_A|RCP_8,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_A|RCP_8,opcond_OK_median,50.031,down
 A,Groove_Depth,PKG_A|RCP_8,opcond_OK_median,44.99805,down
 A,Head_Temp,PKG_A|RCP_9,mentor_target,42.0,up
@@ -77,7 +69,6 @@ A,Alignment_Time,PKG_A|RCP_9,opcond_OK_median,0.399,up
 A,Process_Time,PKG_A|RCP_9,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_A|RCP_9,opcond_OK_median,9.997,down
 A,Cooling_Water_Temp,PKG_A|RCP_9,opcond_OK_median,22.014,up
-A,CLN_Flow,PKG_A|RCP_9,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_A|RCP_9,opcond_OK_median,50.009,down
 A,Groove_Depth,PKG_A|RCP_9,opcond_OK_median,44.98555,down
 A,Head_Temp,PKG_B|RCP_1,mentor_target,42.0,up
@@ -86,7 +77,6 @@ A,Alignment_Time,PKG_B|RCP_1,opcond_OK_median,0.4004,up
 A,Process_Time,PKG_B|RCP_1,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_B|RCP_1,opcond_OK_median,9.993,down
 A,Cooling_Water_Temp,PKG_B|RCP_1,opcond_OK_median,22.016,up
-A,CLN_Flow,PKG_B|RCP_1,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_B|RCP_1,opcond_OK_median,50.011,down
 A,Groove_Depth,PKG_B|RCP_1,opcond_OK_median,44.9882,down
 A,Head_Temp,PKG_B|RCP_2,mentor_target,42.0,up
@@ -95,7 +85,6 @@ A,Alignment_Time,PKG_B|RCP_2,opcond_OK_median,0.3999,up
 A,Process_Time,PKG_B|RCP_2,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_B|RCP_2,opcond_OK_median,10.002,down
 A,Cooling_Water_Temp,PKG_B|RCP_2,opcond_OK_median,21.983,up
-A,CLN_Flow,PKG_B|RCP_2,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_B|RCP_2,opcond_OK_median,49.999,down
 A,Groove_Depth,PKG_B|RCP_2,opcond_OK_median,44.9861,down
 A,Head_Temp,PKG_B|RCP_3,mentor_target,42.0,up
@@ -104,7 +93,6 @@ A,Alignment_Time,PKG_B|RCP_3,opcond_OK_median,0.4008,up
 A,Process_Time,PKG_B|RCP_3,opcond_OK_median,5.007,up
 A,Cooling_Flow,PKG_B|RCP_3,opcond_OK_median,10.003,down
 A,Cooling_Water_Temp,PKG_B|RCP_3,opcond_OK_median,21.983,up
-A,CLN_Flow,PKG_B|RCP_3,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_B|RCP_3,opcond_OK_median,49.975,down
 A,Groove_Depth,PKG_B|RCP_3,opcond_OK_median,44.9932,down
 A,Head_Temp,PKG_B|RCP_4,mentor_target,42.0,up
@@ -113,7 +101,6 @@ A,Alignment_Time,PKG_B|RCP_4,opcond_OK_median,0.4002,up
 A,Process_Time,PKG_B|RCP_4,opcond_OK_median,5.007,up
 A,Cooling_Flow,PKG_B|RCP_4,opcond_OK_median,10.001,down
 A,Cooling_Water_Temp,PKG_B|RCP_4,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_B|RCP_4,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_B|RCP_4,opcond_OK_median,49.972,down
 A,Groove_Depth,PKG_B|RCP_4,opcond_OK_median,44.9854,down
 A,Head_Temp,PKG_B|RCP_5,mentor_target,42.0,up
@@ -122,7 +109,6 @@ A,Alignment_Time,PKG_B|RCP_5,opcond_OK_median,0.39975,up
 A,Process_Time,PKG_B|RCP_5,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_B|RCP_5,opcond_OK_median,10.001,down
 A,Cooling_Water_Temp,PKG_B|RCP_5,opcond_OK_median,22.002,up
-A,CLN_Flow,PKG_B|RCP_5,opcond_OK_median,9.99,down
 A,Coating_Flow,PKG_B|RCP_5,opcond_OK_median,49.978,down
 A,Groove_Depth,PKG_B|RCP_5,opcond_OK_median,44.98135,down
 A,Head_Temp,PKG_B|RCP_6,mentor_target,42.0,up
@@ -131,7 +117,6 @@ A,Alignment_Time,PKG_B|RCP_6,opcond_OK_median,0.4,up
 A,Process_Time,PKG_B|RCP_6,opcond_OK_median,4.996,up
 A,Cooling_Flow,PKG_B|RCP_6,opcond_OK_median,10.0,down
 A,Cooling_Water_Temp,PKG_B|RCP_6,opcond_OK_median,22.011,up
-A,CLN_Flow,PKG_B|RCP_6,opcond_OK_median,9.989,down
 A,Coating_Flow,PKG_B|RCP_6,opcond_OK_median,50.003,down
 A,Groove_Depth,PKG_B|RCP_6,opcond_OK_median,44.9793,down
 A,Head_Temp,PKG_B|RCP_7,mentor_target,42.0,up
@@ -140,7 +125,6 @@ A,Alignment_Time,PKG_B|RCP_7,opcond_OK_median,0.3995,up
 A,Process_Time,PKG_B|RCP_7,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_B|RCP_7,opcond_OK_median,10.0,down
 A,Cooling_Water_Temp,PKG_B|RCP_7,opcond_OK_median,22.0,up
-A,CLN_Flow,PKG_B|RCP_7,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_B|RCP_7,opcond_OK_median,49.992,down
 A,Groove_Depth,PKG_B|RCP_7,opcond_OK_median,44.9915,down
 A,Head_Temp,PKG_B|RCP_8,mentor_target,42.0,up
@@ -149,7 +133,6 @@ A,Alignment_Time,PKG_B|RCP_8,opcond_OK_median,0.3991,up
 A,Process_Time,PKG_B|RCP_8,opcond_OK_median,5.007,up
 A,Cooling_Flow,PKG_B|RCP_8,opcond_OK_median,9.995,down
 A,Cooling_Water_Temp,PKG_B|RCP_8,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_B|RCP_8,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_B|RCP_8,opcond_OK_median,50.022,down
 A,Groove_Depth,PKG_B|RCP_8,opcond_OK_median,44.9863,down
 A,Head_Temp,PKG_B|RCP_9,mentor_target,42.0,up
@@ -158,7 +141,6 @@ A,Alignment_Time,PKG_B|RCP_9,opcond_OK_median,0.3993,up
 A,Process_Time,PKG_B|RCP_9,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_B|RCP_9,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_B|RCP_9,opcond_OK_median,22.005,up
-A,CLN_Flow,PKG_B|RCP_9,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_B|RCP_9,opcond_OK_median,50.014,down
 A,Groove_Depth,PKG_B|RCP_9,opcond_OK_median,44.99275,down
 A,Head_Temp,PKG_C|RCP_1,mentor_target,42.0,up
@@ -167,7 +149,6 @@ A,Alignment_Time,PKG_C|RCP_1,opcond_OK_median,0.3986,up
 A,Process_Time,PKG_C|RCP_1,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_C|RCP_1,opcond_OK_median,10.003,down
 A,Cooling_Water_Temp,PKG_C|RCP_1,opcond_OK_median,22.007,up
-A,CLN_Flow,PKG_C|RCP_1,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_C|RCP_1,opcond_OK_median,49.988,down
 A,Groove_Depth,PKG_C|RCP_1,opcond_OK_median,44.9929,down
 A,Head_Temp,PKG_C|RCP_2,mentor_target,42.0,up
@@ -176,7 +157,6 @@ A,Alignment_Time,PKG_C|RCP_2,opcond_OK_median,0.4001,up
 A,Process_Time,PKG_C|RCP_2,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_C|RCP_2,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_C|RCP_2,opcond_OK_median,21.9835,up
-A,CLN_Flow,PKG_C|RCP_2,opcond_OK_median,9.9915,down
 A,Coating_Flow,PKG_C|RCP_2,opcond_OK_median,50.025,down
 A,Groove_Depth,PKG_C|RCP_2,opcond_OK_median,44.99205,down
 A,Head_Temp,PKG_C|RCP_3,mentor_target,42.0,up
@@ -185,7 +165,6 @@ A,Alignment_Time,PKG_C|RCP_3,opcond_OK_median,0.3997,up
 A,Process_Time,PKG_C|RCP_3,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_C|RCP_3,opcond_OK_median,10.001,down
 A,Cooling_Water_Temp,PKG_C|RCP_3,opcond_OK_median,21.9985,up
-A,CLN_Flow,PKG_C|RCP_3,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_C|RCP_3,opcond_OK_median,50.0065,down
 A,Groove_Depth,PKG_C|RCP_3,opcond_OK_median,44.98435,down
 A,Head_Temp,PKG_C|RCP_4,mentor_target,42.0,up
@@ -194,7 +173,6 @@ A,Alignment_Time,PKG_C|RCP_4,opcond_OK_median,0.4003,up
 A,Process_Time,PKG_C|RCP_4,opcond_OK_median,4.994,up
 A,Cooling_Flow,PKG_C|RCP_4,opcond_OK_median,9.992,down
 A,Cooling_Water_Temp,PKG_C|RCP_4,opcond_OK_median,21.995,up
-A,CLN_Flow,PKG_C|RCP_4,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_C|RCP_4,opcond_OK_median,49.978,down
 A,Groove_Depth,PKG_C|RCP_4,opcond_OK_median,44.9862,down
 A,Head_Temp,PKG_C|RCP_5,mentor_target,42.0,up
@@ -203,7 +181,6 @@ A,Alignment_Time,PKG_C|RCP_5,opcond_OK_median,0.4,up
 A,Process_Time,PKG_C|RCP_5,opcond_OK_median,4.996,up
 A,Cooling_Flow,PKG_C|RCP_5,opcond_OK_median,10.002,down
 A,Cooling_Water_Temp,PKG_C|RCP_5,opcond_OK_median,22.004,up
-A,CLN_Flow,PKG_C|RCP_5,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_C|RCP_5,opcond_OK_median,49.991,down
 A,Groove_Depth,PKG_C|RCP_5,opcond_OK_median,44.9922,down
 A,Head_Temp,PKG_C|RCP_6,mentor_target,42.0,up
@@ -212,7 +189,6 @@ A,Alignment_Time,PKG_C|RCP_6,opcond_OK_median,0.40055,up
 A,Process_Time,PKG_C|RCP_6,opcond_OK_median,4.995,up
 A,Cooling_Flow,PKG_C|RCP_6,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_C|RCP_6,opcond_OK_median,22.003,up
-A,CLN_Flow,PKG_C|RCP_6,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_C|RCP_6,opcond_OK_median,49.982,down
 A,Groove_Depth,PKG_C|RCP_6,opcond_OK_median,44.99535,down
 A,Head_Temp,PKG_C|RCP_7,mentor_target,42.0,up
@@ -221,7 +197,6 @@ A,Alignment_Time,PKG_C|RCP_7,opcond_OK_median,0.4001,up
 A,Process_Time,PKG_C|RCP_7,opcond_OK_median,5.001,up
 A,Cooling_Flow,PKG_C|RCP_7,opcond_OK_median,9.9995,down
 A,Cooling_Water_Temp,PKG_C|RCP_7,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_C|RCP_7,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_C|RCP_7,opcond_OK_median,49.994,down
 A,Groove_Depth,PKG_C|RCP_7,opcond_OK_median,44.98705,down
 A,Head_Temp,PKG_C|RCP_8,mentor_target,42.0,up
@@ -230,7 +205,6 @@ A,Alignment_Time,PKG_C|RCP_8,opcond_OK_median,0.3999,up
 A,Process_Time,PKG_C|RCP_8,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_C|RCP_8,opcond_OK_median,9.995,down
 A,Cooling_Water_Temp,PKG_C|RCP_8,opcond_OK_median,22.004,up
-A,CLN_Flow,PKG_C|RCP_8,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_C|RCP_8,opcond_OK_median,50.009,down
 A,Groove_Depth,PKG_C|RCP_8,opcond_OK_median,44.9903,down
 A,Head_Temp,PKG_C|RCP_9,mentor_target,42.0,up
@@ -239,7 +213,6 @@ A,Alignment_Time,PKG_C|RCP_9,opcond_OK_median,0.40065,up
 A,Process_Time,PKG_C|RCP_9,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_C|RCP_9,opcond_OK_median,10.0005,down
 A,Cooling_Water_Temp,PKG_C|RCP_9,opcond_OK_median,22.0055,up
-A,CLN_Flow,PKG_C|RCP_9,opcond_OK_median,9.987,down
 A,Coating_Flow,PKG_C|RCP_9,opcond_OK_median,50.0005,down
 A,Groove_Depth,PKG_C|RCP_9,opcond_OK_median,44.98725,down
 A,Head_Temp,PKG_D|RCP_1,mentor_target,42.0,up
@@ -248,7 +221,6 @@ A,Alignment_Time,PKG_D|RCP_1,opcond_OK_median,0.4004,up
 A,Process_Time,PKG_D|RCP_1,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_D|RCP_1,opcond_OK_median,9.998,down
 A,Cooling_Water_Temp,PKG_D|RCP_1,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_D|RCP_1,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_D|RCP_1,opcond_OK_median,50.006,down
 A,Groove_Depth,PKG_D|RCP_1,opcond_OK_median,44.99875,down
 A,Head_Temp,PKG_D|RCP_2,mentor_target,42.0,up
@@ -257,7 +229,6 @@ A,Alignment_Time,PKG_D|RCP_2,opcond_OK_median,0.4005,up
 A,Process_Time,PKG_D|RCP_2,opcond_OK_median,5.001,up
 A,Cooling_Flow,PKG_D|RCP_2,opcond_OK_median,10.004,down
 A,Cooling_Water_Temp,PKG_D|RCP_2,opcond_OK_median,21.992,up
-A,CLN_Flow,PKG_D|RCP_2,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_D|RCP_2,opcond_OK_median,49.963,down
 A,Groove_Depth,PKG_D|RCP_2,opcond_OK_median,44.9879,down
 A,Head_Temp,PKG_D|RCP_3,mentor_target,42.0,up
@@ -266,7 +237,6 @@ A,Alignment_Time,PKG_D|RCP_3,opcond_OK_median,0.4001,up
 A,Process_Time,PKG_D|RCP_3,opcond_OK_median,5.003,up
 A,Cooling_Flow,PKG_D|RCP_3,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_D|RCP_3,opcond_OK_median,22.014,up
-A,CLN_Flow,PKG_D|RCP_3,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_D|RCP_3,opcond_OK_median,49.978,down
 A,Groove_Depth,PKG_D|RCP_3,opcond_OK_median,44.9894,down
 A,Head_Temp,PKG_D|RCP_4,mentor_target,42.0,up
@@ -275,7 +245,6 @@ A,Alignment_Time,PKG_D|RCP_4,opcond_OK_median,0.3993,up
 A,Process_Time,PKG_D|RCP_4,opcond_OK_median,5.003,up
 A,Cooling_Flow,PKG_D|RCP_4,opcond_OK_median,10.0,down
 A,Cooling_Water_Temp,PKG_D|RCP_4,opcond_OK_median,22.013,up
-A,CLN_Flow,PKG_D|RCP_4,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_D|RCP_4,opcond_OK_median,49.984,down
 A,Groove_Depth,PKG_D|RCP_4,opcond_OK_median,44.9843,down
 A,Head_Temp,PKG_D|RCP_5,mentor_target,42.0,up
@@ -284,7 +253,6 @@ A,Alignment_Time,PKG_D|RCP_5,opcond_OK_median,0.3999,up
 A,Process_Time,PKG_D|RCP_5,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_D|RCP_5,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_D|RCP_5,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_D|RCP_5,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_D|RCP_5,opcond_OK_median,49.983,down
 A,Groove_Depth,PKG_D|RCP_5,opcond_OK_median,44.9859,down
 A,Head_Temp,PKG_D|RCP_6,mentor_target,42.0,up
@@ -293,7 +261,6 @@ A,Alignment_Time,PKG_D|RCP_6,opcond_OK_median,0.40065,up
 A,Process_Time,PKG_D|RCP_6,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_D|RCP_6,opcond_OK_median,9.9955,down
 A,Cooling_Water_Temp,PKG_D|RCP_6,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_D|RCP_6,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_D|RCP_6,opcond_OK_median,50.02,down
 A,Groove_Depth,PKG_D|RCP_6,opcond_OK_median,44.9874,down
 A,Head_Temp,PKG_D|RCP_7,mentor_target,42.0,up
@@ -302,7 +269,6 @@ A,Alignment_Time,PKG_D|RCP_7,opcond_OK_median,0.4002,up
 A,Process_Time,PKG_D|RCP_7,opcond_OK_median,4.998,up
 A,Cooling_Flow,PKG_D|RCP_7,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_D|RCP_7,opcond_OK_median,21.999,up
-A,CLN_Flow,PKG_D|RCP_7,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_D|RCP_7,opcond_OK_median,50.016,down
 A,Groove_Depth,PKG_D|RCP_7,opcond_OK_median,44.9887,down
 A,Head_Temp,PKG_D|RCP_8,mentor_target,42.0,up
@@ -311,7 +277,6 @@ A,Alignment_Time,PKG_D|RCP_8,opcond_OK_median,0.3987,up
 A,Process_Time,PKG_D|RCP_8,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_D|RCP_8,opcond_OK_median,10.002,down
 A,Cooling_Water_Temp,PKG_D|RCP_8,opcond_OK_median,22.006,up
-A,CLN_Flow,PKG_D|RCP_8,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_D|RCP_8,opcond_OK_median,50.022,down
 A,Groove_Depth,PKG_D|RCP_8,opcond_OK_median,44.993,down
 A,Head_Temp,PKG_D|RCP_9,mentor_target,42.0,up
@@ -320,7 +285,6 @@ A,Alignment_Time,PKG_D|RCP_9,opcond_OK_median,0.39955,up
 A,Process_Time,PKG_D|RCP_9,opcond_OK_median,5.006,up
 A,Cooling_Flow,PKG_D|RCP_9,opcond_OK_median,10.0,down
 A,Cooling_Water_Temp,PKG_D|RCP_9,opcond_OK_median,22.006,up
-A,CLN_Flow,PKG_D|RCP_9,opcond_OK_median,9.99,down
 A,Coating_Flow,PKG_D|RCP_9,opcond_OK_median,50.0045,down
 A,Groove_Depth,PKG_D|RCP_9,opcond_OK_median,44.9893,down
 A,Head_Temp,PKG_E|RCP_1,mentor_target,42.0,up
@@ -329,7 +293,6 @@ A,Alignment_Time,PKG_E|RCP_1,opcond_OK_median,0.399,up
 A,Process_Time,PKG_E|RCP_1,opcond_OK_median,5.003,up
 A,Cooling_Flow,PKG_E|RCP_1,opcond_OK_median,10.002,down
 A,Cooling_Water_Temp,PKG_E|RCP_1,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_E|RCP_1,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_E|RCP_1,opcond_OK_median,49.982,down
 A,Groove_Depth,PKG_E|RCP_1,opcond_OK_median,44.9967,down
 A,Head_Temp,PKG_E|RCP_2,mentor_target,42.0,up
@@ -338,7 +301,6 @@ A,Alignment_Time,PKG_E|RCP_2,opcond_OK_median,0.40015,up
 A,Process_Time,PKG_E|RCP_2,opcond_OK_median,5.003,up
 A,Cooling_Flow,PKG_E|RCP_2,opcond_OK_median,10.0035,down
 A,Cooling_Water_Temp,PKG_E|RCP_2,opcond_OK_median,22.001,up
-A,CLN_Flow,PKG_E|RCP_2,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_E|RCP_2,opcond_OK_median,50.0305,down
 A,Groove_Depth,PKG_E|RCP_2,opcond_OK_median,44.9957,down
 A,Head_Temp,PKG_E|RCP_3,mentor_target,42.0,up
@@ -347,7 +309,6 @@ A,Alignment_Time,PKG_E|RCP_3,opcond_OK_median,0.4,up
 A,Process_Time,PKG_E|RCP_3,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_E|RCP_3,opcond_OK_median,9.9945,down
 A,Cooling_Water_Temp,PKG_E|RCP_3,opcond_OK_median,22.0,up
-A,CLN_Flow,PKG_E|RCP_3,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_E|RCP_3,opcond_OK_median,50.006,down
 A,Groove_Depth,PKG_E|RCP_3,opcond_OK_median,44.98905,down
 A,Head_Temp,PKG_E|RCP_4,mentor_target,42.0,up
@@ -356,7 +317,6 @@ A,Alignment_Time,PKG_E|RCP_4,opcond_OK_median,0.3996,up
 A,Process_Time,PKG_E|RCP_4,opcond_OK_median,4.997,up
 A,Cooling_Flow,PKG_E|RCP_4,opcond_OK_median,10.0,down
 A,Cooling_Water_Temp,PKG_E|RCP_4,opcond_OK_median,22.009,up
-A,CLN_Flow,PKG_E|RCP_4,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_E|RCP_4,opcond_OK_median,50.008,down
 A,Groove_Depth,PKG_E|RCP_4,opcond_OK_median,44.9901,down
 A,Head_Temp,PKG_E|RCP_5,mentor_target,42.0,up
@@ -365,7 +325,6 @@ A,Alignment_Time,PKG_E|RCP_5,opcond_OK_median,0.3992,up
 A,Process_Time,PKG_E|RCP_5,opcond_OK_median,4.995,up
 A,Cooling_Flow,PKG_E|RCP_5,opcond_OK_median,9.998,down
 A,Cooling_Water_Temp,PKG_E|RCP_5,opcond_OK_median,22.0055,up
-A,CLN_Flow,PKG_E|RCP_5,opcond_OK_median,9.99,down
 A,Coating_Flow,PKG_E|RCP_5,opcond_OK_median,50.006,down
 A,Groove_Depth,PKG_E|RCP_5,opcond_OK_median,44.9977,down
 A,Head_Temp,PKG_E|RCP_6,mentor_target,42.0,up
@@ -374,7 +333,6 @@ A,Alignment_Time,PKG_E|RCP_6,opcond_OK_median,0.40005,up
 A,Process_Time,PKG_E|RCP_6,opcond_OK_median,4.997,up
 A,Cooling_Flow,PKG_E|RCP_6,opcond_OK_median,9.997,down
 A,Cooling_Water_Temp,PKG_E|RCP_6,opcond_OK_median,21.9955,up
-A,CLN_Flow,PKG_E|RCP_6,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_E|RCP_6,opcond_OK_median,50.025,down
 A,Groove_Depth,PKG_E|RCP_6,opcond_OK_median,44.97965,down
 A,Head_Temp,PKG_E|RCP_7,mentor_target,42.0,up
@@ -383,7 +341,6 @@ A,Alignment_Time,PKG_E|RCP_7,opcond_OK_median,0.3997,up
 A,Process_Time,PKG_E|RCP_7,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_E|RCP_7,opcond_OK_median,10.003,down
 A,Cooling_Water_Temp,PKG_E|RCP_7,opcond_OK_median,22.0115,up
-A,CLN_Flow,PKG_E|RCP_7,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_E|RCP_7,opcond_OK_median,50.002,down
 A,Groove_Depth,PKG_E|RCP_7,opcond_OK_median,44.99135,down
 A,Head_Temp,PKG_E|RCP_8,mentor_target,42.0,up
@@ -392,7 +349,6 @@ A,Alignment_Time,PKG_E|RCP_8,opcond_OK_median,0.4001,up
 A,Process_Time,PKG_E|RCP_8,opcond_OK_median,4.996,up
 A,Cooling_Flow,PKG_E|RCP_8,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_E|RCP_8,opcond_OK_median,22.007,up
-A,CLN_Flow,PKG_E|RCP_8,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_E|RCP_8,opcond_OK_median,50.014,down
 A,Groove_Depth,PKG_E|RCP_8,opcond_OK_median,44.9924,down
 A,Head_Temp,PKG_E|RCP_9,mentor_target,42.0,up
@@ -401,7 +357,6 @@ A,Alignment_Time,PKG_E|RCP_9,opcond_OK_median,0.4,up
 A,Process_Time,PKG_E|RCP_9,opcond_OK_median,5.008,up
 A,Cooling_Flow,PKG_E|RCP_9,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_E|RCP_9,opcond_OK_median,22.01,up
-A,CLN_Flow,PKG_E|RCP_9,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_E|RCP_9,opcond_OK_median,49.993,down
 A,Groove_Depth,PKG_E|RCP_9,opcond_OK_median,44.987,down
 A,Head_Temp,PKG_F|RCP_1,mentor_target,42.0,up
@@ -410,7 +365,6 @@ A,Alignment_Time,PKG_F|RCP_1,opcond_OK_median,0.3993,up
 A,Process_Time,PKG_F|RCP_1,opcond_OK_median,4.998,up
 A,Cooling_Flow,PKG_F|RCP_1,opcond_OK_median,10.0005,down
 A,Cooling_Water_Temp,PKG_F|RCP_1,opcond_OK_median,21.9965,up
-A,CLN_Flow,PKG_F|RCP_1,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_F|RCP_1,opcond_OK_median,49.9935,down
 A,Groove_Depth,PKG_F|RCP_1,opcond_OK_median,44.9842,down
 A,Head_Temp,PKG_F|RCP_2,mentor_target,42.0,up
@@ -419,7 +373,6 @@ A,Alignment_Time,PKG_F|RCP_2,opcond_OK_median,0.4007,up
 A,Process_Time,PKG_F|RCP_2,opcond_OK_median,4.998,up
 A,Cooling_Flow,PKG_F|RCP_2,opcond_OK_median,10.001,down
 A,Cooling_Water_Temp,PKG_F|RCP_2,opcond_OK_median,22.012,up
-A,CLN_Flow,PKG_F|RCP_2,opcond_OK_median,9.988,down
 A,Coating_Flow,PKG_F|RCP_2,opcond_OK_median,50.011,down
 A,Groove_Depth,PKG_F|RCP_2,opcond_OK_median,44.9905,down
 A,Head_Temp,PKG_F|RCP_3,mentor_target,42.0,up
@@ -428,7 +381,6 @@ A,Alignment_Time,PKG_F|RCP_3,opcond_OK_median,0.39925,up
 A,Process_Time,PKG_F|RCP_3,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_F|RCP_3,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_F|RCP_3,opcond_OK_median,21.994,up
-A,CLN_Flow,PKG_F|RCP_3,opcond_OK_median,9.994,down
 A,Coating_Flow,PKG_F|RCP_3,opcond_OK_median,49.9685,down
 A,Groove_Depth,PKG_F|RCP_3,opcond_OK_median,44.9923,down
 A,Head_Temp,PKG_F|RCP_4,mentor_target,42.0,up
@@ -437,7 +389,6 @@ A,Alignment_Time,PKG_F|RCP_4,opcond_OK_median,0.40055,up
 A,Process_Time,PKG_F|RCP_4,opcond_OK_median,4.999,up
 A,Cooling_Flow,PKG_F|RCP_4,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_F|RCP_4,opcond_OK_median,21.989,up
-A,CLN_Flow,PKG_F|RCP_4,opcond_OK_median,9.989,down
 A,Coating_Flow,PKG_F|RCP_4,opcond_OK_median,49.974,down
 A,Groove_Depth,PKG_F|RCP_4,opcond_OK_median,44.9895,down
 A,Head_Temp,PKG_F|RCP_5,mentor_target,42.0,up
@@ -446,7 +397,6 @@ A,Alignment_Time,PKG_F|RCP_5,opcond_OK_median,0.3998,up
 A,Process_Time,PKG_F|RCP_5,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_F|RCP_5,opcond_OK_median,9.999,down
 A,Cooling_Water_Temp,PKG_F|RCP_5,opcond_OK_median,22.016,up
-A,CLN_Flow,PKG_F|RCP_5,opcond_OK_median,9.993,down
 A,Coating_Flow,PKG_F|RCP_5,opcond_OK_median,50.0,down
 A,Groove_Depth,PKG_F|RCP_5,opcond_OK_median,44.9894,down
 A,Head_Temp,PKG_F|RCP_6,mentor_target,42.0,up
@@ -455,7 +405,6 @@ A,Alignment_Time,PKG_F|RCP_6,opcond_OK_median,0.399,up
 A,Process_Time,PKG_F|RCP_6,opcond_OK_median,5.002,up
 A,Cooling_Flow,PKG_F|RCP_6,opcond_OK_median,9.996,down
 A,Cooling_Water_Temp,PKG_F|RCP_6,opcond_OK_median,21.991,up
-A,CLN_Flow,PKG_F|RCP_6,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_F|RCP_6,opcond_OK_median,50.022,down
 A,Groove_Depth,PKG_F|RCP_6,opcond_OK_median,44.9965,down
 A,Head_Temp,PKG_F|RCP_7,mentor_target,42.0,up
@@ -464,7 +413,6 @@ A,Alignment_Time,PKG_F|RCP_7,opcond_OK_median,0.40065,up
 A,Process_Time,PKG_F|RCP_7,opcond_OK_median,5.0,up
 A,Cooling_Flow,PKG_F|RCP_7,opcond_OK_median,9.998,down
 A,Cooling_Water_Temp,PKG_F|RCP_7,opcond_OK_median,21.9945,up
-A,CLN_Flow,PKG_F|RCP_7,opcond_OK_median,9.992,down
 A,Coating_Flow,PKG_F|RCP_7,opcond_OK_median,49.984,down
 A,Groove_Depth,PKG_F|RCP_7,opcond_OK_median,44.98375,down
 A,Head_Temp,PKG_F|RCP_8,mentor_target,42.0,up
@@ -473,7 +421,6 @@ A,Alignment_Time,PKG_F|RCP_8,opcond_OK_median,0.4008,up
 A,Process_Time,PKG_F|RCP_8,opcond_OK_median,4.998,up
 A,Cooling_Flow,PKG_F|RCP_8,opcond_OK_median,9.998,down
 A,Cooling_Water_Temp,PKG_F|RCP_8,opcond_OK_median,22.018,up
-A,CLN_Flow,PKG_F|RCP_8,opcond_OK_median,9.991,down
 A,Coating_Flow,PKG_F|RCP_8,opcond_OK_median,49.9985,down
 A,Groove_Depth,PKG_F|RCP_8,opcond_OK_median,44.9885,down
 A,Head_Temp,PKG_F|RCP_9,mentor_target,42.0,up
@@ -482,7 +429,6 @@ A,Alignment_Time,PKG_F|RCP_9,opcond_OK_median,0.3999,up
 A,Process_Time,PKG_F|RCP_9,opcond_OK_median,5.004,up
 A,Cooling_Flow,PKG_F|RCP_9,opcond_OK_median,10.003,down
 A,Cooling_Water_Temp,PKG_F|RCP_9,opcond_OK_median,22.004,up
-A,CLN_Flow,PKG_F|RCP_9,opcond_OK_median,9.995,down
 A,Coating_Flow,PKG_F|RCP_9,opcond_OK_median,50.003,down
 A,Groove_Depth,PKG_F|RCP_9,opcond_OK_median,44.9897,down
 B,Laser_Power,PKG_A|RCP_1,mentor_target,18.5,

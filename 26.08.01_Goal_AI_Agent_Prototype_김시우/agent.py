@@ -8,8 +8,15 @@ Health Index(0~100, 100이 건강)가 답하는 질문은 "다른 장비/변수 
 아니라 "스펙 아웃(임시 USL/LSL) 되기 전에 미리 알 수 있는가"다. 변수별로 baseline에서
 스펙 경계까지 남은 여유를 다 쓴 정도로 점수를 매기고(margin 기반, 가중치 없음),
 defect/장비 단위로는 "여러 원인 중 제일 나쁜 것"을 그대로 대표값으로 쓴다(평균 아님).
-추세는 점수에 안 섞고 "이 속도면 예상 며칠 뒤 스펙아웃"이라는 별도 정보로 준다.
-자세한 계산 로직은 build_health_index.py 상단 docstring 참고.
+(26.08.06) margin만으로는 "추세는 나쁜데 아직 값은 안 벗어난" 사각지대가 있어서
+(예: 방금 CUSUM 경보가 뜬 변수가 margin만 보면 100점으로 표시됨), early_warning_active가
+true인 변수는 레벨 점수에 (1 - 0.5×maturity) 배율을 곱한다 — maturity는 이 경보가
+alert_since부터 며칠째 지속 중인지를 14일 기준으로 0~1로 정규화한 값. 막 뜬 경보는
+거의 안 깎이고 14일 이상 지속된 "성숙한" 경보라야 최대 50%까지 깎인다 — 그래서
+health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세인지)를 어느 정도 반영한
+값이다(margin과 완전히 같은 게 아님). 그 위에 "이 속도면 예상 며칠 뒤 스펙아웃"이라는
+정량 추정치(estimated_days_to_spec_out)를 별도로 더 준다. 자세한 계산 로직은
+build_health_index.py 상단 docstring 참고.
 
 get_machine_health가 반환하는 구조 핵심:
   - health_index: 장비/defect/원인변수 3단계 모두 있음 (낮을수록 급함)
@@ -34,11 +41,19 @@ get_machine_health가 반환하는 구조 핵심:
   - trend_direction / early_warning_active / trend_message: estimated_days_to_spec_out과
     다른 스크립트(trend_analysis.py, 김시우 팀원 작성)가 WINDOW=10 롤링+지속성 필터로
     따로 검증해서 내린 판정. early_warning_active가 true면 "지금 공식적으로 추세
-    경보가 켜져 있다"는 뜻 — margin_used_pct(레벨)이 아직 낮아도(예: 20%) 이게 true면
-    "레벨은 아직 여유 있어 보여도 추세분석 쪽에서는 지속적인 이상 추세가 잡혔다"고
-    같이 말해줄 것. trend_message에 사람이 읽는 설명이 이미 들어있으니 그대로 인용해도 됨.
+    경보가 켜져 있다"는 뜻이고, 이미 health_index 점수 자체에 alert_active_days
+    비례 배율로 반영돼 있다(위 문단 참고, 막 뜬 경보면 거의 안 깎임) — 그래도
+    margin_used_pct(레벨)이 아직 낮은데 health_index가 상대적으로 높게 나오면
+    "레벨(값 자체)은 아직 여유 있지만 추세분석 쪽에서 지속적인 이상이 잡혀서 점수에
+    반영됐다"고 근거를 같이 설명할 것. trend_message에 사람이
+    읽는 설명이 이미 들어있으니 그대로 인용해도 됨.
     단, trend_message는 최근 경고 "1건"의 예시일 뿐이라 특정 Product/Recipe를 언급해도
     그게 대표 원인이라는 뜻은 아님 — 어느 조합이 문제인지는 recipe_hotspots를 봐야 함.
+  - alert_since / alert_active_days: early_warning_active가 true일 때만 값이 있음 —
+    지금 켜져 있는 경보가 "언제부터" 이어지고 있는지(며칠째인지). "추세 경보가 켜져
+    있다"고만 말하지 말고 반드시 이 날짜/일수를 같이 언급할 것(예: "2/13부터 23일째
+    지속 중"). 매일 새로 알림이 뜨는 게 아니라 이 시작일 기준 하나의 사건이 계속되고
+    있다는 뜻이므로, 어제도 오늘도 물어봤다고 "새로 발생했다"고 말하면 안 됨.
   - recipe_hotspots / n_product_recipe_combos_affected / recipe_hotspot_concentrated:
     "어느 설비가 문제인지"는 machine_id 자체가 답이지만, "어느 제품/레시피 조합이
     문제인지"는 이 필드가 답한다(전체 54개 Product×Recipe 조합 중 경고가 집중된 순위,
@@ -250,6 +265,8 @@ def get_trend_chart_data(
         "trend_direction": spec["trend_direction"] if pd.notna(spec["trend_direction"]) else None,
         "early_warning_active": bool(spec["early_warning_active"]),
         "trend_message": spec["trend_message"] if pd.notna(spec["trend_message"]) else None,
+        "alert_since": spec["alert_since"] if pd.notna(spec["alert_since"]) else None,
+        "alert_active_days": float(spec["alert_active_days"]) if pd.notna(spec["alert_active_days"]) else None,
         "series": [
             {"date": d, "value": v}
             for d, v in zip(series["date"], series["daily_mean"])
