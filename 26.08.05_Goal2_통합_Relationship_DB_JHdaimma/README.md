@@ -4,11 +4,42 @@
 
 재현 — **순서대로** 실행 (저장소 루트에서):
 ```bash
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_unified_relationship_db.py"
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_full_db_extension.py"
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_agent_payload.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_tier_table.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/check_injected_scenarios.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/compare_spec_vs_data_threshold.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_integrated_db.py"
 ```
-Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 접근이 필요**합니다.
+
+---
+
+## 🔒 절대 바꾸면 안 되는 것
+
+main의 `26.08.01_Goal_AI_Agent_Prototype_김시우/agent.py`가 이 파일을 읽습니다.
+
+```python
+REL_DB = HERE.parent / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
+with open(REL_DB / "agent_cause_factors.json") as f:
+    CAUSE_FACTORS = json.load(f)["cause_factors"]
+```
+
+| 고정 | 값 |
+|---|---|
+| 폴더명 | `26.08.05_Goal2_통합_Relationship_DB_JHdaimma` |
+| 파일명 | `agent_cause_factors.json` |
+| 최상위 키 | `cause_factors` |
+| 하위 키 | `defects` · `owner` · `direction` · `mechanism` |
+
+**하나라도 바꾸면 main의 Agent가 즉시 깨집니다.**
+
+## 🔗 추세분석 담당(김시우님)과의 인터페이스
+
+| 파일 | 내가 채움 | 추세팀이 채움 |
+|---|---|---|
+| `rel_30_trend_interface.csv` | 목표선(`target_threshold_raw`), 방향, 정상/위험 범위, 위험비 | `current_slope_per_day`, `days_to_threshold`, `trend_status` |
+| `rel_28_vibration_alarm.csv` | 상하한 후보(p99/p99.9), defect 연결, 분포 | `trend_window_days`, `trend_slope_threshold`, `spec_breach_rule` |
+
+> **`threshold_source_dataset`을 꼭 보셔야 합니다.**
+> `r1 주도`면 **정상 운전에서는 그 선에 도달하지 않을 수 있습니다.**
 
 > **방침: 걸러내지 않습니다.** 확신이 낮은 것도 `status`/`confidence`/`caution`을 달아 전부 싣습니다.
 > Agent가 무엇을 말하면 안 되는지는 **필드로 판단**하게 합니다.
@@ -41,8 +72,35 @@ Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 
 > 대신 실측 `delta +0.012`가 도메인 기대(음수)와 반대라 **T3 → T4**로 내려갔습니다.
 
 > 🔔 **`Vibration`은 티어표에서 제외했습니다** (2026-08-06).
-> 유효인자(원인) 트랙이 아니라 **별도 알람 트랙**으로 운영합니다 — 추세 상승과 spec 이탈만
-> 감시해 알람을 주고 **조치 지시는 하지 않습니다.** 제외 사유는 스크립트의 `VIBRATION_EXCLUDED` 참조.
+> 유효인자(원인) 트랙이 아니라 **별도 알람 트랙(`rel_28_vibration_alarm.csv`)**으로 운영합니다 —
+> 추세 상승과 상하한 급이탈만 감시해 알람을 주고 **조치 지시는 하지 않습니다.**
+
+### `rel_28` — Vibration 별도 영역
+
+| | |
+|---|---|
+| 공식 스펙 | **없음** (멘토 `spec.py` 10개 변수에 미포함) → 상하한을 데이터에서 제시 |
+| 상한 후보 | p99 **0.2609** · p99.9 **0.2841** (원본 p99 0.2066 / r1 p99 0.2687) |
+| Chipping | p99 초과 구간 불량률 **30.05%** (전체 6.23%, **4.82배**) ✅ |
+| **Micro_Crack** | p99 초과 구간 불량률 **0.95%** (전체 2.46%, **0.39배**) ⚠️ **상한 초과가 예측 못 함** |
+| 추세 기준 | **빈칸** — 추세분석 담당이 채움 |
+
+> ⚠️ **상한 알람은 Chipping에만 연결하고, Micro_Crack에는 붙이면 안 됩니다.**
+> `Vibration` 상한을 넘은 구간의 Micro_Crack 발생률이 오히려 **평균보다 낮습니다.**
+> Micro_Crack 쪽은 **추세**로만 봐야 할 가능성이 큽니다.
+
+### `rel_29` — NG_Code 요약 (20만행)
+
+| 구분 | NG_Code | 건수 | 비율 |
+|---|---|---|---|
+| OK | `OK` | 149,673 | **74.837%** |
+| Chipping | `CHIP` | 24,175 | 12.088% |
+| Particle | `PARTICLE` | 11,296 | 5.648% |
+| Remain_Coat | `REM_COAT` | 9,266 | 4.633% |
+| Micro_Crack | `CRACK` | 4,921 | 2.460% |
+| (기타) | `BURN` | 608 | 0.304% |
+| (기타) | `LASER` | 61 | 0.030% |
+| **합계** | | **200,000** | 100% |
 
 **SOP 칸은 비어 있습니다** — `sop_status = "SOP 미수령 — 멘토 제공 대기"`
 
