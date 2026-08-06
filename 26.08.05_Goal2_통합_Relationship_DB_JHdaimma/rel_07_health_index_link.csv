@@ -1,0 +1,19 @@
+﻿factor,defect,goal5_owner,goal5_direction,goal5_mechanism,current_status,current_role,actionable_now,required_action,source
+Cooling_Flow,Micro_Crack,JHdaimma,down,냉각 유량 부족(Chipping과 공유 원인으로 확인),insufficient,원인(조치가능),False,삭제 — 현재 확정 원인 아님. Agent가 원인이라고 답하면 안 됨,김시우 Goal5 health_index_data.json vs rel_01
+Vibration,Micro_Crack,daeho / JHdaimma,up,"기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",insufficient,원인(조치가능),False,삭제 — 현재 확정 원인 아님. Agent가 원인이라고 답하면 안 됨,김시우 Goal5 health_index_data.json vs rel_01
+Bottom_Kerf,Chipping,JHdaimma,either,"Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, 값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",confirmed_monitor,감시지표(관찰만),False,역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로,김시우 Goal5 health_index_data.json vs rel_01
+Groove_Depth,Chipping,Jun,down,"가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",confirmed_monitor,감시지표(관찰만),False,역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로,김시우 Goal5 health_index_data.json vs rel_01
+Kerf_Width_Profile,Chipping,Jun / JHdaimma,either,"가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 (JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",confirmed_monitor,감시지표(관찰만),False,역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로,김시우 Goal5 health_index_data.json vs rel_01
+Top_Kerf,Chipping,JHdaimma,either,Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정),confirmed_monitor,감시지표(관찰만),False,역할 변경 — 감시지표. cause_factors에서 빼고 경보 전용으로,김시우 Goal5 health_index_data.json vs rel_01
+Head_Temp,Chipping,JHdaimma,up,헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping,confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+Laser_Centering_Position,Chipping,JHdaimma,either,빔 중심 이탈 -> 비대칭 절단,confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+Laser_Power,Chipping,JHdaimma,down,출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격,confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+Power_Efficiency,Chipping,JHdaimma,either,효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의),confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+Vibration,Particle,daeho / JHdaimma,up,"기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+CLN_Pressure,Remain_Coat,전성재,down,세정 압력 부족 -> 코팅 미제거,confirmed_cause,원인(조치가능),True,유지 — 원인. SOP 생성 가능,김시우 Goal5 health_index_data.json vs rel_01
+Laser_Cleaning_Demand,Chipping,,,,confirmed_monitor,감시지표(관찰만),False,추가 — Goal5에 없음,rel_01에만 있음
+Package_Size_Asymmetry,Chipping,,,,confirmed_monitor,감시지표(관찰만),False,추가 — Goal5에 없음,rel_01에만 있음
+Surface_Roughness,Chipping,,,,confirmed_monitor,감시지표(결과공변·사후),False,추가 — Goal5에 없음,rel_01에만 있음
+Vibration,Chipping,,,,confirmed_cause,원인(조치가능),True,추가 — Goal5에 없음,rel_01에만 있음
+Surface_Roughness,Micro_Crack,,,,confirmed_monitor,감시지표(결과공변·사후),False,추가 — Goal5에 없음,rel_01에만 있음
+Surface_Roughness,Particle,,,,confirmed_monitor,감시지표(결과공변·사후),False,추가 — Goal5에 없음,rel_01에만 있음
