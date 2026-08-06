@@ -78,6 +78,7 @@ get_sop_for_factor만 그걸 읽도록 바꾸면 되고 에이전트 구조 자�
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -118,11 +119,20 @@ for factor, meta in CAUSE_FACTORS.items():
     for defect in meta["defects"]:
         DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
 
-# get_trend_chart_data가 마지막으로 만든 차트 데이터를 담아둔다. tool_runner는 최종
-# 텍스트만 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
-# 주의: 프로토타입이라 전역 변수 하나로 처리 — 동시에 여러 요청이 들어오면(멀티유저) 꼬일
-# 수 있다. 데모용 단일 사용자 흐름 전제.
-_last_chart_data: dict = {"value": None}
+# get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
+# 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
+# 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
+# 주의: 프로토타입이라 전역 변수로 처리 — 동시에 여러 요청이 들어오면(멀티유저) 꼬일 수
+# 있다. 데모용 단일 사용자 흐름 전제.
+_chart_calls_this_turn: list = []
+
+# get_machine_health가 이번 턴에 조회한 장비 스냅샷을 전부(장비ID별로) 담아둔다 — 대시보드
+# 1/2번 패널을 Claude의 답변 문장을 파싱하지 않고 이 원본 JSON에서 직접, 결정론적으로 만들기
+# 위함이다. "몇 등이야"처럼 배경 계산으로 여러 장비를 조회할 수도 있어서 딕셔너리로 전부
+# 쌓아두고, 실제 패널을 무엇으로 채울지는 질문 문장에 실제로 언급된 장비 개수로 판단한다
+# (아래 _build_panels 참고) — 마지막 호출만 남기면 "DP01 vs DP04"처럼 여러 장비를 비교하는
+# 질문에서 마지막 장비 것으로 덮어써지는 문제가 있었다.
+_machine_snapshots_this_turn: dict = {}
 
 
 @beta_tool
@@ -136,7 +146,9 @@ def get_machine_health(machine_id: str) -> str:
     snap = MACHINES.get(machine_id)
     if not snap:
         return f"'{machine_id}'에 대한 데이터를 찾을 수 없음. 유효한 장비 ID: {', '.join(MACHINES.keys())}."
-    return json.dumps({"machine_id": machine_id, **snap}, ensure_ascii=False, indent=2)
+    result = {"machine_id": machine_id, **snap}
+    _machine_snapshots_this_turn[machine_id] = result
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
 @beta_tool
@@ -272,7 +284,7 @@ def get_trend_chart_data(
             for d, v in zip(series["date"], series["daily_mean"])
         ],
     }
-    _last_chart_data["value"] = result
+    _chart_calls_this_turn.append(result)
     return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)
 
 
@@ -333,8 +345,11 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
    장비 4대를 다 조회해야 해서 응답이 느려진다. 명시적으로 물으면 get_machine_health를 4대 다 \
    불러서 순위를 계산해 알려줘라.
 7. 사용자가 그래프/추세를 시각적으로 보여달라고 하면 get_trend_chart_data를 호출하라. 이 도구를 \
-   부르면 화면에 자동으로 선그래프가 그려지니, 텍스트로 수치를 다시 나열하지 말고 "그래프로 \
-   보여드렸습니다"처럼 짧게 언급하고 핵심 해석만 한 줄 덧붙여라.
+   부르면 화면 패널에 자동으로 선그래프가 그려지니, 텍스트로 수치를 다시 나열하지 말고 "그래프로 \
+   보여드렸습니다"처럼 짧게 언급하고 핵심 해석만 한 줄 덧붙여라. **한 인자를 여러 장비(또는 \
+   "전체 4대")에서 비교해서 보여달라고 하면, 장비마다 get_trend_chart_data를 한 번씩 따로 \
+   호출해서 전부 조회하라** — 화면은 조회한 개수만큼 그래프를 나란히 보여준다(1개면 1개, \
+   4개면 4분할). 개수를 미리 정하지 말고 사용자가 보고 싶어하는 만큼만 정확히 호출하라.
 8. "불량 난 구간 보여줘"처럼 특정 시점 주변을 보고 싶어하면, 먼저 get_defect_occurrence_dates로 \
    실제 발생 날짜를 찾고, 그 날짜를 get_trend_chart_data의 center_date로 넘겨라. 발생일이 매우 \
    많으면(Particle/Remain_Coat) 가장 최근 날짜 하나를 골라 쓰거나 사용자에게 물어봐라.
@@ -357,8 +372,124 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 """
 
 
+# \b(단어 경계)는 안 쓴다 — "DP01이랑"처럼 장비ID 바로 뒤에 한국어 조사가 붙으면(공백 없이)
+# 파이썬 정규식의 \b가 한글도 "단어 문자"로 취급해서 경계로 인식하지 못해 매칭이 깨진다.
+# 대신 앞뒤에 다른 영숫자만 없으면 되도록 lookaround로 직접 제한한다.
+_MACHINE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])DP0[1-4](?![0-9])", re.IGNORECASE)
+
+
+def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | None:
+    """장비 스냅샷 하나에서 defect/factor 하나를 골라 패널 하나(제목/그래프/설명)를 만든다.
+    Claude 답변 문장을 파싱하지 않고 원본 JSON에서 직접, 결정론적으로 구성한다 — Claude의
+    문구가 매번 달라져도 패널 내용은 항상 실제 데이터와 정확히 일치한다."""
+    machine_id = snapshot["machine_id"]
+    sig = snapshot.get("defect_signals", {}).get(defect, {})
+    c = sig.get("causes", {}).get(factor)
+    if c is None:
+        return None  # 이 인자는 원인 상세 정보가 없음(안전망 항목 등) — 패널에서 생략
+
+    occurred = sig.get("actual_occurred_recent_7d", False)
+    icon = "🔴" if occurred else ("🟡" if c.get("early_warning_active") else "⚪")
+    occ_txt = ("최근 7일 내내(7/7)" if sig.get("occurred_days_recent_7d") == 7
+               else (f"{sig.get('occurred_days_recent_7d', 0)}/7일" if occurred
+                     else "없음(조짐 단계)"))
+    tag = "스펙기준" if c.get("spec_source") == "mentor_spec" else "임시기준"
+    bound_label, bound_val = ("상한", c["usl"]) if c.get("direction") == "up" else ("하한", c["lsl"])
+    trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
+    spec_out = c.get("estimated_days_to_spec_out")
+    spec_out_txt = f", 스펙아웃 예상 `{spec_out}일`" if spec_out is not None else ""
+
+    try:
+        sop = json.loads(get_sop_for_factor.func(factor))
+        sop_line = sop["action"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        sop_line = "확정 SOP 없음(감시지표 또는 원인 미확정)"
+
+    hi = sig.get("health_index")
+    title = f"{icon} {machine_id} · {rank}순위 - {defect} (HI `{hi}`)"
+    explanation_md = (
+        f"- **발생**: {occ_txt}\n"
+        f"- **원인**: `{factor}` 현재 `{c['current_value']}` / {bound_label} `{bound_val}` "
+        f"[{tag}], {trend_word}추세{spec_out_txt}\n"
+        f"- **메커니즘**: {c.get('mechanism', '-')}\n"
+        f"- **SOP**: {sop_line} `[미검증초안]`"
+    )
+    try:
+        chart = json.loads(get_trend_chart_data.func(machine_id, factor))
+    except (json.JSONDecodeError, KeyError, TypeError):
+        chart = None
+    return {"title": title, "explanation_md": explanation_md, "chart": chart}
+
+
+MAX_PANELS = 4  # 화면 대시보드가 감당할 수 있는 최대 분할 수
+
+
+def _panel_from_chart(chart: dict) -> dict:
+    """get_trend_chart_data 결과 하나로 패널을 만든다 — 사용자가 특정 인자를 콕 집어
+    그래프를 요청한 경우용. get_machine_health를 안 거쳐도 되므로, 확정 원인이면
+    CAUSE_FACTORS에서 메커니즘/SOP를 덧붙이고 아니면 그래프 수치만으로 구성한다."""
+    factor, machine_id = chart["factor"], chart["machine_id"]
+    series = chart.get("series") or []
+    latest = series[-1]["value"] if series else None
+    tag = "스펙기준" if chart.get("spec_source") == "mentor_spec" else "임시기준"
+    trend_word = {"up": "상승", "down": "하강"}.get(chart.get("trend_direction"), "")
+
+    lines = [
+        f"- **현재값**: `{latest}` (baseline `{chart.get('baseline_median')}`), "
+        f"상한 `{chart.get('usl')}` / 하한 `{chart.get('lsl')}` [{tag}]"
+        + (f", {trend_word}추세" if trend_word else "")
+    ]
+    if chart.get("trend_message"):
+        lines.append(f"- **추세 메시지**: {chart['trend_message']}")
+
+    meta = CAUSE_FACTORS.get(factor)
+    if meta:
+        lines.append(f"- **메커니즘**: {meta.get('mechanism', '-')}")
+        try:
+            sop = json.loads(get_sop_for_factor.func(factor))
+            lines.append(f"- **SOP**: {sop['action']} `[미검증초안]`")
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
+
+    return {"title": f"📈 {machine_id} · {factor}", "explanation_md": "\n".join(lines), "chart": chart}
+
+
+def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dict] | None:
+    """이번 턴에 실제로 조회된 내용으로 대시보드 패널을 만든다. 패널 개수는 항상
+    고정(2개)이 아니라 실제로 조회한 개수를 그대로 따른다(최대 MAX_PANELS) — 그래프 1개를
+    조회했으면 1개, "전체 4대 비교"처럼 4개를 조회했으면 4개를 4분할로 보여준다.
+
+    우선순위: 사용자가 특정 인자 그래프를 명시적으로 요청했으면(get_trend_chart_data 호출)
+    그 결과가 최우선이다. 아니면 get_machine_health 기반 1·2순위 로직으로 판단한다
+    (장비 몇 개가 질문에 언급됐는지로 "무엇을 비교하려는 질문인가"를 판단 — 도구 호출
+    횟수로 판단하면 "몇 등이야?" 같은 배경조회에 오염된다)."""
+    if chart_calls:
+        return [_panel_from_chart(c) for c in chart_calls[:MAX_PANELS]] or None
+
+    mentioned = list(dict.fromkeys(m.upper() for m in _MACHINE_ID_RE.findall(question)))
+
+    if len(mentioned) >= 2:
+        picks = []  # (snapshot, defect, factor, rank)
+        for mid in mentioned[:MAX_PANELS]:
+            snap = snapshots.get(mid)
+            wd_list = (snap or {}).get("worst_defects") or []
+            if snap and wd_list:
+                picks.append((snap, wd_list[0]["defect"], wd_list[0]["worst_factor"], 1))
+    else:
+        target = snapshots.get(mentioned[0]) if mentioned else (
+            next(iter(snapshots.values())) if len(snapshots) == 1 else None)
+        if target is None:
+            return None
+        wd_list = (target.get("worst_defects") or [])[:2]
+        picks = [(target, wd["defect"], wd["worst_factor"], i + 1) for i, wd in enumerate(wd_list)]
+
+    panels = [p for p in (_panel_from(*pick) for pick in picks) if p is not None]
+    return panels or None
+
+
 def ask(question: str) -> dict:
-    _last_chart_data["value"] = None
+    _chart_calls_this_turn.clear()
+    _machine_snapshots_this_turn.clear()
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(
         model="claude-sonnet-5",
@@ -375,7 +506,9 @@ def ask(question: str) -> dict:
         for block in message.content:
             if block.type == "text":
                 final_text = block.text
-    return {"answer": final_text, "chart_data": _last_chart_data["value"]}
+    panels = (_build_panels(_machine_snapshots_this_turn, _chart_calls_this_turn, question)
+              if (_machine_snapshots_this_turn or _chart_calls_this_turn) else None)
+    return {"answer": final_text, "panels": panels}
 
 
 if __name__ == "__main__":
@@ -383,6 +516,6 @@ if __name__ == "__main__":
     print(f"질문: {q}\n")
     result = ask(q)
     print(result["answer"])
-    if result["chart_data"]:
-        print(f"\n[그래프 데이터 있음: {result['chart_data']['machine_id']}/{result['chart_data']['factor']}, "
-              f"{len(result['chart_data']['series'])}개 포인트]")
+    if result["panels"]:
+        print(f"\n[대시보드 패널 {len(result['panels'])}개 생성됨: "
+              f"{[p['title'] for p in result['panels']]}]")
