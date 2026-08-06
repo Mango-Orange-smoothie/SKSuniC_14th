@@ -547,7 +547,8 @@ def ask(question: str) -> dict:
     client = anthropic.Anthropic()
     runner = client.beta.messages.tool_runner(
         model="claude-sonnet-5",
-        max_tokens=2000,
+        max_tokens=3000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
+        # 붙다 보니 2000으로 가끔 빠듯했다(26.08.06 티어체계 확장 이후 답변이 길어짐).
         system=SYSTEM_PROMPT,
         tools=[
             get_machine_health, get_defect_causes, get_sop_for_factor,
@@ -558,7 +559,10 @@ def ask(question: str) -> dict:
     final_text = ""
     for message in runner:
         for block in message.content:
-            if block.type == "text":
+            # 빈 문자열 블록이면 덮어쓰지 않는다 — 도구만 호출하고 텍스트가 없는
+            # 메시지가 마지막에 끼면(또는 빈 텍스트 블록이면) final_text가 이미 받아둔
+            # 진짜 답변을 지워버려서 화면에 빈 말풍선만 뜨는 문제가 있었다.
+            if block.type == "text" and block.text:
                 final_text = block.text
     panels = (_build_panels(_machine_snapshots_this_turn, _chart_calls_this_turn, question)
               if (_machine_snapshots_this_turn or _chart_calls_this_turn) else None)

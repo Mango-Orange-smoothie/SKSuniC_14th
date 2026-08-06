@@ -69,9 +69,11 @@ h1{font-size:19px;margin:0;font-weight:700}
   display:flex;flex-direction:column;min-height:0}
 
 .suggestions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.suggestions.disabled{opacity:.5;pointer-events:none}
 .chip{font:600 12px var(--font-ui);background:var(--surface);border:1px solid var(--border);
   padding:7px 13px;border-radius:20px;color:var(--ink-muted);cursor:pointer;transition:all .12s}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
+textarea:disabled{opacity:.6;cursor:not-allowed}
 
 .messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;
   padding-bottom:16px;min-height:0}
@@ -352,25 +354,36 @@ function selectTurn(idx){
   renderPanels(turns[idx].panels);
 }
 
+// showTyping/hideTyping은 각자 자기가 만든 엘리먼트를 직접 들고 있다가 지운다(예전엔
+// id="typing-indicator" 하나를 공유해서 getElementById로 찾아 지웠는데, 두 요청이
+// 겹치면 서로 다른 인디케이터를 같은 id로 만들어서 엉뚱한 걸 지우거나 하나가 영영
+// 안 지워지는 문제가 있었다).
 function showTyping(){
   const div = document.createElement('div');
   div.className = 'typing';
-  div.id = 'typing-indicator';
   div.innerHTML = '<span></span><span></span><span></span>';
   messagesEl.appendChild(div);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
 }
-function hideTyping(){
-  const el = document.getElementById('typing-indicator');
-  if(el) el.remove();
+function hideTyping(el){
+  if(el && el.parentNode) el.remove();
 }
 
+// 이전 요청이 끝나기 전까지 새 질문(입력창 Enter든 예시 칩 클릭이든)을 막는다 — 안 막으면
+// 겹쳐서 두 번 보낸 요청의 타이핑 인디케이터가 서로 꼬여서 한쪽 턴에 답변이 영영 안 붙는
+// 현상이 있었다.
+let sending = false;
+
 async function send(question){
-  if(!question.trim()) return;
+  if(sending || !question.trim()) return;
+  sending = true;
   const turnDiv = startTurn(question);
   inputEl.value = '';
   sendBtn.disabled = true;
-  showTyping();
+  inputEl.disabled = true;
+  document.getElementById('suggestions').classList.add('disabled');
+  const typingEl = showTyping();
   try{
     const res = await fetch('/api/ask', {
       method: 'POST',
@@ -378,17 +391,22 @@ async function send(question){
       body: JSON.stringify({question})
     });
     const data = await res.json();
-    hideTyping();
+    hideTyping(typingEl);
     if(!res.ok){
       finishTurn(turnDiv, data.error || '오류가 발생했습니다.', true, null);
+    } else if(!data.answer){
+      finishTurn(turnDiv, '(응답이 비어 있습니다 — 다시 질문해주세요)', true, data.panels);
     } else {
       finishTurn(turnDiv, data.answer, false, data.panels);
     }
   } catch(err){
-    hideTyping();
+    hideTyping(typingEl);
     finishTurn(turnDiv, '서버에 연결할 수 없습니다: ' + err.message, true, null);
   } finally {
+    sending = false;
     sendBtn.disabled = false;
+    inputEl.disabled = false;
+    document.getElementById('suggestions').classList.remove('disabled');
     inputEl.focus();
   }
 }
