@@ -494,24 +494,26 @@ def compute_level_and_trend(
     defect_threshold_map = defect_threshold_map or {}
     target_override_map = target_override_map or {}
 
-    # (machine, column) -> date별 위험구간 비율 Series / column -> 정상 기준 비율
+    # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
-    zone_base_rate: dict[str, float] = {}
+    zone_base_rate: dict[tuple[str, str], float] = {}
+    # (26.08.06 개정) 원래는 "정상 기준"을 4대 장비 풀링 median으로 잡았다 — 특정 장비가
+    # 일시적으로 나빠진 구간이 있어도 기준 자체가 끌려가지 않게 하려는 의도였다. 그런데
+    # CLN_Flow처럼 애초에 "이 위험구간에 들어가는 게 특정 장비(DP04)만의 일"인 컬럼에선
+    # 이 가정이 틀렸다 — DP01~03을 풀링에 같이 넣으면 걔들의 "항상 0%"가 평소 비율을
+    # 인위적으로 짓눌러서(0.48%), DP04가 원래도 가끔 겪는 정상적 편차(7.53%)조차 비율로
+    # 따지면 1469%짜리 폭주로 보이게 만들었다(김시우님 지적). "평소"는 그 장비 자신의
+    # 이력 기준이어야 맞다 — 다른 장비를 섞을 이유가 없다. 그래서 이제 장비별로 따로
+    # 잡는다. (CLN_Pressure/Surface_Roughness는 애초에 4대가 서로 비슷한 비율이라
+    # 이 변경으로 값이 거의 안 바뀐다 — 확인됨.)
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
-            zone_lookup[(m, c)] = zg.set_index("date")["defect_zone_rate"].sort_index()
-        # "정상 기준" = 전 장비 풀링한 일별 비율의 median(로버스트). 특정 장비가 나빠진
-        # 구간이 있어도 기준 자체가 끌려가지 않게 median을 쓴다.
-        zone_base_rate = zone_rate_df.groupby("column")["defect_zone_rate"].median().to_dict()
-        # (26.08.06 추가) CLN_Flow처럼 위험구간에 아예 안 들어가는 장비가 4대 중 3대라
-        # 풀링 median이 정확히 0으로 나오는 컬럼이 생겼다(median의 절반 이상이 "항상 0"인
-        # 장비들 몫이라) — 그러면 뒤에서 이 값으로 나눠 전체 컬럼이 NaN이 돼서 통째로
-        # 빠진다. median이 0인 컬럼만 mean으로 대체(소수 장비의 값이라도 반영되게) —
-        # median이 이미 0이 아닌 CLN_Pressure/Surface_Roughness는 그대로 median을 쓴다.
-        for _col, _rate in list(zone_base_rate.items()):
-            if not _rate:
-                _mean = zone_rate_df.loc[zone_rate_df["column"] == _col, "defect_zone_rate"].mean()
-                zone_base_rate[_col] = float(_mean) if _mean and _mean > 0 else zone_base_rate[_col]
+            series = zg.set_index("date")["defect_zone_rate"].sort_index()
+            zone_lookup[(m, c)] = series
+            base = series.median()
+            if not base:
+                base = series.mean()  # median도 0이면(절반 넘는 날이 0%) mean으로 대체
+            zone_base_rate[(m, c)] = float(base) if base else 0.0
 
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
@@ -546,12 +548,15 @@ def compute_level_and_trend(
                 lsl_disp, usl_disp = baseline_disp, thr
 
             zr = zone_lookup[(machine, col)].reindex(g["date"].values)
-            base_rate = zone_base_rate[col]
+            base_rate = zone_base_rate.get((machine, col), 0.0)
             if base_rate and base_rate > 0:
                 span = base_rate * (DEFECT_ZONE_SPECOUT_MULTIPLE - 1.0)
                 margin_pct = ((zr.values - base_rate) / span * 100).clip(min=0.0)
             else:
-                margin_pct = np.full(len(g), np.nan)
+                # 이 장비는 이 위험구간에 들어간 적이 사실상 없다(평소 비율=0) — "평소 대비
+                # 몇 배"라는 비율 자체가 정의 안 됨. 조금이라도 들어간 날은 경계(100%,
+                # health=0)로, 안 들어간 날은 정상(0%)으로 본다.
+                margin_pct = np.where(zr.values > 0, 100.0, 0.0)
             margin_pct = pd.Series(margin_pct, index=g.index, dtype=float)
             zone_rate_now = zr.values
         else:
@@ -604,7 +609,14 @@ def compute_level_and_trend(
         latest_pos = g.index.get_loc(latest_idx)  # zone_rate_now(위치 기반 배열) 조회용
         latest_date = g.loc[latest_idx, "date"]
         current_value = float(g.loc[latest_idx, "daily_mean"])
-        health_index_var = 100 - min(max(current_margin_pct, 0.0), 100.0)
+        # (26.08.06) 예전엔 margin_used_pct를 100%에서 clip해서 health_index가 0 밑으로
+        # 못 내려갔다 — 그러다 보니 경계를 살짝 넘은 것(예: margin 105%)과 몇 배로 폭주한
+        # 것(예: DP04 CLN_Flow margin 1465%)이 똑같이 "HI 0.0"으로 보여서, worst_factors/
+        # worst_defects/장비 순위(TOP_N)에서 뭐가 진짜 더 급한지 구분이 안 됐다(김시우님
+        # 피드백). 위쪽 clip을 없애 margin이 클수록 health_index가 계속 더 음수로 내려가게
+        # 한다 — "100이 건강"은 그대로고, 0 밑은 "경계를 몇 배 넘었는지"를 그대로 보여주는
+        # 값이 된다. 0~100 사이 동작(margin<=100인 대다수)은 전혀 안 바뀐다.
+        health_index_var = 100 - max(current_margin_pct, 0.0)
         spec_out = current_margin_pct >= 100
 
         recent = valid.iloc[-RECENT_WINDOW_DAYS:]
@@ -620,7 +632,12 @@ def compute_level_and_trend(
             # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
 
         ta_status = trend_status.get((machine, col), {})
-        if ta_status.get("early_warning_active"):
+        # health_index_var > 0일 때만 곱셈 페널티를 적용한다 — 이미 0 밑(margin이 100%를
+        # 넘어 SPEC_OUT 수준)이면 음수에 (1-cut)을 곱하는 순간 0 쪽으로 끌려가(더 나빠져야
+        # 할 값이 오히려 좋아 보이게 됨) 방향이 뒤집힌다. margin 자체가 이미 심각하다고
+        # 말하고 있는 상태라 추세 페널티가 추가로 알려줄 정보도 없다(그 존재 목적 자체가
+        # "margin은 멀쩡해 보이는데 추세가 나쁜" 사각지대를 잡는 것이었음).
+        if ta_status.get("early_warning_active") and health_index_var > 0:
             maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
             health_index_var = health_index_var * (1 - TREND_PENALTY_MAX_CUT * maturity)
 
@@ -643,7 +660,7 @@ def compute_level_and_trend(
                 if zone_rate_now is not None and not pd.isna(zone_rate_now[latest_pos]) else None
             ),
             "defect_zone_baseline_pct": (
-                round(zone_base_rate[col] * 100, 2) if spec_source == "defect_zone_rate" else None
+                round(zone_base_rate.get((machine, col), 0.0) * 100, 2) if spec_source == "defect_zone_rate" else None
             ),
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),

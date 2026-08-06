@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-06T17:22:10.982010",
+  "generated_at": "2026-08-06T17:46:56.093363",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -245,7 +245,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 83.8,
+          "health_index": 82.7,
           "worst_factor": "CLN_Pressure"
         },
         {
@@ -277,7 +277,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -295,11 +295,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 83.8,
+          "health_index": 82.7,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 83.8,
+              "health_index": 82.7,
               "spec_status": "OK"
             },
             {
@@ -320,7 +320,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -342,10 +342,10 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 83.8,
+              "health_index": 82.7,
               "defect_zone_rate_pct": 7.41,
-              "defect_zone_baseline_pct": 6.37,
-              "margin_trend_pct_per_day": -0.921,
+              "defect_zone_baseline_pct": 6.32,
+              "margin_trend_pct_per_day": -0.989,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -721,7 +721,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -764,7 +764,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -788,8 +788,8 @@
               "spec_status": "OK",
               "health_index": 97.5,
               "defect_zone_rate_pct": 6.29,
-              "defect_zone_baseline_pct": 6.37,
-              "margin_trend_pct_per_day": -0.975,
+              "defect_zone_baseline_pct": 6.3,
+              "margin_trend_pct_per_day": -1.028,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -1345,7 +1345,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 98.4,
+          "health_index": 98.9,
           "worst_factor": "CLN_Pressure"
         },
         {
@@ -1377,7 +1377,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -1395,11 +1395,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 98.4,
+          "health_index": 98.9,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 98.4,
+              "health_index": 98.9,
               "spec_status": "OK"
             },
             {
@@ -1420,7 +1420,7 @@
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.48,
+              "defect_zone_baseline_pct": 0.0,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
               "trend_direction": null,
@@ -1442,11 +1442,11 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 98.4,
+              "health_index": 98.9,
               "defect_zone_rate_pct": 6.45,
-              "defect_zone_baseline_pct": 6.37,
-              "margin_trend_pct_per_day": 1.021,
-              "estimated_days_to_spec_out": 96.8,
+              "defect_zone_baseline_pct": 6.41,
+              "margin_trend_pct_per_day": 0.981,
+              "estimated_days_to_spec_out": 101.2,
               "trend_direction": "up",
               "early_warning_active": true,
               "trend_message": "DP03 / PKG_E / RCP_9의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -1894,16 +1894,16 @@
       ]
     },
     "DP04": {
-      "health_index": 0.0,
+      "health_index": -191.3,
       "worst_defects": [
         {
           "defect": "Particle",
-          "health_index": 0.0,
+          "health_index": -191.3,
           "worst_factor": "CLN_Flow"
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 0.0,
+          "health_index": -191.3,
           "worst_factor": "CLN_Flow"
         },
         {
@@ -1915,11 +1915,11 @@
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 0.0,
+          "health_index": -191.3,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
-              "health_index": 0.0,
+              "health_index": -191.3,
               "spec_status": "SPEC_OUT"
             }
           ],
@@ -1933,10 +1933,10 @@
               "usl": 9.992,
               "spec_source": "defect_zone_rate",
               "spec_status": "SPEC_OUT",
-              "health_index": 0.0,
+              "health_index": -191.3,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 0.48,
-              "margin_trend_pct_per_day": 42.086,
+              "defect_zone_baseline_pct": 1.93,
+              "margin_trend_pct_per_day": 10.521,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -1969,16 +1969,16 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 0.0,
+          "health_index": -191.3,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
-              "health_index": 0.0,
+              "health_index": -191.3,
               "spec_status": "SPEC_OUT"
             },
             {
               "factor": "CLN_Pressure",
-              "health_index": 76.0,
+              "health_index": 77.8,
               "spec_status": "OK"
             }
           ],
@@ -1992,10 +1992,10 @@
               "usl": 9.992,
               "spec_source": "defect_zone_rate",
               "spec_status": "SPEC_OUT",
-              "health_index": 0.0,
+              "health_index": -191.3,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 0.48,
-              "margin_trend_pct_per_day": 42.086,
+              "defect_zone_baseline_pct": 1.93,
+              "margin_trend_pct_per_day": 10.521,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -2032,11 +2032,11 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 76.0,
+              "health_index": 77.8,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 6.37,
-              "margin_trend_pct_per_day": 1.417,
-              "estimated_days_to_spec_out": 57.7,
+              "defect_zone_baseline_pct": 6.48,
+              "margin_trend_pct_per_day": 1.33,
+              "estimated_days_to_spec_out": 63.0,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",

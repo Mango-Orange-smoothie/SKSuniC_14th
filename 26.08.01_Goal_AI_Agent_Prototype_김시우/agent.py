@@ -19,7 +19,12 @@ health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세
 build_health_index.py 상단 docstring 참고.
 
 get_machine_health가 반환하는 구조 핵심:
-  - health_index: 장비/defect/원인변수 3단계 모두 있음 (낮을수록 급함)
+  - health_index: 장비/defect/원인변수 3단계 모두 있음 (낮을수록 급함). 0이 바닥이 아니라
+    **음수도 나온다** — margin_used_pct가 100%(스펙 경계)를 넘어서도 그대로 깎이게 뒀다
+    (26.08.06, 예전엔 0에서 clip해서 "경계를 살짝 넘음"과 "몇 배로 폭주함"이 똑같이
+    0으로 보여 우선순위 구분이 안 됐음). 음수는 "SPEC_OUT인 정도"로 이해하고, 절댓값이
+    클수록 더 심각한 것으로 말하되 "-1369점"처럼 숫자 자체를 그대로 읽지 말고 "정상
+    대비 크게 벗어났다" 식으로 풀어서 설명할 것.
   - worst_defects / worst_factors: 나쁜 순서로 최대 3개 정렬된 목록 (1개만 보지 말 것)
   - current_value / lsl / usl / spec_status: 추상적 %가 아니라 실제 값 — spec_status가
     "SPEC_OUT"이면 이미 스펙을 벗어난 것, "OK"면 아직 스펙 안
