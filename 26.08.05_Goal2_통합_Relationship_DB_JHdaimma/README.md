@@ -13,6 +13,31 @@ Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 
 > **방침: 걸러내지 않습니다.** 확신이 낮은 것도 `status`/`confidence`/`caution`을 달아 전부 싣습니다.
 > Agent가 무엇을 말하면 안 되는지는 **필드로 판단**하게 합니다.
 
+---
+
+## ⚠️ 먼저 — 티어표가 두 개입니다
+
+| 파일 | 상태 | 기준 |
+|---|---|---|
+| **`rel_20_tier_table.csv`** | ✅ **정본 (이걸 쓰세요)** | **확정 도메인 13건**만 후보 → 통계검정 + RandomForest. 멘토 방향성 반영본 |
+| `rel_12_tiers.csv` | 📦 이력 보관 (사용 안 함) | 도메인 게이트 적용 **이전**. 담당자 판정 + Jun 교차대조 |
+
+티어 이름 체계도 다릅니다 — `rel_20`은 `T1~T4 / M1`, `rel_12`는 `C1~C3 / M1~M3 / P1~P2`입니다.
+
+**판정 기준은 [TIER_기준.md](TIER_기준.md), 미결 사항은 [결정_대기_사항.md](결정_대기_사항.md) 참조.**
+
+### 현재 티어 분포 (`rel_20`)
+
+| 티어 | 건수 | 인자 |
+|---|---|---|
+| **T1 즉시조치** | **5** | Chipping `Power_Efficiency` `Laser_Power` `Head_Temp` · Remain_Coat `CLN_Flow` `CLN_Pressure`(급락알람) |
+| T2 조건부조치 | 3 | Chipping `Cooling_Flow` `Vibration`(추세알람) · Particle `CLN_Flow` |
+| T3 감시 | 3 | Micro_Crack `Cooling_Flow` `Vibration` · Particle `CLN_Pressure` |
+| T4 판단보류 | 1 | Micro_Crack `Cooling_Water_Temp` — 도메인과 데이터 방향 반대 |
+| M1 감시지표 | 1 | Particle `Surface_Roughness` |
+
+**SOP 칸은 비어 있습니다** — `sop_status = "SOP 미수령 — 멘토 제공 대기"`
+
 각 담당자가 따로 낸 유효인자 판정을 **하나의 스키마**로 합쳤습니다.
 AI Agent가 **원인(조치 가능) / 감시지표(관찰만) / 불량결과**를 구분해 답하기 위한 기반입니다.
 
