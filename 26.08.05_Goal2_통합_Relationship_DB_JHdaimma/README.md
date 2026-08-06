@@ -4,14 +4,128 @@
 
 재현 — **순서대로** 실행 (저장소 루트에서):
 ```bash
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_unified_relationship_db.py"
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_full_db_extension.py"
-python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_agent_payload.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_tier_table.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/check_injected_scenarios.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/compare_spec_vs_data_threshold.py"
+python "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/build_integrated_db.py"
 ```
-Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 접근이 필요**합니다.
+
+---
+
+## 🔒 절대 바꾸면 안 되는 것
+
+main의 `26.08.01_Goal_AI_Agent_Prototype_김시우/agent.py`가 이 파일을 읽습니다.
+
+```python
+REL_DB = HERE.parent / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
+with open(REL_DB / "agent_cause_factors.json") as f:
+    CAUSE_FACTORS = json.load(f)["cause_factors"]
+```
+
+| 고정 | 값 |
+|---|---|
+| 폴더명 | `26.08.05_Goal2_통합_Relationship_DB_JHdaimma` |
+| 파일명 | `agent_cause_factors.json` |
+| 최상위 키 | `cause_factors` |
+| 하위 키 | `defects` · `owner` · `direction` · `mechanism` |
+
+**하나라도 바꾸면 main의 Agent가 즉시 깨집니다.**
+
+## 🔗 추세분석 담당(김시우님)과의 인터페이스
+
+| 파일 | 내가 채움 | 추세팀이 채움 |
+|---|---|---|
+| `rel_30_trend_interface.csv` | 목표선(`target_threshold_raw`), 방향, 정상/위험 범위, 위험비 | `current_slope_per_day`, `days_to_threshold`, `trend_status` |
+| `rel_28_vibration_alarm.csv` | 상하한 후보(p99/p99.9), defect 연결, 분포 | `trend_window_days`, `trend_slope_threshold`, `spec_breach_rule` |
+
+> **`threshold_source_dataset`을 꼭 보셔야 합니다.**
+> `r1 주도`면 **정상 운전에서는 그 선에 도달하지 않을 수 있습니다.**
 
 > **방침: 걸러내지 않습니다.** 확신이 낮은 것도 `status`/`confidence`/`caution`을 달아 전부 싣습니다.
 > Agent가 무엇을 말하면 안 되는지는 **필드로 판단**하게 합니다.
+
+---
+
+## 📁 파일 구성
+
+### Agent가 읽는 것
+
+| 파일 | |
+|---|---|
+| **`agent_cause_factors.json`** | 🔒 **경로·이름 고정** — main의 `agent.py`가 읽음 |
+
+### 산출물
+
+| 파일 | 내용 |
+|---|---|
+| **`rel_20_tier_table.csv`** | **티어표 11행 × 56열** ← 중심 |
+| `rel_28_vibration_alarm.csv` | **Vibration 별도 알람 영역** (티어표 밖) |
+| `rel_29_ng_code_summary.csv` | NG_Code 요약 (20만행) |
+| `rel_30_trend_interface.csv` | **추세팀 인터페이스** |
+| `rel_26_scenario_injection_check.csv` | 검정 가능성 (39행) |
+| `rel_27_spec_vs_data_threshold.csv` | 규격 간극 (3행) |
+| `rel_14` · `rel_15` | 냉각·레이저노후 경향 (근거) |
+
+### 문서
+
+`TIER_기준.md` (판정 기준) · `결정_대기_사항.md` (미결 16건) · `규격과_실제불량_간극.md`
+
+### 📦 `_history/` — 1세대, **사용 안 함**
+
+도메인 게이트 적용 **이전** 산출물 17개를 이력으로 보관합니다.
+`rel_00`~`rel_13` + 구 스크립트 3개.
+
+> 🔴 **`_history/build_agent_payload.py`는 절대 실행하지 마세요.**
+> 상위 폴더의 `agent_cause_factors.json`을 **1세대 내용으로 덮어씁니다.**
+
+자세한 내용은 [_history/README.md](_history/README.md) 참조.
+
+### 현재 티어 분포 (`rel_20`) — 확정 도메인 11건
+
+| 티어 | 건수 | 인자 |
+|---|---|---|
+| **T1 즉시조치** | **5** | Chipping `Power_Efficiency` `Laser_Power` `Head_Temp` · Remain_Coat `CLN_Flow` `CLN_Pressure`(급락알람) |
+| T2 조건부조치 | 2 | Chipping `Cooling_Flow` · Particle `CLN_Flow` |
+| T3 감시 | 1 | Micro_Crack `Cooling_Flow` |
+| T4 판단보류 | 2 | Micro_Crack `Cooling_Water_Temp` · Particle `CLN_Pressure` — 둘 다 도메인과 데이터 방향 반대 |
+| M1 감시지표 | 1 | Particle `Surface_Roughness` |
+
+> 🔧 **`CLN_Pressure` 방향 정정** (2026-08-06): `증가 → Particle 증가` → **`증가 → Particle 감소`**.
+> 이로써 Remain_Coat와 **같은 방향**이 되어 **트레이드오프가 해소**됐습니다 (압력을 올리면 둘 다 개선).
+> 대신 실측 `delta +0.012`가 도메인 기대(음수)와 반대라 **T3 → T4**로 내려갔습니다.
+
+> 🔔 **`Vibration`은 티어표에서 제외했습니다** (2026-08-06).
+> 유효인자(원인) 트랙이 아니라 **별도 알람 트랙(`rel_28_vibration_alarm.csv`)**으로 운영합니다 —
+> 추세 상승과 상하한 급이탈만 감시해 알람을 주고 **조치 지시는 하지 않습니다.**
+
+### `rel_28` — Vibration 별도 영역
+
+| | |
+|---|---|
+| 공식 스펙 | **없음** (멘토 `spec.py` 10개 변수에 미포함) → 상하한을 데이터에서 제시 |
+| 상한 후보 | p99 **0.2609** · p99.9 **0.2841** (원본 p99 0.2066 / r1 p99 0.2687) |
+| Chipping | p99 초과 구간 불량률 **30.05%** (전체 6.23%, **4.82배**) ✅ |
+| **Micro_Crack** | p99 초과 구간 불량률 **0.95%** (전체 2.46%, **0.39배**) ⚠️ **상한 초과가 예측 못 함** |
+| 추세 기준 | **빈칸** — 추세분석 담당이 채움 |
+
+> ⚠️ **상한 알람은 Chipping에만 연결하고, Micro_Crack에는 붙이면 안 됩니다.**
+> `Vibration` 상한을 넘은 구간의 Micro_Crack 발생률이 오히려 **평균보다 낮습니다.**
+> Micro_Crack 쪽은 **추세**로만 봐야 할 가능성이 큽니다.
+
+### `rel_29` — NG_Code 요약 (20만행)
+
+| 구분 | NG_Code | 건수 | 비율 |
+|---|---|---|---|
+| OK | `OK` | 149,673 | **74.837%** |
+| Chipping | `CHIP` | 24,175 | 12.088% |
+| Particle | `PARTICLE` | 11,296 | 5.648% |
+| Remain_Coat | `REM_COAT` | 9,266 | 4.633% |
+| Micro_Crack | `CRACK` | 4,921 | 2.460% |
+| (기타) | `BURN` | 608 | 0.304% |
+| (기타) | `LASER` | 61 | 0.030% |
+| **합계** | | **200,000** | 100% |
+
+**SOP 칸은 비어 있습니다** — `sop_status = "SOP 미수령 — 멘토 제공 대기"`
 
 각 담당자가 따로 낸 유효인자 판정을 **하나의 스키마**로 합쳤습니다.
 AI Agent가 **원인(조치 가능) / 감시지표(관찰만) / 불량결과**를 구분해 답하기 위한 기반입니다.

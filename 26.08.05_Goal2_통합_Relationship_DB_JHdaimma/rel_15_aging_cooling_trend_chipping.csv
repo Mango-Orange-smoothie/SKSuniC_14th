@@ -1,0 +1,13 @@
+﻿group,factor,description,cliffs_delta,spearman,p_spearman,rate_lowest_decile_pct,rate_highest_decile_pct,raw_median_lowest,raw_median_highest,direction
+Laser Aging,Power_Efficiency,레이저 효율,-0.8789,-0.3681,0.0,42.4,0.08,92.643,95.227,값 ↓ 이면 Chipping ↑
+귀속 미확정,Head_Temp,헤드 온도 — 멘토 인과사슬 시작점. 냉각/레이저 어느 쪽인지 미확정,0.8727,0.3655,0.0,0.05,38.1919,41.543,45.363,값 ↑ 이면 Chipping ↑
+Laser Aging,Laser_Power,레이저 출력,-0.8523,-0.3569,0.0,42.6379,0.0501,17.935,18.621,값 ↓ 이면 Chipping ↑
+Laser Aging,Laser_Centering_Position,빔 센터링 위치,0.5757,0.2411,0.0,2.7842,39.2468,-0.237,1.245,값 ↑ 이면 Chipping ↑
+Cooling Failure,Cooling_Flow,냉각수 유량,-0.478,-0.2002,0.0,21.1247,1.4441,9.79,10.156,값 ↓ 이면 Chipping ↑
+Cooling Failure,Cooling_Thermal_Load,열부하(파생: 수온/유량),0.3145,0.1317,0.0,2.44,14.79,2.1422,2.2696,값 ↑ 이면 Chipping ↑
+Laser Aging,Frequency,펄스 주파수,-0.0158,-0.0066,0.0030389591895548314,6.33,5.3005,99.178,100.822,경향 없음 (거의 평평)
+Laser Aging,Laser_Current,레이저 전류,0.0081,0.0034,0.12822509867772128,6.0938,6.4864,8.334,8.665,경향 없음 (거의 평평)
+Laser Aging,Beam_Diameter,빔 직경,0.0047,0.002,0.377212803230197,6.0088,6.395,34.508,35.494,경향 없음 (거의 평평)
+Laser Aging,Laser_Head_Remain_Time,헤드 잔여수명,-0.0016,-0.0007,0.760456140530027,6.1847,6.31,1199.0,4800.0,경향 없음 (거의 평평)
+Laser Aging,Laser_Voltage,레이저 전압,0.0014,0.0006,0.7898672111773025,6.255,6.4936,23.671,24.329,경향 없음 (거의 평평)
+Cooling Failure,Cooling_Water_Temp,냉각수 온도,-0.0014,-0.0006,0.7899771246539988,6.2,6.386,21.508,22.495,경향 없음 (거의 평평)

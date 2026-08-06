@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-06T16:51:59.310190",
+  "generated_at": "2026-08-06T17:16:53.316941",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -9,31 +9,35 @@
       ],
       "owner": "JHdaimma",
       "direction": "down",
-      "mechanism": "실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)",
-      "role": "원인(조치가능)",
+      "mechanism": "Power_Efficiency 감소 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
       "actionable": true,
-      "confidence": "높음(2개 방법론 일치)",
-      "effect_size_pure": -0.8989,
-      "cross_check": "일치",
-      "caution": null,
-      "tier": "C1",
-      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
-    },
-    "Head_Temp": {
-      "defects": [
-        "Chipping"
-      ],
-      "owner": "JHdaimma",
-      "direction": "up",
-      "mechanism": "헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일",
-      "role": "원인(조치가능)",
-      "actionable": true,
-      "confidence": "높음(2개 방법론 일치)",
-      "effect_size_pure": 0.8867,
-      "cross_check": "일치",
-      "caution": null,
-      "tier": "C1",
-      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
+      "cliffs_delta": -0.8789,
+      "rf_rank": "2/39",
+      "threshold_raw": 94.742,
+      "normal_range": "94.78 ~ 95.24",
+      "risky_range": "92.34 ~ 94.71",
+      "risk_ratio": 58.73,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 94.742,
+          "normal_range": "94.78 ~ 95.24",
+          "risky_range": "92.34 ~ 94.71",
+          "risk_ratio": 58.73,
+          "alert_usable": true,
+          "cliffs_delta": -0.8789,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
     },
     "Laser_Power": {
       "defects": [
@@ -41,84 +45,213 @@
       ],
       "owner": "JHdaimma",
       "direction": "down",
-      "mechanism": "출력 부족 -> low-k 불완전 승화 -> 잔류물에 블레이드 충돌 (Jun은 Burn전용으로 오분류했음)",
-      "role": "원인(조치가능)",
+      "mechanism": "Laser_Power 감소 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
       "actionable": true,
-      "confidence": "높음(2개 방법론 일치)",
-      "effect_size_pure": -0.8724,
-      "cross_check": "일치",
-      "caution": null,
-      "tier": "C1",
-      "tier_meaning": "실행 준비 완료 — 2개 방법론 일치 + 두 데이터셋 재현"
+      "cliffs_delta": -0.8523,
+      "rf_rank": "4/39",
+      "threshold_raw": 18.38,
+      "normal_range": "18.39 ~ 18.63",
+      "risky_range": "17.79 ~ 18.37",
+      "risk_ratio": 31.36,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 18.38,
+          "normal_range": "18.39 ~ 18.63",
+          "risky_range": "17.79 ~ 18.37",
+          "risk_ratio": 31.36,
+          "alert_usable": true,
+          "cliffs_delta": -0.8523,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
     },
-    "Vibration": {
-      "defects": [
-        "Chipping",
-        "Particle"
-      ],
-      "owner": "JHdaimma",
-      "direction": "up",
-      "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
-      "role": "원인(조치가능)",
-      "actionable": true,
-      "confidence": "높음(2개 방법론 일치)",
-      "effect_size_pure": 0.8443,
-      "cross_check": "일치",
-      "caution": "확정이지만 엄격(pure/primary) 라벨 효과크기 |delta|<0.2 — 다른 defect가 섞인 넓은 라벨에 의존한 결론일 수 있음. 재확인 필요",
-      "tier": "C3",
-      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
-    },
-    "Laser_Centering_Position": {
+    "Head_Temp": {
       "defects": [
         "Chipping"
       ],
       "owner": "JHdaimma",
       "direction": "up",
-      "mechanism": "Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단",
-      "role": "원인(조치가능)",
+      "mechanism": "Head_Temp 증가 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
       "actionable": true,
-      "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
-      "effect_size_pure": 0.6067,
-      "cross_check": "불일치",
-      "caution": null,
-      "tier": "C3",
-      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
+      "cliffs_delta": 0.8727,
+      "rf_rank": "8/39",
+      "threshold_raw": 42.646,
+      "normal_range": "41.52 ~ 42.49",
+      "risky_range": "42.75 ~ 46.29",
+      "risk_ratio": 94.67,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 42.646,
+          "normal_range": "41.52 ~ 42.49",
+          "risky_range": "42.75 ~ 46.29",
+          "risk_ratio": 94.67,
+          "alert_usable": true,
+          "cliffs_delta": 0.8727,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
     },
     "CLN_Pressure": {
       "defects": [
         "Remain_Coat"
       ],
-      "owner": "전성재",
+      "owner": "JHdaimma",
       "direction": "down",
-      "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
-      "role": "원인(조치가능)",
+      "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "급락알람",
       "actionable": true,
-      "confidence": "중간(Jun 대조본과 불일치 — rel_03 참조)",
-      "effect_size_pure": -0.2466,
-      "cross_check": "불일치",
-      "caution": null,
-      "tier": "C3",
-      "tier_meaning": "관찰 — 대조 불일치 + 재현 안 됨"
+      "cliffs_delta": -0.2466,
+      "rf_rank": "3/39",
+      "threshold_raw": 297.272,
+      "normal_range": "297.63 ~ 303.34",
+      "risky_range": "294.65 ~ 297.04",
+      "risk_ratio": 6.0,
+      "alert_usable": true,
+      "testability": "검정력 낮음(극단 이탈 희소)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현",
+      "per_defect": {
+        "Remain_Coat": {
+          "tier": "T1",
+          "action_type": "급락알람",
+          "threshold_raw": 297.272,
+          "normal_range": "297.63 ~ 303.34",
+          "risky_range": "294.65 ~ 297.04",
+          "risk_ratio": 6.0,
+          "alert_usable": true,
+          "cliffs_delta": -0.2466,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        }
+      }
+    },
+    "CLN_Flow": {
+      "defects": [
+        "Remain_Coat",
+        "Particle"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+      "tier": "T2",
+      "role": "원인(FDC)",
+      "action_type": "조건부조치",
+      "actionable": true,
+      "cliffs_delta": -0.5556,
+      "rf_rank": "1/39",
+      "threshold_raw": 9.725,
+      "normal_range": "9.85 ~ 10.08",
+      "risky_range": "9.00 ~ 9.68",
+      "risk_ratio": 24.67,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현",
+      "per_defect": {
+        "Remain_Coat": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 9.725,
+          "normal_range": "9.85 ~ 10.08",
+          "risky_range": "9.00 ~ 9.68",
+          "risk_ratio": 24.67,
+          "alert_usable": true,
+          "cliffs_delta": -0.5556,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        },
+        "Particle": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 9.722,
+          "normal_range": "9.85 ~ 10.08",
+          "risky_range": "9.00 ~ 9.67",
+          "risk_ratio": 0.8,
+          "alert_usable": false,
+          "cliffs_delta": -0.0052,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (RandomForest)"
+        }
+      },
+      "note_multi_defect": "defect마다 티어·경계값이 다르다. per_defect를 반드시 확인할 것."
+    },
+    "Cooling_Flow": {
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+      "tier": "T2",
+      "role": "원인(FDC)",
+      "action_type": "조건부조치",
+      "actionable": true,
+      "cliffs_delta": -0.478,
+      "rf_rank": "39/39",
+      "threshold_raw": 9.934,
+      "normal_range": "9.94 ~ 10.17",
+      "risky_range": "9.72 ~ 9.92",
+      "risk_ratio": 4.08,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 9.934,
+          "normal_range": "9.94 ~ 10.17",
+          "risky_range": "9.72 ~ 9.92",
+          "risk_ratio": 4.08,
+          "alert_usable": true,
+          "cliffs_delta": -0.478,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)"
+        }
+      }
     }
   },
   "machines": {
     "DP01": {
-      "health_index": 83.8,
+      "health_index": 69.2,
       "worst_defects": [
+        {
+          "defect": "Chipping",
+          "health_index": 69.2,
+          "worst_factor": "Cooling_Flow"
+        },
         {
           "defect": "Remain_Coat",
           "health_index": 83.8,
           "worst_factor": "CLN_Pressure"
         },
         {
-          "defect": "Chipping",
-          "health_index": 95.7,
-          "worst_factor": "Head_Temp"
-        },
-        {
           "defect": "Particle",
           "health_index": 100.0,
-          "worst_factor": "Vibration"
+          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
@@ -127,7 +260,7 @@
           "health_index": 100.0,
           "worst_factors": [
             {
-              "factor": "Vibration",
+              "factor": "CLN_Flow",
               "health_index": 100.0,
               "spec_status": "OK"
             }
@@ -135,44 +268,28 @@
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
-            "Vibration": {
-              "current_value": 0.1522,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
+            "CLN_Flow": {
+              "current_value": 9.9989,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
               "spec_status": "OK",
               "health_index": 100.0,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
               "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
+              "trend_direction": null,
               "early_warning_active": false,
-              "trend_message": "DP01 / PKG_A / RCP_2의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "trend_message": null,
               "alert_since": null,
               "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 5
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 4
-                },
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 4
-                }
-              ],
-              "n_product_recipe_combos_affected": 12.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
+              "recipe_hotspot_concentrated": false,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
             }
           }
@@ -184,11 +301,40 @@
               "factor": "CLN_Pressure",
               "health_index": 83.8,
               "spec_status": "OK"
+            },
+            {
+              "factor": "CLN_Flow",
+              "health_index": 100.0,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
+            "CLN_Flow": {
+              "current_value": 9.9989,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": null,
+              "early_warning_active": false,
+              "trend_message": null,
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
+              "recipe_hotspot_concentrated": false,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
+            },
             "CLN_Pressure": {
               "current_value": 300.0623,
               "baseline_median": 300.0362,
@@ -226,22 +372,22 @@
               "n_product_recipe_combos_affected": 39.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
-              "source": "전성재"
+              "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
             }
           }
         },
         "Chipping": {
-          "health_index": 95.7,
+          "health_index": 69.2,
           "worst_factors": [
             {
-              "factor": "Head_Temp",
-              "health_index": 95.7,
+              "factor": "Cooling_Flow",
+              "health_index": 69.2,
               "spec_status": "OK"
             },
             {
-              "factor": "Laser_Centering_Position",
-              "health_index": 98.7,
+              "factor": "Head_Temp",
+              "health_index": 95.7,
               "spec_status": "OK"
             },
             {
@@ -253,6 +399,46 @@
           "actual_occurred_recent_7d": false,
           "occurred_days_recent_7d": 0,
           "causes": {
+            "Cooling_Flow": {
+              "current_value": 9.9937,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 69.2,
+              "defect_zone_rate_pct": null,
+              "defect_zone_baseline_pct": null,
+              "margin_trend_pct_per_day": -0.431,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP01 / PKG_E / RCP_7의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_3",
+                  "warning_count": 13
+                },
+                {
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 12
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_4",
+                  "warning_count": 7
+                }
+              ],
+              "n_product_recipe_combos_affected": 22.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "down",
+              "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+              "source": "JHdaimma"
+            },
             "Head_Temp": {
               "current_value": 41.9656,
               "baseline_median": 42.0,
@@ -290,47 +476,7 @@
               "n_product_recipe_combos_affected": 14.0,
               "recipe_hotspot_concentrated": true,
               "direction": "up",
-              "mechanism": "헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일",
-              "source": "JHdaimma"
-            },
-            "Laser_Centering_Position": {
-              "current_value": 0.0062,
-              "baseline_median": 0.0,
-              "lsl": -3.0,
-              "usl": 3.0,
-              "spec_source": "mentor_spec",
-              "spec_status": "OK",
-              "health_index": 98.7,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.004,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": true,
-              "trend_message": "DP01 / PKG_A / RCP_9의 Laser_Centering_Position 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.3,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 10
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_8",
-                  "warning_count": 8
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 8
-                }
-              ],
-              "n_product_recipe_combos_affected": 28.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단",
+              "mechanism": "Head_Temp 증가 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Laser_Power": {
@@ -370,7 +516,7 @@
               "n_product_recipe_combos_affected": 15.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 잔류물에 블레이드 충돌 (Jun은 Burn전용으로 오분류했음)",
+              "mechanism": "Laser_Power 감소 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Power_Efficiency": {
@@ -410,47 +556,7 @@
               "n_product_recipe_combos_affected": 24.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)",
-              "source": "JHdaimma"
-            },
-            "Vibration": {
-              "current_value": 0.1522,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 100.0,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": null,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": false,
-              "trend_message": "DP01 / PKG_A / RCP_2의 Vibration 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 5
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 4
-                },
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 4
-                }
-              ],
-              "n_product_recipe_combos_affected": 12.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "mechanism": "Power_Efficiency 감소 → Chipping 증가",
               "source": "JHdaimma"
             }
           }
@@ -582,68 +688,52 @@
           "worst_factor": "Laser_Power"
         },
         {
-          "defect": "Particle",
-          "health_index": 71.8,
-          "worst_factor": "Vibration"
-        },
-        {
           "defect": "Remain_Coat",
           "health_index": 97.5,
           "worst_factor": "CLN_Pressure"
+        },
+        {
+          "defect": "Particle",
+          "health_index": 100.0,
+          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 71.8,
+          "health_index": 100.0,
           "worst_factors": [
             {
-              "factor": "Vibration",
-              "health_index": 71.8,
+              "factor": "CLN_Flow",
+              "health_index": 100.0,
               "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
-            "Vibration": {
-              "current_value": 0.1603,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
+            "CLN_Flow": {
+              "current_value": 9.9999,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 71.8,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.035,
+              "health_index": 100.0,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": true,
-              "trend_message": "DP02 / PKG_A / RCP_2의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.3,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 39
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 27
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 24
-                }
-              ],
-              "n_product_recipe_combos_affected": 26.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "trend_direction": null,
+              "early_warning_active": false,
+              "trend_message": null,
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
+              "recipe_hotspot_concentrated": false,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
             }
           }
@@ -655,11 +745,40 @@
               "factor": "CLN_Pressure",
               "health_index": 97.5,
               "spec_status": "OK"
+            },
+            {
+              "factor": "CLN_Flow",
+              "health_index": 100.0,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
+            "CLN_Flow": {
+              "current_value": 9.9999,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": null,
+              "early_warning_active": false,
+              "trend_message": null,
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
+              "recipe_hotspot_concentrated": false,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
+            },
             "CLN_Pressure": {
               "current_value": 300.0023,
               "baseline_median": 300.0362,
@@ -697,8 +816,8 @@
               "n_product_recipe_combos_affected": 42.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
-              "source": "전성재"
+              "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
             }
           }
         },
@@ -711,19 +830,59 @@
               "spec_status": "OK"
             },
             {
-              "factor": "Vibration",
-              "health_index": 71.8,
+              "factor": "Power_Efficiency",
+              "health_index": 86.3,
               "spec_status": "OK"
             },
             {
-              "factor": "Power_Efficiency",
-              "health_index": 86.3,
+              "factor": "Head_Temp",
+              "health_index": 99.6,
               "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": false,
           "occurred_days_recent_7d": 0,
           "causes": {
+            "Cooling_Flow": {
+              "current_value": 10.0092,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "defect_zone_rate_pct": null,
+              "defect_zone_baseline_pct": null,
+              "margin_trend_pct_per_day": -0.16,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP02 / PKG_B / RCP_2의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_4",
+                  "warning_count": 10
+                },
+                {
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_2",
+                  "warning_count": 7
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 6
+                }
+              ],
+              "n_product_recipe_combos_affected": 29.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "down",
+              "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+              "source": "JHdaimma"
+            },
             "Head_Temp": {
               "current_value": 42.0215,
               "baseline_median": 42.0,
@@ -761,47 +920,7 @@
               "n_product_recipe_combos_affected": 25.0,
               "recipe_hotspot_concentrated": true,
               "direction": "up",
-              "mechanism": "헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일",
-              "source": "JHdaimma"
-            },
-            "Laser_Centering_Position": {
-              "current_value": 0.0378,
-              "baseline_median": 0.0,
-              "lsl": -3.0,
-              "usl": 3.0,
-              "spec_source": "mentor_spec",
-              "spec_status": "OK",
-              "health_index": 90.6,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.02,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": true,
-              "trend_message": "DP02 / PKG_B / RCP_3의 Laser_Centering_Position에서 이론 기준값(0.0000) 대비 지속적으로 벌어지는 편차가 감지되었습니다.",
-              "alert_since": "2026-03-28",
-              "alert_active_days": 2.3,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 30
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_1",
-                  "warning_count": 19
-                },
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_6",
-                  "warning_count": 16
-                }
-              ],
-              "n_product_recipe_combos_affected": 37.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단",
+              "mechanism": "Head_Temp 증가 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Laser_Power": {
@@ -841,7 +960,7 @@
               "n_product_recipe_combos_affected": 54.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 잔류물에 블레이드 충돌 (Jun은 Burn전용으로 오분류했음)",
+              "mechanism": "Laser_Power 감소 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Power_Efficiency": {
@@ -881,47 +1000,7 @@
               "n_product_recipe_combos_affected": 54.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)",
-              "source": "JHdaimma"
-            },
-            "Vibration": {
-              "current_value": 0.1603,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 71.8,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.035,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": true,
-              "trend_message": "DP02 / PKG_A / RCP_2의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.3,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 39
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 27
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 24
-                }
-              ],
-              "n_product_recipe_combos_affected": 26.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "mechanism": "Power_Efficiency 감소 → Chipping 증가",
               "source": "JHdaimma"
             }
           }
@@ -1141,44 +1220,6 @@
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
         {
-          "column": "Cooling_Flow",
-          "current_value": 10.0092,
-          "baseline_median": 9.999,
-          "lsl": 9.9831,
-          "usl": 10.015,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 2.069,
-          "estimated_days_to_spec_out": 17.0,
-          "trend_direction": "up",
-          "early_warning_active": false,
-          "trend_message": "DP02 / PKG_B / RCP_2의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_4",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_2",
-              "warning_count": 7
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_7",
-              "warning_count": 6
-            }
-          ],
-          "n_product_recipe_combos_affected": 29.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
           "column": "Process_Time",
           "current_value": 5.008,
           "baseline_median": 5.0005,
@@ -1295,76 +1336,60 @@
       ]
     },
     "DP03": {
-      "health_index": 10.5,
+      "health_index": 78.2,
       "worst_defects": [
         {
-          "defect": "Particle",
-          "health_index": 10.5,
-          "worst_factor": "Vibration"
-        },
-        {
           "defect": "Chipping",
-          "health_index": 10.5,
-          "worst_factor": "Vibration"
+          "health_index": 78.2,
+          "worst_factor": "Cooling_Flow"
         },
         {
           "defect": "Remain_Coat",
           "health_index": 98.4,
           "worst_factor": "CLN_Pressure"
+        },
+        {
+          "defect": "Particle",
+          "health_index": 100.0,
+          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 10.5,
+          "health_index": 100.0,
           "worst_factors": [
             {
-              "factor": "Vibration",
-              "health_index": 10.5,
+              "factor": "CLN_Flow",
+              "health_index": 100.0,
               "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
-            "Vibration": {
-              "current_value": 0.1714,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
+            "CLN_Flow": {
+              "current_value": 9.9996,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 10.5,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.533,
+              "health_index": 100.0,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": null,
               "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": true,
-              "trend_message": "DP03 / PKG_D / RCP_1의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-              "alert_since": "2026-03-21",
-              "alert_active_days": 9.6,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 210
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_8",
-                  "warning_count": 206
-                },
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 199
-                }
-              ],
-              "n_product_recipe_combos_affected": 54.0,
+              "trend_direction": null,
+              "early_warning_active": false,
+              "trend_message": null,
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
               "recipe_hotspot_concentrated": false,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
             }
           }
@@ -1376,11 +1401,40 @@
               "factor": "CLN_Pressure",
               "health_index": 98.4,
               "spec_status": "OK"
+            },
+            {
+              "factor": "CLN_Flow",
+              "health_index": 100.0,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
+            "CLN_Flow": {
+              "current_value": 9.9996,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "defect_zone_rate_pct": 0.0,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": null,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": null,
+              "early_warning_active": false,
+              "trend_message": null,
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [],
+              "n_product_recipe_combos_affected": null,
+              "recipe_hotspot_concentrated": false,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
+            },
             "CLN_Pressure": {
               "current_value": 299.9865,
               "baseline_median": 300.0362,
@@ -1418,17 +1472,17 @@
               "n_product_recipe_combos_affected": 31.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
-              "source": "전성재"
+              "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
             }
           }
         },
         "Chipping": {
-          "health_index": 10.5,
+          "health_index": 78.2,
           "worst_factors": [
             {
-              "factor": "Vibration",
-              "health_index": 10.5,
+              "factor": "Cooling_Flow",
+              "health_index": 78.2,
               "spec_status": "OK"
             },
             {
@@ -1445,6 +1499,46 @@
           "actual_occurred_recent_7d": false,
           "occurred_days_recent_7d": 0,
           "causes": {
+            "Cooling_Flow": {
+              "current_value": 9.9956,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 78.2,
+              "defect_zone_rate_pct": null,
+              "defect_zone_baseline_pct": null,
+              "margin_trend_pct_per_day": 0.798,
+              "estimated_days_to_spec_out": 98.1,
+              "trend_direction": "down",
+              "early_warning_active": false,
+              "trend_message": "DP03 / PKG_B / RCP_3의 Cooling_Flow에서 정상 Baseline 대비 지속적인 하강 추세가 감지되었습니다.",
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_8",
+                  "warning_count": 13
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_2",
+                  "warning_count": 10
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 9
+                }
+              ],
+              "n_product_recipe_combos_affected": 25.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "down",
+              "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+              "source": "JHdaimma"
+            },
             "Head_Temp": {
               "current_value": 42.1916,
               "baseline_median": 42.0,
@@ -1482,47 +1576,7 @@
               "n_product_recipe_combos_affected": 53.0,
               "recipe_hotspot_concentrated": true,
               "direction": "up",
-              "mechanism": "헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일",
-              "source": "JHdaimma"
-            },
-            "Laser_Centering_Position": {
-              "current_value": -0.0094,
-              "baseline_median": 0.0,
-              "lsl": -3.0,
-              "usl": 3.0,
-              "spec_source": "mentor_spec",
-              "spec_status": "OK",
-              "health_index": 99.6,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.021,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": true,
-              "trend_message": "DP03 / PKG_F / RCP_7의 Laser_Centering_Position에서 이론 기준값(0.0000) 대비 지속적으로 벌어지는 편차가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.1,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 11
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 9
-                },
-                {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_1",
-                  "warning_count": 8
-                }
-              ],
-              "n_product_recipe_combos_affected": 30.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단",
+              "mechanism": "Head_Temp 증가 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Laser_Power": {
@@ -1562,7 +1616,7 @@
               "n_product_recipe_combos_affected": 33.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 잔류물에 블레이드 충돌 (Jun은 Burn전용으로 오분류했음)",
+              "mechanism": "Laser_Power 감소 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Power_Efficiency": {
@@ -1602,47 +1656,7 @@
               "n_product_recipe_combos_affected": 31.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)",
-              "source": "JHdaimma"
-            },
-            "Vibration": {
-              "current_value": 0.1714,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 10.5,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.533,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": true,
-              "trend_message": "DP03 / PKG_D / RCP_1의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-              "alert_since": "2026-03-21",
-              "alert_active_days": 9.6,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 210
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_8",
-                  "warning_count": 206
-                },
-                {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 199
-                }
-              ],
-              "n_product_recipe_combos_affected": 54.0,
-              "recipe_hotspot_concentrated": false,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "mechanism": "Power_Efficiency 감소 → Chipping 증가",
               "source": "JHdaimma"
             }
           }
@@ -1723,6 +1737,44 @@
           ],
           "n_product_recipe_combos_affected": 23.0,
           "recipe_hotspot_concentrated": true,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Vibration",
+          "current_value": 0.1714,
+          "baseline_median": 0.1548,
+          "lsl": 0.1472,
+          "usl": 0.1744,
+          "spec_source": "provisional_percentile",
+          "spec_status": "OK",
+          "defect_zone_rate_pct": null,
+          "defect_zone_baseline_pct": null,
+          "margin_trend_pct_per_day": -0.533,
+          "estimated_days_to_spec_out": null,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP03 / PKG_D / RCP_1의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+          "alert_since": "2026-03-21",
+          "alert_active_days": 9.6,
+          "recipe_hotspots": [
+            {
+              "product_id": "PKG_C",
+              "recipe_id": "RCP_2",
+              "warning_count": 210
+            },
+            {
+              "product_id": "PKG_E",
+              "recipe_id": "RCP_8",
+              "warning_count": 206
+            },
+            {
+              "product_id": "PKG_F",
+              "recipe_id": "RCP_5",
+              "warning_count": 199
+            }
+          ],
+          "n_product_recipe_combos_affected": 54.0,
+          "recipe_hotspot_concentrated": false,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
         {
@@ -1842,83 +1894,88 @@
       ]
     },
     "DP04": {
-      "health_index": 57.9,
+      "health_index": 0.0,
       "worst_defects": [
         {
           "defect": "Particle",
-          "health_index": 57.9,
-          "worst_factor": "Vibration"
-        },
-        {
-          "defect": "Chipping",
-          "health_index": 57.9,
-          "worst_factor": "Vibration"
+          "health_index": 0.0,
+          "worst_factor": "CLN_Flow"
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 76.0,
-          "worst_factor": "CLN_Pressure"
+          "health_index": 0.0,
+          "worst_factor": "CLN_Flow"
+        },
+        {
+          "defect": "Chipping",
+          "health_index": 97.3,
+          "worst_factor": "Head_Temp"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 57.9,
+          "health_index": 0.0,
           "worst_factors": [
             {
-              "factor": "Vibration",
-              "health_index": 57.9,
-              "spec_status": "OK"
+              "factor": "CLN_Flow",
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
             }
           ],
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
-            "Vibration": {
-              "current_value": 0.1629,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 57.9,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.913,
-              "estimated_days_to_spec_out": 64.5,
-              "trend_direction": "up",
+            "CLN_Flow": {
+              "current_value": 9.7674,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "defect_zone_rate_pct": 7.53,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": 42.086,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_B / RCP_9의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
+              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(평소 0.4%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
               "alert_since": "2026-03-30",
-              "alert_active_days": 0.5,
+              "alert_active_days": 0.4,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_C",
-                  "recipe_id": "RCP_8",
-                  "warning_count": 18
-                },
-                {
-                  "product_id": "PKG_C",
                   "recipe_id": "RCP_7",
-                  "warning_count": 17
+                  "warning_count": 10
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 11
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_1",
+                  "warning_count": 9
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 9
                 }
               ],
-              "n_product_recipe_combos_affected": 21.0,
+              "n_product_recipe_combos_affected": 33.0,
               "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
             }
           }
         },
         "Remain_Coat": {
-          "health_index": 76.0,
+          "health_index": 0.0,
           "worst_factors": [
+            {
+              "factor": "CLN_Flow",
+              "health_index": 0.0,
+              "spec_status": "SPEC_OUT"
+            },
             {
               "factor": "CLN_Pressure",
               "health_index": 76.0,
@@ -1928,6 +1985,46 @@
           "actual_occurred_recent_7d": true,
           "occurred_days_recent_7d": 7,
           "causes": {
+            "CLN_Flow": {
+              "current_value": 9.7674,
+              "baseline_median": 9.992,
+              "lsl": 9.6887,
+              "usl": 9.992,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "SPEC_OUT",
+              "health_index": 0.0,
+              "defect_zone_rate_pct": 7.53,
+              "defect_zone_baseline_pct": 0.48,
+              "margin_trend_pct_per_day": 42.086,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(평소 0.4%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "alert_since": "2026-03-30",
+              "alert_active_days": 0.4,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 10
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_1",
+                  "warning_count": 9
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 9
+                }
+              ],
+              "n_product_recipe_combos_affected": 33.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "down",
+              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
+            },
             "CLN_Pressure": {
               "current_value": 299.9479,
               "baseline_median": 300.0362,
@@ -1965,19 +2062,14 @@
               "n_product_recipe_combos_affected": 35.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
-              "source": "전성재"
+              "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+              "source": "JHdaimma"
             }
           }
         },
         "Chipping": {
-          "health_index": 57.9,
+          "health_index": 97.3,
           "worst_factors": [
-            {
-              "factor": "Vibration",
-              "health_index": 57.9,
-              "spec_status": "OK"
-            },
             {
               "factor": "Head_Temp",
               "health_index": 97.3,
@@ -1987,11 +2079,56 @@
               "factor": "Laser_Power",
               "health_index": 99.3,
               "spec_status": "OK"
+            },
+            {
+              "factor": "Power_Efficiency",
+              "health_index": 99.4,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": false,
           "occurred_days_recent_7d": 0,
           "causes": {
+            "Cooling_Flow": {
+              "current_value": 10.0087,
+              "baseline_median": 9.999,
+              "lsl": 9.9831,
+              "usl": 9.999,
+              "spec_source": "provisional_percentile",
+              "spec_status": "OK",
+              "health_index": 100.0,
+              "defect_zone_rate_pct": null,
+              "defect_zone_baseline_pct": null,
+              "margin_trend_pct_per_day": -1.114,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_D / RCP_8의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_8",
+                  "warning_count": 7
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_3",
+                  "warning_count": 7
+                },
+                {
+                  "product_id": "PKG_E",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 7
+                }
+              ],
+              "n_product_recipe_combos_affected": 27.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "down",
+              "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+              "source": "JHdaimma"
+            },
             "Head_Temp": {
               "current_value": 42.0259,
               "baseline_median": 42.0,
@@ -2029,47 +2166,7 @@
               "n_product_recipe_combos_affected": 25.0,
               "recipe_hotspot_concentrated": true,
               "direction": "up",
-              "mechanism": "헤드온도->크리스탈 스팟온도->굴절률->센터링 변화->Chipping/Kerf 불균일",
-              "source": "JHdaimma"
-            },
-            "Laser_Centering_Position": {
-              "current_value": 0.0021,
-              "baseline_median": 0.0,
-              "lsl": -3.0,
-              "usl": 3.0,
-              "spec_source": "mentor_spec",
-              "spec_status": "OK",
-              "health_index": 99.9,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.014,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "up",
-              "early_warning_active": false,
-              "trend_message": "DP04 / PKG_F / RCP_7의 Laser_Centering_Position에서 이론 기준값(0.0000) 대비 지속적으로 벌어지는 편차가 감지되었습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 9
-                },
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 9
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 8
-                }
-              ],
-              "n_product_recipe_combos_affected": 29.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "Head_Temp 인과사슬 종착점 — 빔 중심 이탈로 비대칭 절단",
+              "mechanism": "Head_Temp 증가 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Laser_Power": {
@@ -2109,7 +2206,7 @@
               "n_product_recipe_combos_affected": 20.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "출력 부족 -> low-k 불완전 승화 -> 잔류물에 블레이드 충돌 (Jun은 Burn전용으로 오분류했음)",
+              "mechanism": "Laser_Power 감소 → Chipping 증가",
               "source": "JHdaimma"
             },
             "Power_Efficiency": {
@@ -2149,91 +2246,13 @@
               "n_product_recipe_combos_affected": 24.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
-              "mechanism": "실제 조사 에너지 이상 -> 승화 불완전 (⚠멘토: U자형 비선형)",
-              "source": "JHdaimma"
-            },
-            "Vibration": {
-              "current_value": 0.1629,
-              "baseline_median": 0.1548,
-              "lsl": 0.1548,
-              "usl": 0.1744,
-              "spec_source": "provisional_percentile",
-              "spec_status": "OK",
-              "health_index": 57.9,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.913,
-              "estimated_days_to_spec_out": 64.5,
-              "trend_direction": "up",
-              "early_warning_active": true,
-              "trend_message": "DP04 / PKG_B / RCP_9의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.5,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_8",
-                  "warning_count": 18
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 17
-                },
-                {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 11
-                }
-              ],
-              "n_product_recipe_combos_affected": 21.0,
-              "recipe_hotspot_concentrated": true,
-              "direction": "up",
-              "mechanism": "장비 노후화로 스테이지 축 이동 시 설비가 흔들려 나이프 자국 형태의 대형 불량 발생",
+              "mechanism": "Power_Efficiency 감소 → Chipping 증가",
               "source": "JHdaimma"
             }
           }
         }
       },
       "unconfirmed_anomalies": [
-        {
-          "column": "CLN_Flow",
-          "current_value": 9.7674,
-          "baseline_median": 9.992,
-          "lsl": 9.6887,
-          "usl": 9.992,
-          "spec_source": "defect_zone_rate",
-          "spec_status": "SPEC_OUT",
-          "defect_zone_rate_pct": 7.53,
-          "defect_zone_baseline_pct": 0.48,
-          "margin_trend_pct_per_day": 42.086,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(평소 0.4%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-          "alert_since": "2026-03-30",
-          "alert_active_days": 0.4,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_7",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_1",
-              "warning_count": 9
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_7",
-              "warning_count": 9
-            }
-          ],
-          "n_product_recipe_combos_affected": 33.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
         {
           "column": "Cooling_Water_Temp",
           "current_value": 21.9722,
@@ -2303,44 +2322,6 @@
             {
               "product_id": "PKG_C",
               "recipe_id": "RCP_9",
-              "warning_count": 7
-            }
-          ],
-          "n_product_recipe_combos_affected": 27.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Cooling_Flow",
-          "current_value": 10.0087,
-          "baseline_median": 9.999,
-          "lsl": 9.9831,
-          "usl": 10.015,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.105,
-          "estimated_days_to_spec_out": 362.5,
-          "trend_direction": "up",
-          "early_warning_active": false,
-          "trend_message": "DP04 / PKG_D / RCP_8의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_8",
-              "warning_count": 7
-            },
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_3",
-              "warning_count": 7
-            },
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_7",
               "warning_count": 7
             }
           ],
