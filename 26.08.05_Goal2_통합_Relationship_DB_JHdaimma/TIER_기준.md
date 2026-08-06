@@ -16,7 +16,7 @@
 |---|---|---|---|
 | Particle | `Surface_Roughness` | 증가 → 증가 | level |
 | Particle | `CLN_Flow` | 감소 → 증가 | level |
-| Particle | `CLN_Pressure` | 증가 → 증가 | level |
+| Particle | `CLN_Pressure` | **감소** → 증가 | level |
 | Remain_Coat | `CLN_Pressure` | **감소** → 증가 | **spike**(순간 급락) |
 | Remain_Coat | `CLN_Flow` | 감소 → 증가 | level |
 | Micro_Crack | `Cooling_Flow` | 감소 → 증가 | level |
@@ -50,9 +50,18 @@
 
 각 인자는 **defect에만 직접 연결**됩니다. 인자끼리는 연결하지 않습니다.
 
-> ⚠️ `CLN_Pressure`는 **defect마다 방향이 반대**입니다.
-> Particle은 **증가**할 때, Remain_Coat는 **감소**할 때 늘어납니다.
-> 한쪽을 고치면 다른 쪽이 나빠지므로 **조치 시 반대편 영향을 반드시 병기**해야 합니다.
+### `CLN_Pressure` 방향 정정 (2026-08-06) — 트레이드오프 해소
+
+이전에는 `CLN_Pressure` **증가 → Particle 증가**로 두어 Remain_Coat와 상충했습니다.
+공정 도메인 확정에 따라 **증가 → Particle 감소**로 정정했습니다.
+
+| defect | 정정 후 | 압력을 올리면 |
+|---|---|---|
+| Remain_Coat | 감소 → 증가 | **좋아짐** ✅ |
+| Particle | **감소 → 증가** | **좋아짐** ✅ |
+
+> **두 defect 모두 같은 방향이 되어 상충이 사라졌습니다.**
+> 압력을 올리면 둘 다 개선되므로, 조치 시 반대편 영향을 병기할 필요가 없습니다.
 
 ---
 

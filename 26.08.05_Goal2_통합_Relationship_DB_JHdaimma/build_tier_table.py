@@ -46,7 +46,10 @@ RF_TOP_PCT = 0.25      # 후보 수 비례 상위 25% (고정 top-10은 defect�
 DOMAIN = [
     ("Particle",    "Surface_Roughness",  "up",   "level", "멘토 확정"),
     ("Particle",    "CLN_Flow",           "down", "level", "멘토 확정"),
-    ("Particle",    "CLN_Pressure",       "up",   "level", "멘토 확정"),
+    # 2026-08-06 방향 정정 — CLN_Pressure 증가 -> Particle 감소 (공정 도메인 확정).
+    # 이전에는 "증가 -> Particle 증가"로 두어 Remain_Coat와 상충(트레이드오프)했으나,
+    # 정정 후 두 defect 모두 "압력을 올리면 좋아지는" 같은 방향이 되어 상충이 사라진다.
+    ("Particle",    "CLN_Pressure",       "down", "level", "멘토 확정 (26.08.06 방향 정정)"),
     ("Remain_Coat", "CLN_Pressure",       "down", "spike", "멘토 확정 (순간적 급락)"),
     ("Remain_Coat", "CLN_Flow",           "down", "level", "멘토 확정"),
     ("Micro_Crack", "Cooling_Flow",       "down", "level", "멘토 확정"),

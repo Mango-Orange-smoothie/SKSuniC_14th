@@ -32,9 +32,13 @@ Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 
 |---|---|---|
 | **T1 즉시조치** | **5** | Chipping `Power_Efficiency` `Laser_Power` `Head_Temp` · Remain_Coat `CLN_Flow` `CLN_Pressure`(급락알람) |
 | T2 조건부조치 | 2 | Chipping `Cooling_Flow` · Particle `CLN_Flow` |
-| T3 감시 | 2 | Micro_Crack `Cooling_Flow` · Particle `CLN_Pressure` |
-| T4 판단보류 | 1 | Micro_Crack `Cooling_Water_Temp` — 도메인과 데이터 방향 반대 |
+| T3 감시 | 1 | Micro_Crack `Cooling_Flow` |
+| T4 판단보류 | 2 | Micro_Crack `Cooling_Water_Temp` · Particle `CLN_Pressure` — 둘 다 도메인과 데이터 방향 반대 |
 | M1 감시지표 | 1 | Particle `Surface_Roughness` |
+
+> 🔧 **`CLN_Pressure` 방향 정정** (2026-08-06): `증가 → Particle 증가` → **`증가 → Particle 감소`**.
+> 이로써 Remain_Coat와 **같은 방향**이 되어 **트레이드오프가 해소**됐습니다 (압력을 올리면 둘 다 개선).
+> 대신 실측 `delta +0.012`가 도메인 기대(음수)와 반대라 **T3 → T4**로 내려갔습니다.
 
 > 🔔 **`Vibration`은 티어표에서 제외했습니다** (2026-08-06).
 > 유효인자(원인) 트랙이 아니라 **별도 알람 트랙**으로 운영합니다 — 추세 상승과 spec 이탈만
