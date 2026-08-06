@@ -94,7 +94,7 @@ OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
     "column", "type", "matched_defect", "baseline", "threshold", "current_value", "rolling_mean", "rolling_std",
     "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "early_warning", "message",
+    "variability_warning", "early_warning", "episode_id", "message",
 ]
 # (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
 # baseline 자리에 그대로 넣어써서, normalized_deviation(추세/경고용 "정상에서 얼마나
@@ -541,6 +541,15 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "trend_direction": trend_direction,
                 "variability_warning": variability_warning,
                 "early_warning": early_warning,
+                # (26.08.05 추가) early_warning은 상태형이라 이상이 지속되는 동안 매 샷마다
+                # True로 계속 저장된다 — "몇 건"을 셀 때 샷 행 수를 세면 하나의 지속 사건이
+                # 수천 건처럼 부풀려 보인다(예: CLN_Flow는 10,476행이지만 실제 독립 사건은
+                # 97건뿐). episode_id는 이 그룹×컬럼 안에서 early_warning이 True로 "새로
+                # 시작된" 시점마다 1씩 증가하는 번호 — (Machine_ID,Product_ID,Recipe_ID,
+                # column,episode_id)로 묶으면 "사건 수"를 정확히 셀 수 있다.
+                "episode_id": np.cumsum(
+                    early_warning & ~np.concatenate(([False], early_warning[:-1]))
+                ),
                 "message": messages,
             })
             out_frames.append(frame)
@@ -687,7 +696,16 @@ def main():
     print(f"결과 전체 행 수: {total_out}")
     for source_name, v in summary.items():
         print(f"  - {source_name}: 입력 {v['n_input_rows']}행 -> 결과 {v['n_output_rows']}행, early_warning {v['n_early_warning']}건")
-    print(f"early_warning 총합: {total_warn}")
+    print(f"early_warning 총합(샷 행 수): {total_warn}")
+
+    # (26.08.05 추가) early_warning은 상태형이라 지속되는 동안 매 샷마다 카운트된다 —
+    # "행 수"만 보면 하나의 긴 사건도 수천 건처럼 보인다. episode_id로 묶어 실제
+    # 독립 사건 수를 따로 센다.
+    if total_warn > 0 and os.path.exists(OUTPUT_CSV):
+        ew = pd.read_csv(OUTPUT_CSV, usecols=["Machine_ID", "Product_ID", "Recipe_ID", "column", "episode_id"])
+        total_episodes = len(ew.drop_duplicates(["Machine_ID", "Product_ID", "Recipe_ID", "column", "episode_id"]))
+        print(f"early_warning 총합(독립 사건 수): {total_episodes}  "
+              f"(행 수 대비 {total_episodes/total_warn*100:.1f}% — 나머지는 같은 사건이 지속된 것)")
 
     if total_warn == 0:
         print("[점검] early_warning이 0건입니다. 임계값(Z_THRESHOLD) 또는 Baseline 매핑 로직을 점검해야 합니다.")
