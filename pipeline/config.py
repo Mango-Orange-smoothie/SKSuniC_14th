@@ -8,6 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 INPUT_CSV = ROOT / "data" / "raw" / "DP_HealthIndex_Dataset.csv"
+# (26.08.05) 멘토 배포 실데이터 — 모니터링 대상(INPUT_CSV)과 합치지 않고 Type C 결정트리
+# threshold "학습"에만 쓴다. 불량 사례를 의도적으로 많이 담은 데이터셋이라 정상군 비율이
+# 원본과 다르다(step0_preprocessing.py의 load_r1_for_threshold_training 참고).
+INPUT_CSV_R1 = ROOT / "DP_HealthIndex_Dataset_r1.csv"
 OUTPUT_DIR = ROOT / "analysis_outputs"
 PREPROCESSING_DIR = OUTPUT_DIR / "preprocessing"
 
@@ -273,15 +277,27 @@ DOMAIN_FEATURES = [
 # A유형 컬럼의 Recipe별 평균 변동이 그룹 내부 변동의 1~2% 수준이라 Machine 구분 실익이 적었음.
 # ---------------------------------------------------------------------------
 
-# A유형(9개): 컬럼명 -> 악화 방향 (True = 값이 올라갈수록 악화, False = 값이 내려갈수록 악화)
+# A유형(8개): 컬럼명 -> 악화 방향 (True = 값이 올라갈수록 악화, False = 값이 내려갈수록 악화)
 BASELINE_A_DIRECTION = {
     "Head_Temp": True,
+    # Vibration(26.08.05 재검토): 한때 Particle과 NG 7,792건/54그룹 전부 통과로 결정트리
+    # threshold를 만들어 C유형으로 옮겼었으나, 이 방법 자체의 함정을 발견해서 되돌린다 —
+    # 관련 없는 변수 19개(Cutting_Y_Index, Process_Time 등)에 같은 방법을 적용해봐도
+    # Remain_Coat 기준 2.36~3.5배, Particle 기준 1.67~2.35배 불량률 "점프"가 항상
+    # 나온다(결정트리가 표본 안에서 가장 잘 갈리는 지점을 고르는 이상, 순수 노이즈에도
+    # 이 정도 분리는 항상 생김 — 다중비교 편향). Vibration→Particle의 실제 분리력은
+    # 2.2배로 이 노이즈 범위(1.67~2.35) 안에 들어가 통계적으로 구분이 안 된다
+    # (대조: CLN_Pressure→Remain_Coat 20.8배, Surface_Roughness→Particle 16.7배 —
+    # 노이즈 천장을 6~10배 넘어서 확실히 진짜). 시간분할 안정성 검증(전/후반 threshold
+    # 거의 일치)을 통과했던 건 "패턴이 안정적"이었다는 것이지 "인과관계가 진짜"라는
+    # 증거는 아니었다. A유형(target 기반 CUSUM)으로 되돌린다.
     "Vibration": True,
     "Alignment_Time": True,
     "Process_Time": True,
     "Cooling_Flow": False,
     "Cooling_Water_Temp": True,
-    "CLN_Flow": False,
+    # CLN_Flow(26.08.06 재분류): C유형 재검증 스캔에서 발견 — BASELINE_C_DEFECT_MAP
+    # 주석 참고. A유형에서 빠지고 C유형(CLN_Flow -> Remain_Coat)으로 옮겼다.
     "Coating_Flow": False,
     # Groove_Depth(26.08.05 추가): Chipping 확정 원인(Jun, direction=down이 위험)인데
     # A/B/C/E 어디에도 없어서 trend_analysis.py가 이 컬럼에 방향성 조기경보를 전혀 못
@@ -297,15 +313,66 @@ BASELINE_A_DIRECTION = {
 BASELINE_B_COLUMNS = [
     "Laser_Power", "Power_Efficiency", "Focus", "Beam_Diameter",
     "Kerf_Width_Profile", "Top_Kerf", "Bottom_Kerf", "CLN_Time",
+    # (26.08.05 추가) 이전엔 타입 없음(NONE)이라 방향성 조기경보가 아예 안 나갔던 7개 중 6개.
+    # 89일 전체가 추세 없이 안정적인 노이즈라 A(단조 열화)는 안 맞고, 물리적으로 "정상값에서
+    # 벗어나면 양쪽 다 위험"인 공정 파라미터라 이미 B로 분류된 Laser_Power/Power_Efficiency와
+    # 같은 성격으로 판단해 B로 편입. Frequency/Feed_Speed/Coating_Thickness/Coating_Uniformity는
+    # 멘토 스펙 있음. Laser_Current/Laser_Voltage는 스펙 없고 4개 defect 전부와 상관 r≈0이라
+    # 방향성 근거가 없어서(=A유형처럼 "나쁜 방향"을 특정할 근거 없음) B로.
+    "Frequency", "Feed_Speed", "Coating_Thickness", "Coating_Uniformity",
+    "Laser_Current", "Laser_Voltage",
 ]
+# Laser_Head_Remain_Time: 타입 배정 보류. 이름은 "헤드 잔여수명"인데 실측 확인 결과 연속 샷
+# 간 diff의 표준편차(1622~1637)가 전체 분포 자체의 표준편차(1152)보다 커서 자기상관이
+# 0에 가깝다 — 서서히 줄어드는 소모품이 아니라 매 샷이 독립적인 난수에 가까움(장비 4대
+# 전부 동일 패턴, defect 4종과도 상관 r≈-0.005~+0.002). "정상값"이라는 개념 자체가
+# 안 맞아서 A/B/C/E 어디에도 넣지 않는다 — 전처리(rolling 통계)까지만 계산되고
+# early_warning 판정에는 안 쓰인다(00_column_classification.csv에는 계속 continuous/
+# predictor로 남아 rolling 통계 자체는 참고용으로 볼 수 있음).
 
 BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 경계값 추정 skip
+
+# (26.08.05 추가) 멘토 스펙이 있는 컬럼 중 실측 평균이 TARGET에서 스펙 폭(USL-LSL)의 10%
+# 이상 벗어난 건 Kerf_Width_Profile(12.0%)과 Coating_Uniformity(13.3%) 둘뿐이었다(나머지
+# 8개는 0.0~1.8%로 거의 정확히 일치 — 멘토 스펙 자체의 신뢰도가 높다는 근거). 이 중
+# Kerf_Width_Profile/Coating_Uniformity 둘 다, 89일 내내 이 오프셋이 전혀 안 줄어들고
+# (추세 아님, 처음부터 계속 벗어나 있음) 그 결과 Type B의 "지속적으로 벌어지는 편차"
+# 로직이 국소적인 정상 흔들림만으로 반복 오탐을 냈다(Kerf_Width_Profile 153+110건,
+# Coating_Uniformity는 CUSUM 적용 후 88,764건 — 전체 경고의 67%). LSL/USL은 멘토 값을
+# 그대로 신뢰하고 TARGET만 실측(OK median)으로 재계산한다 — "스펙을 벗어나면 안 된다"는
+# 경계는 유지하되 "정상일 때 어디에 있어야 하는가"는 실측을 따르는 것. (26.08.05 확정)
+TARGET_RECOMPUTE_FROM_DATA = {"Kerf_Width_Profile", "Coating_Uniformity"}
 
 # C유형 컬럼 -> 매칭 Defect 플래그 컬럼. CLN_Time(방향 불일치 -> B로 재분류)과
 # Groove_Depth(매칭 defect인 Chipping 발생이 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",
+    # Vibration은 한때 여기 있었으나(NG 7,792건, 54그룹 전부 통과, 시간분할 안정성도 통과)
+    # 위 BASELINE_A_DIRECTION의 Vibration 주석 참고 — 표본/안정성 조건은 통과해도 실제
+    # 불량률 분리력(2.2배)이 무관한 변수들의 노이즈 수준(1.67~2.35배)과 구분이 안 돼서
+    # A유형으로 되돌렸다. CLN_Pressure(20.8배)/Surface_Roughness(16.7배)만 이 노이즈
+    # 천장을 확실히 넘는 진짜 신호라 threshold를 계속 신뢰한다.
+    # CLN_Flow(26.08.06 추가): 기존 C유형 2개 이외 32개 컬럼(A/B/E 전체) x 4개 defect를
+    # 같은 결정트리 방법으로 전수 스캔해서 찾았다. Remain_Coat 기준 24.8배 분리(전체
+    # 풀링), 시간분할 검증(전반 threshold=9.82/후반=9.70, 방향 둘 다 low_is_risky)도
+    # 통과. CLN_Pressure와 상관계수 -0.004(거의 무관)라 같은 세정 공정의 독립적인
+    # 별도 원인. 물리적으로도 타당(세정 유량 부족 -> 코팅 잔류물이 안 씻김).
+    # 주의: 장비별로 쪼개보면 CLN_Flow가 9.7 밑으로 내려간 샷이 전체 R1에서 DP04
+    # 뿐이다(DP01/02/03은 0건 — 애초에 그 구간에서 운전한 적이 없음). 즉 이 24.8배는
+    # "물리 법칙이 4대 공통"이 아니라 "DP04만 저유량 구간에서 실제로 운전했고, 거기서
+    # 불량이 급증한다"는 뜻 — 26.08.05_Goal2_통합_Relationship_DB_JHdaimma의 전성재님
+    # 매개분석(Goal1, "DP04 한정 원인", build_unified_relationship_db.py의 SEONGJAE_ROLE/
+    # DISPUTE_REASON["Remain_Coat","CLN_Flow"])과 정확히 같은 결론이라 교차검증된 셈이다.
+    # group_key가 Product x Recipe뿐이라(Machine_ID 없음) 이 threshold는 4대에 공통
+    # 적용되지만, DP01/02/03은 그 구간에 아예 안 내려가므로 실질적으로 오탐은 안 난다
+    # — 다만 "CLN_Flow는 4대 공통 위험 threshold"라고 서술하면 안 되고 "DP04의 저유량
+    # 이력이 만든 threshold"라고 정확히 말할 것.
+    # 같은 스캔에서 Chipping/Micro_Crack은 신뢰 불가로 판단해 전부 기각했다 — Chipping
+    # 일별 불량률 자체가 전반 9.2%->후반 39.1%로 4배 넘게 요동쳐서, Package_Size처럼
+    # 물리적 연관이 없는 컬럼까지 5~84배 "분리"가 나오는 시간축 교란 때문(별도 시간
+    # 통제 없이는 이 방법으로 Chipping/Micro_Crack의 threshold를 못 찾는다).
+    "CLN_Flow": "Remain_Coat",
 }
 
 # E유형(9개): 데이터 분포가 아니라 공정 설계상 "완벽하게 맞았을 때"의 이론 상수값.

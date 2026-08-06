@@ -46,6 +46,29 @@ SENSOR_FLATLINE_CHECK_COLS = config.FDC_COLS + config.RESPONSES
 # 1단계: 로드 & 키/정상군 검증
 # ---------------------------------------------------------------------------
 
+def load_r1_for_threshold_training() -> pd.DataFrame | None:
+    """R1(멘토 배포 실데이터)을 Type C 결정트리 threshold "학습"에만 쓴다.
+
+    (26.08.05) R1은 원본과 합치지 않는다 — 모니터링 대상(매일 감시하는 데이터)은 계속
+    원본(config.INPUT_CSV)이고, R1은 "위험 threshold가 어디인지 배우는" 용도로만 쓴다.
+    실제로 R1은 불량 사례를 의도적으로 많이 담은 학습셋이라(OK 58,890 vs 원본 90,783,
+    NG_Code 분포: CHIP 24,171/REM_COAT 6,934/CRACK 4,887/PARTICLE 4,841) load_and_validate의
+    EXPECTED_NORMAL_COUNT 검증을 그대로 적용하면 안 되고(다른 성격의 데이터셋이라 당연히
+    다름), 행 수만 확인한다. 원본 4건뿐이던 Chipping이 R1에서는 24,171건이라 그룹(54개)
+    전부 min_samples_leaf=10을 넉넉히 넘겨 — 원본으로는 표본 부족으로 통계적 검증
+    자체가 불가능했던 Chipping/Micro_Crack 관련 threshold도 이제 학습 가능하다.
+    """
+    if not config.INPUT_CSV_R1.exists():
+        print(f"[경고] R1 파일 없음({config.INPUT_CSV_R1}) — Type C threshold를 원본으로 학습합니다"
+              "(표본 부족한 defect는 여전히 threshold를 못 만듦).")
+        return None
+    df = pd.read_csv(config.INPUT_CSV_R1)
+    df["DateTime"] = pd.to_datetime(df["DateTime"])
+    if len(df) != config.EXPECTED_ROW_COUNT:
+        print(f"[경고] R1 행 수가 예상과 다릅니다: {len(df)} != {config.EXPECTED_ROW_COUNT} — 그대로 진행합니다.")
+    return df
+
+
 def load_and_validate() -> pd.DataFrame:
     df = pd.read_csv(config.INPUT_CSV)
     df["DateTime"] = pd.to_datetime(df["DateTime"])
@@ -183,6 +206,55 @@ def compute_machine_daily_series(df: pd.DataFrame, opcond_baseline: pd.DataFrame
                 "daily_mean_z": daily_mean_z.reindex(daily_mean.index).values,
             })
             rows.append(frame)
+    return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
+
+
+def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -> pd.DataFrame:
+    """C유형 컬럼: 날짜×장비별로 "불량 위험구간에 들어간 샷 비율"을 집계한다.
+
+    (26.08.05 추가) 왜 필요한가 — C유형 threshold는 개별 샷 데이터로 학습한 경계라
+    샷 단위로만 의미가 있는데, Health Index는 일평균을 그 경계와 비교하고 있었다.
+    일평균은 수백 샷을 평균낸 값이라 분산이 훨씬 작아서, 실측으로 확인해보니
+    개별 샷은 6.4~6.7%가 경계를 넘는데도(그래서 Remain_Coat가 실제로 발생) 일평균은
+    356일 내내 단 하루도 경계를 안 넘었다. 그 결과 이 컬럼들의 health가 영구히
+    97~100에 고정돼 경보를 낼 수 없는 상태였다(compute_boundary_z docstring이 경고한
+    day-vs-shot granularity 불일치와 같은 문제).
+
+    그래서 "일평균이 경계에서 얼마나 떨어졌나" 대신 "그날 샷 중 몇 %가 경계를
+    넘었나"를 센다 — 불량이 샷 단위 사건이므로 이게 맞는 granularity다.
+
+    threshold는 Product_ID x Recipe_ID 그룹마다 다르므로, 샷별로 자기 그룹의
+    threshold를 적용한 뒤 장비×날짜로 집계한다(그룹 대표값 하나로 뭉개지 않음).
+    """
+    thr_map = {
+        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        for r in baseline_c.itertuples(index=False)
+    }
+    columns = sorted({c for c, _ in thr_map})
+
+    work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime"] + columns].copy()
+    work["date"] = work["DateTime"].dt.date
+    work["group_key"] = work["Product_ID"] + "|" + work["Recipe_ID"]
+
+    rows = []
+    for col in columns:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+        in_zone = np.where(
+            direction == "low_is_risky", work[col] < thr,
+            np.where(direction == "high_is_risky", work[col] > thr, np.nan),
+        )
+        tmp = pd.DataFrame({
+            "Machine_ID": work["Machine_ID"],
+            "date": work["date"],
+            "in_zone": pd.to_numeric(pd.Series(in_zone, index=work.index), errors="coerce"),
+        }).dropna(subset=["in_zone"])
+        agg = tmp.groupby(["Machine_ID", "date"])["in_zone"].agg(["size", "sum"])
+        agg = agg.reset_index().rename(columns={"size": "n_shots", "sum": "n_in_zone"})
+        agg["column"] = col
+        agg["defect_zone_rate"] = agg["n_in_zone"] / agg["n_shots"]
+        rows.append(agg[["Machine_ID", "column", "date", "n_shots", "n_in_zone", "defect_zone_rate"]])
+
     return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
 
 
@@ -466,11 +538,17 @@ def compute_baseline_type_b(ok_df: pd.DataFrame) -> pd.DataFrame:
     """B유형(U자형/최적구간형, 방향 무관): 그룹별 baseline.
 
     (26.08.05) A유형과 동일하게, SPEC에 있는 컬럼은 멘토 TARGET을 우선한다.
+    단, config.TARGET_RECOMPUTE_FROM_DATA에 있는 컬럼(현재 Kerf_Width_Profile)은
+    예외 — 실측 평균이 멘토 TARGET에서 스펙 폭의 12%나 벗어나 있고 89일 내내 안
+    줄어드는 정적 오프셋이라, LSL/USL(위험 경계)은 멘토 값을 신뢰하되 TARGET(정상
+    기준값)만 OK median으로 재계산한다.
     """
     medians = _ok_median_baseline(ok_df, config.BASELINE_B_COLUMNS)
     rows = []
     for (column, group_key), median_value in medians.items():
-        if column in SPEC:
+        if column in SPEC and column in config.TARGET_RECOMPUTE_FROM_DATA:
+            baseline_value, method = median_value, "opcond_OK_median (target 재계산, LSL/USL은 멘토값 유지)"
+        elif column in SPEC:
             baseline_value, method = SPEC[column]["TARGET"], "mentor_target"
         elif column == "CLN_Time":
             baseline_value, method = median_value, "opcond_OK_median (재분류: C->B)"
@@ -618,8 +696,18 @@ def main() -> None:
     baseline_ab = pd.concat([baseline_a, baseline_b], ignore_index=True)
     save_table(baseline_ab, "00_baseline_AB.csv", subdir="preprocessing")
 
-    baseline_c = compute_baseline_type_c(df)
+    # (26.08.05) threshold "학습"은 R1(불량 사례 충분)으로, 실제 모니터링 대상(defect_zone_rate
+    # 집계, 이후 trend_analysis.py 감시)은 계속 원본 df로 — R1은 원본과 합치지 않는다
+    # (load_r1_for_threshold_training docstring 참고).
+    r1_df = load_r1_for_threshold_training()
+    baseline_c = compute_baseline_type_c(r1_df if r1_df is not None else df)
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
+
+    # C유형 threshold는 샷 단위 경계라 일평균과 직접 비교하면 안 된다(위 함수 docstring 참고).
+    # Health Index가 쓸 "그날 위험구간에 들어간 샷 비율"을 여기서 미리 집계해둔다.
+    # (여기는 원본 df 그대로 — threshold는 R1에서 배웠지만, 적용/감시 대상은 원본이다.)
+    defect_zone_rate = compute_daily_defect_zone_rate(df, baseline_c)
+    save_table(defect_zone_rate, "00_machine_daily_defect_zone_rate.csv", subdir="preprocessing")
 
     baseline_e = compute_baseline_type_e(ok_ng_code)
     save_table(baseline_e, "00_baseline_E.csv", subdir="preprocessing")
