@@ -8,6 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 INPUT_CSV = ROOT / "data" / "raw" / "DP_HealthIndex_Dataset.csv"
+# (26.08.05) 멘토 배포 실데이터 — 모니터링 대상(INPUT_CSV)과 합치지 않고 Type C 결정트리
+# threshold "학습"에만 쓴다. 불량 사례를 의도적으로 많이 담은 데이터셋이라 정상군 비율이
+# 원본과 다르다(step0_preprocessing.py의 load_r1_for_threshold_training 참고).
+INPUT_CSV_R1 = ROOT / "DP_HealthIndex_Dataset_r1.csv"
 OUTPUT_DIR = ROOT / "analysis_outputs"
 PREPROCESSING_DIR = OUTPUT_DIR / "preprocessing"
 

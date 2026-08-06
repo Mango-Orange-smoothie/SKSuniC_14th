@@ -46,6 +46,29 @@ SENSOR_FLATLINE_CHECK_COLS = config.FDC_COLS + config.RESPONSES
 # 1단계: 로드 & 키/정상군 검증
 # ---------------------------------------------------------------------------
 
+def load_r1_for_threshold_training() -> pd.DataFrame | None:
+    """R1(멘토 배포 실데이터)을 Type C 결정트리 threshold "학습"에만 쓴다.
+
+    (26.08.05) R1은 원본과 합치지 않는다 — 모니터링 대상(매일 감시하는 데이터)은 계속
+    원본(config.INPUT_CSV)이고, R1은 "위험 threshold가 어디인지 배우는" 용도로만 쓴다.
+    실제로 R1은 불량 사례를 의도적으로 많이 담은 학습셋이라(OK 58,890 vs 원본 90,783,
+    NG_Code 분포: CHIP 24,171/REM_COAT 6,934/CRACK 4,887/PARTICLE 4,841) load_and_validate의
+    EXPECTED_NORMAL_COUNT 검증을 그대로 적용하면 안 되고(다른 성격의 데이터셋이라 당연히
+    다름), 행 수만 확인한다. 원본 4건뿐이던 Chipping이 R1에서는 24,171건이라 그룹(54개)
+    전부 min_samples_leaf=10을 넉넉히 넘겨 — 원본으로는 표본 부족으로 통계적 검증
+    자체가 불가능했던 Chipping/Micro_Crack 관련 threshold도 이제 학습 가능하다.
+    """
+    if not config.INPUT_CSV_R1.exists():
+        print(f"[경고] R1 파일 없음({config.INPUT_CSV_R1}) — Type C threshold를 원본으로 학습합니다"
+              "(표본 부족한 defect는 여전히 threshold를 못 만듦).")
+        return None
+    df = pd.read_csv(config.INPUT_CSV_R1)
+    df["DateTime"] = pd.to_datetime(df["DateTime"])
+    if len(df) != config.EXPECTED_ROW_COUNT:
+        print(f"[경고] R1 행 수가 예상과 다릅니다: {len(df)} != {config.EXPECTED_ROW_COUNT} — 그대로 진행합니다.")
+    return df
+
+
 def load_and_validate() -> pd.DataFrame:
     df = pd.read_csv(config.INPUT_CSV)
     df["DateTime"] = pd.to_datetime(df["DateTime"])
@@ -673,11 +696,16 @@ def main() -> None:
     baseline_ab = pd.concat([baseline_a, baseline_b], ignore_index=True)
     save_table(baseline_ab, "00_baseline_AB.csv", subdir="preprocessing")
 
-    baseline_c = compute_baseline_type_c(df)
+    # (26.08.05) threshold "학습"은 R1(불량 사례 충분)으로, 실제 모니터링 대상(defect_zone_rate
+    # 집계, 이후 trend_analysis.py 감시)은 계속 원본 df로 — R1은 원본과 합치지 않는다
+    # (load_r1_for_threshold_training docstring 참고).
+    r1_df = load_r1_for_threshold_training()
+    baseline_c = compute_baseline_type_c(r1_df if r1_df is not None else df)
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
 
     # C유형 threshold는 샷 단위 경계라 일평균과 직접 비교하면 안 된다(위 함수 docstring 참고).
     # Health Index가 쓸 "그날 위험구간에 들어간 샷 비율"을 여기서 미리 집계해둔다.
+    # (여기는 원본 df 그대로 — threshold는 R1에서 배웠지만, 적용/감시 대상은 원본이다.)
     defect_zone_rate = compute_daily_defect_zone_rate(df, baseline_c)
     save_table(defect_zone_rate, "00_machine_daily_defect_zone_rate.csv", subdir="preprocessing")
 

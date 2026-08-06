@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-06T15:26:29.571612",
+  "generated_at": "2026-08-06T15:30:31.026957",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -103,11 +103,11 @@
   },
   "machines": {
     "DP01": {
-      "health_index": 90.1,
+      "health_index": 83.8,
       "worst_defects": [
         {
           "defect": "Remain_Coat",
-          "health_index": 90.1,
+          "health_index": 83.8,
           "worst_factor": "CLN_Pressure"
         },
         {
@@ -176,11 +176,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 90.1,
+          "health_index": 83.8,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 90.1,
+              "health_index": 83.8,
               "spec_status": "OK"
             }
           ],
@@ -190,14 +190,14 @@
             "CLN_Pressure": {
               "current_value": 300.0623,
               "baseline_median": 300.0362,
-              "lsl": 296.966,
+              "lsl": 296.979,
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 90.1,
-              "defect_zone_rate_pct": 6.73,
-              "defect_zone_baseline_pct": 6.13,
-              "margin_trend_pct_per_day": -1.307,
+              "health_index": 83.8,
+              "defect_zone_rate_pct": 7.41,
+              "defect_zone_baseline_pct": 6.37,
+              "margin_trend_pct_per_day": -0.921,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -219,7 +219,7 @@
                   "warning_count": 7
                 }
               ],
-              "n_product_recipe_combos_affected": 40.0,
+              "n_product_recipe_combos_affected": 39.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
@@ -641,18 +641,18 @@
             "CLN_Pressure": {
               "current_value": 300.0023,
               "baseline_median": 300.0362,
-              "lsl": 296.966,
+              "lsl": 296.979,
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
               "health_index": 100.0,
-              "defect_zone_rate_pct": 5.63,
-              "defect_zone_baseline_pct": 6.13,
-              "margin_trend_pct_per_day": -0.938,
+              "defect_zone_rate_pct": 6.29,
+              "defect_zone_baseline_pct": 6.37,
+              "margin_trend_pct_per_day": -0.975,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
-              "early_warning_active": false,
-              "trend_message": "DP02 / PKG_F / RCP_2의 CLN_Pressure은(는) 최근 10개 샷 중 20%가 위험 Threshold(296.9885) 구간에 들어감(평소 6.3%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_A / RCP_3의 CLN_Pressure은(는) 최근 10개 샷 중 20%가 위험 Threshold(296.8980) 구간에 들어감(평소 6.5%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -670,7 +670,7 @@
                   "warning_count": 12
                 }
               ],
-              "n_product_recipe_combos_affected": 44.0,
+              "n_product_recipe_combos_affected": 42.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
@@ -1275,7 +1275,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 100.0,
+          "health_index": 98.8,
           "worst_factor": "CLN_Pressure"
         }
       ],
@@ -1334,11 +1334,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 100.0,
+          "health_index": 98.8,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 100.0,
+              "health_index": 98.8,
               "spec_status": "OK"
             }
           ],
@@ -1348,15 +1348,15 @@
             "CLN_Pressure": {
               "current_value": 299.9865,
               "baseline_median": 300.0362,
-              "lsl": 296.966,
+              "lsl": 296.979,
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 100.0,
-              "defect_zone_rate_pct": 6.09,
-              "defect_zone_baseline_pct": 6.13,
-              "margin_trend_pct_per_day": 0.77,
-              "estimated_days_to_spec_out": 129.9,
+              "health_index": 98.8,
+              "defect_zone_rate_pct": 6.45,
+              "defect_zone_baseline_pct": 6.37,
+              "margin_trend_pct_per_day": 1.021,
+              "estimated_days_to_spec_out": 96.8,
               "trend_direction": "up",
               "early_warning_active": true,
               "trend_message": "DP03 / PKG_E / RCP_9의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -1377,7 +1377,7 @@
                   "warning_count": 8
                 }
               ],
-              "n_product_recipe_combos_affected": 30.0,
+              "n_product_recipe_combos_affected": 31.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "세정 압력 — 그 스트립 세정 순간의 즉시적 압력 하락(전성재 검증9: 추세형 아님, 선행신호 소멸 4.1% but 동시점 신호는 5개 독립방법이 뒷받침). SOP는 추세감시가 아니라 스트립별 실시간 급락 알람으로 설계할 것",
@@ -1818,7 +1818,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 77.1,
+          "health_index": 81.8,
           "worst_factor": "CLN_Pressure"
         }
       ],
@@ -1877,11 +1877,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 77.1,
+          "health_index": 81.8,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 77.1,
+              "health_index": 81.8,
               "spec_status": "OK"
             }
           ],
@@ -1891,23 +1891,23 @@
             "CLN_Pressure": {
               "current_value": 299.9479,
               "baseline_median": 300.0362,
-              "lsl": 296.966,
+              "lsl": 296.979,
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 77.1,
+              "health_index": 81.8,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 6.13,
-              "margin_trend_pct_per_day": 1.878,
-              "estimated_days_to_spec_out": 41.0,
+              "defect_zone_baseline_pct": 6.37,
+              "margin_trend_pct_per_day": 1.417,
+              "estimated_days_to_spec_out": 57.7,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_A / RCP_9의 CLN_Pressure은(는) 최근 10개 샷 중 20%가 위험 Threshold(297.0005) 구간에 들어감(평소 6.3%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
-                  "warning_count": 13
+                  "warning_count": 12
                 },
                 {
                   "product_id": "PKG_A",
@@ -1915,8 +1915,8 @@
                   "warning_count": 11
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_5",
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_6",
                   "warning_count": 8
                 }
               ],
