@@ -187,10 +187,16 @@ def get_defect_causes(defect_name: str) -> str:
 
 @beta_tool
 def get_sop_for_factor(factor_name: str) -> str:
-    """특정 원인 변수(유효인자)에 대한 점검/조치 SOP 초안을 조회한다. 전부 미검증 초안이다.
+    """특정 원인 변수(유효인자)의 조치 긴급도(tier/action_type)와 위험 구간을 조회한다.
+
+    (26.08.06) 관계DB agent_rules에 "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것"이
+    명시돼 있다 — agent_cause_factors.json의 sop.status가 "SOP 미수령"이기 때문이다. 그래서
+    이 도구는 구체적인 점검/조치 "문구"를 만들어내지 않는다. 대신 이미 검정으로 확정된 것만
+    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/급락알람 등 — 이건 SOP 문구가 아니라
+    통계 검정 결과로 정해진 긴급도 분류라 지어낸 게 아님), 그리고 실제 위험/정상 구간 값.
 
     Args:
-        factor_name: 원인 변수 이름, 예: "Vibration", "CLN_Pressure".
+        factor_name: 원인 변수 이름, 예: "Head_Temp", "CLN_Pressure".
     """
     meta = CAUSE_FACTORS.get(factor_name)
     if not meta:
@@ -198,9 +204,14 @@ def get_sop_for_factor(factor_name: str) -> str:
         return f"'{factor_name}'는 확정 유효인자가 아님. 조회 가능한 인자: {known}"
     return json.dumps({
         "factor": factor_name,
-        "check": f"{factor_name} 실측값을 baseline(정상군 기준) 대비 확인",
-        "action": f"{factor_name} 이상 원인(설비 점검/재보정) 조치 후 관련 defect 불량률 72시간 재확인",
-        "status": "DRAFT_UNVERIFIED — 멘토/현장 SOP 확인 전까지 참고용",
+        "tier": meta.get("tier"),
+        "action_type": meta.get("action_type"),
+        "normal_range": meta.get("normal_range"),
+        "risky_range": meta.get("risky_range"),
+        "risk_ratio": meta.get("risk_ratio"),
+        "sop_status": "SOP 미수령 — 멘토 제공 대기",
+        "note": "구체적인 점검·조치 문구는 아직 없음. action_type(긴급도)과 위험구간만 전달하고, "
+                "세부 조치 방법을 지어내지 말 것.",
     }, ensure_ascii=False, indent=2)
 
 
@@ -328,9 +339,12 @@ SYSTEM_PROMPT = """\
       — 이들은 health가 current_value와 직접 연결되지 않으므로 섞어 쓰면 틀린다.
    공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_spec_out이 \
 null이 아닐 때만 ", 스펙아웃 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
-절대 지어내지 마라}
+절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
+경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
 - **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}
-- **SOP**: {get_sop_for_factor의 action을 한 줄로 압축} `[미검증초안]`
+- **조치**: get_sop_for_factor 호출 후 `{action_type}`(tier `{tier}`) `[SOP 미수령]` — \
+위험구간 `{risky_range}` 참고. **구체적 점검·조치 문구는 아직 없으니 지어내지 말고, \
+tier/action_type과 위험구간 숫자만 전달하라.**
 
 (worst_defects 중 상위 1~2개만 위 `###` 헤더+4개 불릿 블록으로 쓰고, 그 아래 순위부터는 \
 헤더 없이 불릿 한 줄로: `- **{N순위}** {defect} (HI {값}) [발생/미발생] — {worst_factor} {한 줄 사유}`)
@@ -341,7 +355,8 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 | `{factor1}` | {SPEC_OUT 또는 "N일 뒤 스펙아웃"} |
 
 맨 끝에 한 줄만(헤더·볼드 없이 평문으로):
-※ 원인은 통계적 상관관계로 확정된 것이며 완전한 인과관계 증명은 아닙니다. SOP는 전부 DRAFT_UNVERIFIED입니다.
+※ 원인은 통계적 상관관계로 확정된 것이며 완전한 인과관계 증명은 아닙니다. 구체적 SOP 문구는 아직 \
+멘토로부터 받지 못한 상태입니다(action_type/tier만 확정됨).
 --- 형식 끝 ---
 
 3. defect에 확정 원인이 없으면(get_defect_causes가 "없음"이라 답하면) 원인/메커니즘/SOP 3줄 대신 \
@@ -351,6 +366,10 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 5. spec_status가 "SPEC_OUT"이면 상한/하한 대신 그냥 "SPEC_OUT"이라고만 써라. 퍼센트(%)는 절대 쓰지 마라 \
    (단, defect_zone_rate 컬럼의 defect_zone_rate_pct/defect_zone_baseline_pct는 이 규칙의 예외 — \
    그 자체가 판정 근거라 반드시 %로 표시).
+5-1. health_index는 0~100이고 낮을수록 급하다. **아래쪽 10점은 "이미 스펙 밖" 전용 구간이라, \
+   10점 미만이면 이미 SPEC_OUT이고 0에 가까울수록 스펙을 몇 배로 벗어난 것**이다(예: HI 3.4 = \
+   경계를 3배 가까이 넘음). 10점 이상이면 아직 스펙 안이다. HI가 한 자릿수인데 "조금 낮다" 같이 \
+   말하지 마라 — 그건 이미 스펙을 벗어났다는 뜻이다.
 6. **장비 간 순위 비교("몇 등이야?", "다른 장비랑 비교하면?")는 사용자가 명시적으로 물어봤을 때만 \
    계산하라.** 그 전까지는 절대 "N개 장비 중 M등" 같은 문구를 먼저 붙이지 마라 — 매번 계산하면 \
    장비 4대를 다 조회해야 해서 응답이 느려진다. 명시적으로 물으면 get_machine_health를 4대 다 \
@@ -383,6 +402,13 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
     확신으로 말하면 안 된다.
 11. 한국어로 답하되, 위 출력 형식을 벗어난 부가 설명 문단을 붙이지 마라. 사용자가 형식에 없는 걸 \
     추가로 물으면(예: SOP 상세 설명, 왜 이런 판정인지) 그 부분만 짧게 답하고 전체 형식은 유지하라.
+12. **Vibration은 (26.08.06부터) 원인 후보 표에서 완전히 빠졌다** — 값을 조정해서 고칠 수 있는 \
+    인자가 아니라 설비 정비 대상이라, 추세분석팀이 별도 알람 트랙으로 관리하기로 했기 때문이다. \
+    Vibration은 get_defect_causes/get_sop_for_factor에 안 걸리고, get_machine_health의 \
+    unconfirmed_anomalies에서만 조회된다. Vibration 관련 질문에는 "Chipping/Micro_Crack의 \
+    설비 열화 알람(값 조정이 아니라 설비 점검 대상)"이라고 설명하고, "확정 원인 아님"이라는 \
+    문구는 다른 미확인 이상과 똑같이 붙이지 마라 — 이건 검증 실패가 아니라 애초에 다른 트랙으로 \
+    분류된 것이다.
 """
 
 
@@ -395,12 +421,11 @@ _MACHINE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])DP0[1-4](?![0-9])", re.IGNORECASE
 def _spec_tag(spec_source: str | None) -> str:
     """spec_source를 화면에 붙일 신뢰도 꼬리표로 변환.
 
-    (26.08.06 수정) 예전엔 `"스펙기준" if spec_source == "mentor_spec" else "임시기준"`이라
-    두 가지를 틀리게 표시했다 — LSL/USL이 멘토 실측 스펙 그대로인
+    (26.08.06 수정) 예전엔 dict 조회 하나로 `{"mentor_spec": ..., "defect_zone_rate": ...}`
+    에 없으면 전부 "임시기준"이었는데, 그러면 LSL/USL이 멘토 실측 스펙 그대로인
     "mentor_spec_recomputed_target"(Kerf_Width_Profile/Coating_Uniformity)이 "임시기준"으로
-    깎여 보였고, 실제 불량 데이터로 검증한 "defect_zone_rate"(CLN_Pressure/Surface_Roughness/
-    CLN_Flow)도 똑같이 "임시기준"이 돼서 SYSTEM_PROMPT 규칙 10이 요구하는 구분이 화면
-    패널에서만 무너져 있었다.
+    깎여 보인다 — SYSTEM_PROMPT 규칙 10은 이걸 mentor_spec과 같게 취급하라고 하고 있다.
+    prefix로 판정해서 두 mentor_spec 계열을 같이 잡는다.
     """
     if (spec_source or "").startswith("mentor_spec"):
         return "스펙기준"
@@ -409,20 +434,39 @@ def _spec_tag(spec_source: str | None) -> str:
     return "임시기준"
 
 
-def _level_phrase(c: dict) -> str:
-    """"지금 레벨이 얼마나 나쁜가"를 spec_source에 맞는 수치로 한 구절 만든다.
-
-    defect_zone_rate 컬럼(CLN_Pressure/Surface_Roughness/CLN_Flow)은 health/margin이
-    current_value가 아니라 "그날 샷 중 몇 %가 불량 위험구간에 들어갔나"에서 나온다 —
-    current_value와 lsl/usl을 나란히 보여주면 근거가 아닌 숫자를 근거처럼 읽게 된다
-    (SYSTEM_PROMPT 규칙 10이 Claude에게 금지한 것과 같은 실수를 패널 코드가 하고 있었음).
-    """
+def _format_cause_value_line(c: dict) -> str:
+    """"원인" 줄의 값 부분 하나를 만든다 — spec_source마다 비교 대상 자체가 다르다.
+    defect_zone_rate(CLN_Pressure/Surface_Roughness/CLN_Flow)는 current_value가 아니라
+    그날 위험구간 진입 비율%로 판정하므로 섞어 쓰면 틀린다."""
     tag = _spec_tag(c.get("spec_source"))
     if c.get("spec_source") == "defect_zone_rate" and c.get("defect_zone_rate_pct") is not None:
-        return (f"위험구간 진입 `{c['defect_zone_rate_pct']}%` "
-                f"(이 장비 평소 `{c.get('defect_zone_baseline_pct')}%`) [{tag}]")
-    bound_label, bound_val = ("상한", c.get("usl")) if c.get("direction") == "up" else ("하한", c.get("lsl"))
-    return f"현재 `{c.get('current_value')}` / {bound_label} `{bound_val}` [{tag}]"
+        # "평소"는 4대 평균이 아니라 그 장비 자신의 이력이다(26.08.06 zone_base_rate를
+        # 장비별로 분리 — CLN_Flow처럼 특정 장비에서만 일어나는 현상 때문). 화면에도
+        # 그렇게 써야 엔지니어가 "다른 장비 대비"로 오해하지 않는다.
+        value_part = (f"위험구간 진입 `{c['defect_zone_rate_pct']}%` "
+                      f"(이 장비 평소 `{c.get('defect_zone_baseline_pct')}%`)")
+    else:
+        bound_label, bound_val = ("상한", c.get("usl")) if c.get("direction") == "up" else ("하한", c.get("lsl"))
+        value_part = f"현재 `{c.get('current_value')}` / {bound_label} `{bound_val}`"
+    trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
+    trend_txt = f", {trend_word}추세" if trend_word else ""
+    spec_out = c.get("estimated_days_to_spec_out")
+    spec_out_txt = f", 스펙아웃 예상 `{spec_out}일`" if spec_out is not None else ""
+    alert_txt = ""
+    if c.get("early_warning_active") and c.get("alert_since"):
+        alert_txt = f", `{c['alert_since']}`부터 `{c.get('alert_active_days')}일`째 경보 지속"
+    return f"{value_part} [{tag}]{trend_txt}{spec_out_txt}{alert_txt}"
+
+
+def _format_action_line(factor: str) -> str:
+    """"조치" 줄 — SOP 문구를 지어내지 않고, 검정으로 확정된 tier/action_type/위험구간만
+    전달한다(agent_rules: "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것")."""
+    try:
+        sop = json.loads(get_sop_for_factor.func(factor))
+        return (f"`{sop.get('action_type')}`(tier `{sop.get('tier')}`) `[SOP 미수령]` "
+                f"— 위험구간 `{sop.get('risky_range')}`")
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return "확정 조치 유형 없음(감시지표 또는 원인 미확정) `[SOP 미수령]`"
 
 
 def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | None:
@@ -440,24 +484,14 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
     occ_txt = ("최근 7일 내내(7/7)" if sig.get("occurred_days_recent_7d") == 7
                else (f"{sig.get('occurred_days_recent_7d', 0)}/7일" if occurred
                      else "없음(조짐 단계)"))
-    bound_label, bound_val = ("상한", c["usl"]) if c.get("direction") == "up" else ("하한", c["lsl"])
-    trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
-    spec_out = c.get("estimated_days_to_spec_out")
-    spec_out_txt = f", 스펙아웃 예상 `{spec_out}일`" if spec_out is not None else ""
-
-    try:
-        sop = json.loads(get_sop_for_factor.func(factor))
-        sop_line = sop["action"]
-    except (json.JSONDecodeError, KeyError, TypeError):
-        sop_line = "확정 SOP 없음(감시지표 또는 원인 미확정)"
 
     hi = sig.get("health_index")
     title = f"{icon} {machine_id} · {rank}순위 - {defect} (HI `{hi}`)"
     explanation_md = (
         f"- **발생**: {occ_txt}\n"
-        f"- **원인**: `{factor}` {_level_phrase(c)}, {trend_word}추세{spec_out_txt}\n"
+        f"- **원인**: `{factor}` {_format_cause_value_line(c)}\n"
         f"- **메커니즘**: {c.get('mechanism', '-')}\n"
-        f"- **SOP**: {sop_line} `[미검증초안]`"
+        f"- **조치**: {_format_action_line(factor)}"
     )
     try:
         chart = json.loads(get_trend_chart_data.func(machine_id, factor))
@@ -469,32 +503,42 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
 MAX_PANELS = 4  # 화면 대시보드가 감당할 수 있는 최대 분할 수
 
 
+# Vibration은 26.08.06부터 원인 후보 표에서 빠지고 별도 알람 트랙(추세분석 담당)으로 운영된다
+# — get_defect_causes/get_sop_for_factor로는 절대 안 걸리므로, 명시적 그래프 요청(_panel_from_chart)
+# 경로에서만 만날 수 있다. 값 조정이 아니라 설비 정비 대상이라는 걸 패널에서도 명시해야 한다.
+_VIBRATION_NOTE = ("설비 열화 알람 전용(Chipping/Micro_Crack 연관) — 값을 조정해서 고치는 "
+                    "인자가 아니라 설비 점검 대상. \"확정 원인 아님\"이 아니라 애초에 별도 트랙")
+
+
 def _panel_from_chart(chart: dict) -> dict:
     """get_trend_chart_data 결과 하나로 패널을 만든다 — 사용자가 특정 인자를 콕 집어
     그래프를 요청한 경우용. get_machine_health를 안 거쳐도 되므로, 확정 원인이면
-    CAUSE_FACTORS에서 메커니즘/SOP를 덧붙이고 아니면 그래프 수치만으로 구성한다."""
+    CAUSE_FACTORS에서 메커니즘을 덧붙이고, 조치는 SOP 문구를 지어내지 않고 tier/action_type만
+    붙인다(get_sop_for_factor와 동일 원칙)."""
     factor, machine_id = chart["factor"], chart["machine_id"]
     series = chart.get("series") or []
     latest = series[-1]["value"] if series else None
     tag = _spec_tag(chart.get("spec_source"))
     trend_word = {"up": "상승", "down": "하강"}.get(chart.get("trend_direction"), "")
+    alert_txt = ""
+    if chart.get("early_warning_active") and chart.get("alert_since"):
+        alert_txt = f", `{chart['alert_since']}`부터 `{chart.get('alert_active_days')}일`째 경보 지속"
 
     lines = [
         f"- **현재값**: `{latest}` (baseline `{chart.get('baseline_median')}`), "
         f"상한 `{chart.get('usl')}` / 하한 `{chart.get('lsl')}` [{tag}]"
-        + (f", {trend_word}추세" if trend_word else "")
+        + (f", {trend_word}추세" if trend_word else "") + alert_txt
     ]
     if chart.get("trend_message"):
         lines.append(f"- **추세 메시지**: {chart['trend_message']}")
 
-    meta = CAUSE_FACTORS.get(factor)
-    if meta:
-        lines.append(f"- **메커니즘**: {meta.get('mechanism', '-')}")
-        try:
-            sop = json.loads(get_sop_for_factor.func(factor))
-            lines.append(f"- **SOP**: {sop['action']} `[미검증초안]`")
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
+    if factor == "Vibration":
+        lines.append(f"- **참고**: {_VIBRATION_NOTE}")
+    else:
+        meta = CAUSE_FACTORS.get(factor)
+        if meta:
+            lines.append(f"- **메커니즘**: {meta.get('mechanism', '-')}")
+            lines.append(f"- **조치**: {_format_action_line(factor)}")
 
     return {"title": f"📈 {machine_id} · {factor}", "explanation_md": "\n".join(lines), "chart": chart}
 
