@@ -20,7 +20,9 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
          **daily_mean_z 자기 자신의 분포**(p0.5~p99.5, compute_daily_boundary_z)로 잰 것.
          margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
          0% = baseline 그대로, 100% = 스펙 경계 도달, 100% 넘으면 이미 스펙아웃.
-       변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
+       변수별 Health Index = margin_to_health(margin_used_pct) — 0~100 안에 들어오되
+         아래쪽 10점은 "이미 스펙아웃" 전용 구간이라 스펙아웃끼리도 순위가 갈린다
+         (margin 0%→100점, 100%(경계)→10점, 그 위는 0점으로 점근. SPEC_OUT_BAND 참고).
        (26.08.05: 예전엔 boundary_z를 raw 샷 노이즈 분포로 재고 daily_mean_z와 비교해서
         granularity가 안 맞았다 — 일평균은 샷 평균이라 분산이 훨씬 작아 그 경계에 거의
         못 미쳤고, "스펙아웃이 원래 잘 안 생긴다"는 결론으로 이어졌었다. daily_mean_z
@@ -42,7 +44,8 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         지속적 이상을 확정한 변수가 점수만 보면 100점(완전 건강)으로 나오는 사각지대가
         생겼다(예: 막 CUSUM 경보가 뜬 DP01 Head_Temp). "Health Index는 장비 상태를
         보라고 만든 것"이라는 목적에 안 맞아서, early_warning_active가 true인 변수는
-        레벨 점수에 (1 - TREND_PENALTY_MAX_CUT × maturity) 배율을 곱한다 — maturity는
+        레벨 점수(중 SPEC_OUT_BAND 위 몫)에 (1 - TREND_PENALTY_MAX_CUT × maturity)
+        배율을 곱한다 — maturity는
         alert_since부터 지속된 일수를 RECENT_WINDOW_DAYS로 나눈 값(0~1). 막 뜬 경보는
         거의 안 깎이고, RECENT_WINDOW_DAYS 이상 지속된 "성숙한" 경보라야 최대폭
         (TREND_PENALTY_MAX_CUT)을 다 받는다 — 자세한 근거는 TREND_PENALTY_MAX_CUT
@@ -180,6 +183,34 @@ RECIPE_HOTSPOT_CONCENTRATION_RATIO = 2.0
 # 30점(n8n 위험장비 기준)을 새로 넘는 경우는 1건뿐이었다 — 대부분이 아직 신선한
 # 경보라 이 정도 상한으로는 위험장비 알림이 쏟아지지 않는다.
 TREND_PENALTY_MAX_CUT = 0.5
+
+# (26.08.06 개정 2) Health Index를 다시 0~100 안에 가두되, "이미 스펙아웃"끼리의 우선순위는
+# 살린다. 직전 버전은 margin_used_pct 상한 clip을 아예 없애서 health가 음수(-191 등)까지
+# 내려가게 했었다 — 우선순위는 살았지만 "점수"라고 부를 수 없는 값이 됐다.
+#
+# 대신 0~100 스케일의 **아래쪽 SPEC_OUT_BAND점을 "이미 스펙아웃" 전용 구간으로 예약**한다.
+#   margin 0~100%  -> health 100 -> SPEC_OUT_BAND  (선형, 스펙 안)
+#   margin 100%+   -> health SPEC_OUT_BAND * (100/margin)  (0으로 점근, 스펙 밖)
+# 경계(margin=100%)에서 두 식이 정확히 만나고, 전 구간에서 단조 감소한다. 즉
+# **"10점 미만 = 이미 스펙아웃, 0에 가까울수록 몇 배로 벗어난 것"**으로 읽으면 된다.
+#
+# 10으로 잡은 근거: 이 구간을 넓게 잡을수록 정작 매일 쓰는 "스펙 안" 영역이 눌린다
+# (예약 20점이면 margin 50%가 60점으로 나옴 — 원래 뜻인 "여유 절반 남음"과 어긋남).
+# 실제 데이터 140개 장비×컬럼 중 margin이 100%를 넘는 건 3건(2%)뿐이라, 2%에 스케일을
+# 많이 떼어줄 이유가 없다. 10점이면 스펙 안 영역은 health = 100 - 0.9×margin이 되어
+# 원래의 "100 - margin"과 최대 10점(경계에서만)밖에 안 어긋나고, n8n 위험장비 기준
+# 30점의 의미도 거의 그대로 유지된다(margin 70% 초과 -> 77.8% 초과). 표시 스케일을
+# 어떻게 쪼갤지의 문제일 뿐이라 물리적 근거가 필요한 상수는 아니며, 왜곡을 최소화하는
+# 쪽으로 고른 값이다. 왜곡 없는 원본 수치가 필요하면 margin_used_pct를 그대로 쓸 것.
+SPEC_OUT_BAND = 10.0
+
+
+def margin_to_health(margin_used_pct: float) -> float:
+    """margin_used_pct(0~무한대)를 0~100 Health Index로 단조 변환. 위 SPEC_OUT_BAND 주석 참고."""
+    m = max(margin_used_pct, 0.0)
+    if m <= 100:
+        return SPEC_OUT_BAND + (100 - SPEC_OUT_BAND) * (1 - m / 100)
+    return SPEC_OUT_BAND * 100 / m
 
 
 def load_step0_outputs():
@@ -554,9 +585,11 @@ def compute_level_and_trend(
                 margin_pct = ((zr.values - base_rate) / span * 100).clip(min=0.0)
             else:
                 # 이 장비는 이 위험구간에 들어간 적이 사실상 없다(평소 비율=0) — "평소 대비
-                # 몇 배"라는 비율 자체가 정의 안 됨. 조금이라도 들어간 날은 경계(100%,
-                # health=0)로, 안 들어간 날은 정상(0%)으로 본다.
-                margin_pct = np.where(zr.values > 0, 100.0, 0.0)
+                # 몇 배"라는 비율 자체가 정의 안 됨. 조금이라도 들어간 날은 경계(100%)로,
+                # 안 들어간 날은 정상(0%)으로 본다. 데이터가 없는 날(NaN)은 np.where가
+                # NaN>0을 False로 처리해 "정상 0%"로 둔갑시키므로 NaN을 그대로 남긴다
+                # (아래 dropna가 걸러서 그 날은 최신값 후보에서 빠짐).
+                margin_pct = np.where(pd.isna(zr.values), np.nan, np.where(zr.values > 0, 100.0, 0.0))
             margin_pct = pd.Series(margin_pct, index=g.index, dtype=float)
             zone_rate_now = zr.values
         else:
@@ -609,14 +642,12 @@ def compute_level_and_trend(
         latest_pos = g.index.get_loc(latest_idx)  # zone_rate_now(위치 기반 배열) 조회용
         latest_date = g.loc[latest_idx, "date"]
         current_value = float(g.loc[latest_idx, "daily_mean"])
-        # (26.08.06) 예전엔 margin_used_pct를 100%에서 clip해서 health_index가 0 밑으로
-        # 못 내려갔다 — 그러다 보니 경계를 살짝 넘은 것(예: margin 105%)과 몇 배로 폭주한
-        # 것(예: DP04 CLN_Flow margin 1465%)이 똑같이 "HI 0.0"으로 보여서, worst_factors/
-        # worst_defects/장비 순위(TOP_N)에서 뭐가 진짜 더 급한지 구분이 안 됐다(김시우님
-        # 피드백). 위쪽 clip을 없애 margin이 클수록 health_index가 계속 더 음수로 내려가게
-        # 한다 — "100이 건강"은 그대로고, 0 밑은 "경계를 몇 배 넘었는지"를 그대로 보여주는
-        # 값이 된다. 0~100 사이 동작(margin<=100인 대다수)은 전혀 안 바뀐다.
-        health_index_var = 100 - max(current_margin_pct, 0.0)
+        # 예전엔 margin_used_pct를 100%에서 clip해서, 경계를 살짝 넘은 것(margin 105%)과
+        # 몇 배로 폭주한 것(margin 291%)이 똑같이 "HI 0.0"으로 뭉개졌다 — worst_factors/
+        # worst_defects/장비 순위에서 뭐가 더 급한지 구분이 안 됐다(김시우님 피드백).
+        # 지금은 0~100은 유지하면서 아래쪽 SPEC_OUT_BAND점을 스펙아웃 전용 구간으로 써서
+        # 그 안에서도 순위가 갈리게 한다 — SPEC_OUT_BAND 주석 참고.
+        health_index_var = margin_to_health(current_margin_pct)
         spec_out = current_margin_pct >= 100
 
         recent = valid.iloc[-RECENT_WINDOW_DAYS:]
@@ -632,14 +663,17 @@ def compute_level_and_trend(
             # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
 
         ta_status = trend_status.get((machine, col), {})
-        # health_index_var > 0일 때만 곱셈 페널티를 적용한다 — 이미 0 밑(margin이 100%를
-        # 넘어 SPEC_OUT 수준)이면 음수에 (1-cut)을 곱하는 순간 0 쪽으로 끌려가(더 나빠져야
-        # 할 값이 오히려 좋아 보이게 됨) 방향이 뒤집힌다. margin 자체가 이미 심각하다고
-        # 말하고 있는 상태라 추세 페널티가 추가로 알려줄 정보도 없다(그 존재 목적 자체가
-        # "margin은 멀쩡해 보이는데 추세가 나쁜" 사각지대를 잡는 것이었음).
-        if ta_status.get("early_warning_active") and health_index_var > 0:
+        # 추세 페널티는 "스펙 안" 구간(SPEC_OUT_BAND 위)에서만, 그 구간 안에서만 깎는다.
+        #  - 이미 SPEC_OUT이면 안 깎는다: margin 자체가 이미 심각하다고 말하고 있어서 추세가
+        #    추가로 알려줄 정보가 없다(이 페널티의 존재 목적 자체가 "margin은 멀쩡해 보이는데
+        #    추세가 나쁜" 사각지대를 잡는 것이었음).
+        #  - 스펙 안이면 SPEC_OUT_BAND 위에 남은 몫(excess)만 깎는다. 점수 전체에 배율을
+        #    곱하면 스펙 안인 변수가 스펙아웃 전용 구간(0~10) 안으로 내려가 "10점 미만 =
+        #    이미 스펙아웃"이라는 읽는 법이 깨진다.
+        if ta_status.get("early_warning_active") and not spec_out:
             maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
-            health_index_var = health_index_var * (1 - TREND_PENALTY_MAX_CUT * maturity)
+            excess = health_index_var - SPEC_OUT_BAND
+            health_index_var = SPEC_OUT_BAND + excess * (1 - TREND_PENALTY_MAX_CUT * maturity)
 
         rows.append({
             "Machine_ID": machine,

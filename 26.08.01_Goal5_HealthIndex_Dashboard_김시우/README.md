@@ -35,7 +35,16 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
      거리를 robust z-scale로 잰 것. OPCOND 층별로 계산 후 컬럼당 중앙값을 대표값으로.
    margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
      0% = baseline, 100% = 스펙 경계, 100% 넘으면 스펙아웃
-   변수별 Health Index = 100 − clip(margin_used_pct, 0, 100)
+   변수별 Health Index = margin_used_pct를 0~100 점수로 단조 변환 (margin_to_health)
+     margin 0%   -> 100점 (여유를 전혀 안 씀)
+     margin 100% -> 10점  (스펙 경계)
+     margin 100%+ -> 10 x (100/margin), 0으로 점근 (예: margin 291% -> 3.4점)
+     즉 **10점 미만 = 이미 스펙아웃, 0에 가까울수록 몇 배로 벗어난 것**입니다.
+     (26.08.06: 예전엔 100 − clip(margin,0,100)이라 경계를 살짝 넘은 것과 3배로
+      폭주한 것이 똑같이 0점으로 뭉개져 우선순위가 안 보였습니다. 아래쪽 10점을
+      스펙아웃 전용 구간으로 예약해서 그 안에서도 순위가 갈리게 하되, 점수 자체는
+      0~100을 벗어나지 않게 했습니다. 왜곡 없는 원본 수치가 필요하면 같이 저장되는
+      margin_used_pct를 그대로 쓰면 됩니다.)
 
 2) 추세는 점수에 안 섞고, 두 가지를 같이 제공 (26.08.05부터)
    (a) margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면

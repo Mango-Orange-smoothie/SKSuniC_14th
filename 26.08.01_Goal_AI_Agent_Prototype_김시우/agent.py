@@ -10,7 +10,8 @@ Health Index(0~100, 100이 건강)가 답하는 질문은 "다른 장비/변수 
 defect/장비 단위로는 "여러 원인 중 제일 나쁜 것"을 그대로 대표값으로 쓴다(평균 아님).
 (26.08.06) margin만으로는 "추세는 나쁜데 아직 값은 안 벗어난" 사각지대가 있어서
 (예: 방금 CUSUM 경보가 뜬 변수가 margin만 보면 100점으로 표시됨), early_warning_active가
-true인 변수는 레벨 점수에 (1 - 0.5×maturity) 배율을 곱한다 — maturity는 이 경보가
+true인 변수는 레벨 점수에 (1 - 0.5×maturity) 배율을 곱한다(단 이미 SPEC_OUT이면 안 깎음)
+— maturity는 이 경보가
 alert_since부터 며칠째 지속 중인지를 14일 기준으로 0~1로 정규화한 값. 막 뜬 경보는
 거의 안 깎이고 14일 이상 지속된 "성숙한" 경보라야 최대 50%까지 깎인다 — 그래서
 health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세인지)를 어느 정도 반영한
@@ -19,26 +20,29 @@ health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세
 build_health_index.py 상단 docstring 참고.
 
 get_machine_health가 반환하는 구조 핵심:
-  - health_index: 장비/defect/원인변수 3단계 모두 있음 (낮을수록 급함). 0이 바닥이 아니라
-    **음수도 나온다** — margin_used_pct가 100%(스펙 경계)를 넘어서도 그대로 깎이게 뒀다
-    (26.08.06, 예전엔 0에서 clip해서 "경계를 살짝 넘음"과 "몇 배로 폭주함"이 똑같이
-    0으로 보여 우선순위 구분이 안 됐음). 음수는 "SPEC_OUT인 정도"로 이해하고, 절댓값이
-    클수록 더 심각한 것으로 말하되 "-1369점"처럼 숫자 자체를 그대로 읽지 말고 "정상
-    대비 크게 벗어났다" 식으로 풀어서 설명할 것.
+  - health_index: 장비/defect/원인변수 3단계 모두 있음. **0~100이고 낮을수록 급하다.**
+    아래쪽 10점은 "이미 스펙 밖" 전용 구간이라 **10점 미만이면 이미 SPEC_OUT이고, 0에
+    가까울수록 스펙을 몇 배로 벗어난 것**이다(예: 3.4점 = 경계를 3배 가까이 넘음).
+    10점 이상이면 아직 스펙 안이고, 100점이 여유를 전혀 안 쓴 상태다.
   - worst_defects / worst_factors: 나쁜 순서로 최대 3개 정렬된 목록 (1개만 보지 말 것)
   - current_value / lsl / usl / spec_status: 추상적 %가 아니라 실제 값 — spec_status가
     "SPEC_OUT"이면 이미 스펙을 벗어난 것, "OK"면 아직 스펙 안
-  - spec_source: 세 가지가 있고 신뢰도가 다르다.
+  - spec_source: 네 가지가 있고 신뢰도가 다르다.
       "mentor_spec"(멘토가 26.08.05 직접 준 진짜 스펙, 10개 변수만)이면 신뢰도 높음.
+      "mentor_spec_recomputed_target"(Kerf_Width_Profile/Coating_Uniformity) — LSL/USL은
+        멘토 실측 스펙 그대로이고 TARGET만 실측 OK median으로 다시 잡은 것이라, 신뢰도는
+        mentor_spec과 같게 취급하면 된다("임시기준"이라고 부르면 틀림).
       "provisional_percentile"(정상군 분포 기반 임시 대체값, 대부분의 변수)이면 진짜
         스펙이 아니라는 걸 반드시 같이 언급할 것.
-      "defect_zone_rate"(CLN_Pressure/Surface_Roughness 2개만) — 이 둘은 성격이 달라서
-        health/margin이 "값이 스펙에서 얼마나 벗어났나"가 아니라 "그날 샷 중 몇 %가
+      "defect_zone_rate"(CLN_Pressure/Surface_Roughness/CLN_Flow 3개) — 이들은 성격이
+        달라서 health/margin이 "값이 스펙에서 얼마나 벗어났나"가 아니라 "그날 샷 중 몇 %가
         불량 급증 구간에 들어갔나"에서 나온다. defect_zone_rate_pct(현재 비율)와
-        defect_zone_baseline_pct(평소 비율)를 같이 인용해서 설명할 것.
-    셋을 같은 확신으로 말하면 안 됨.
+        defect_zone_baseline_pct(그 장비의 평소 비율)를 같이 인용해서 설명할 것.
+    넷을 같은 확신으로 말하면 안 됨.
   - defect_zone_rate_pct / defect_zone_baseline_pct: 위 "defect_zone_rate" 컬럼에만 값이
     있고 나머지는 null. 예: 7.53%(평소 6.13%)면 "평소보다 위험구간 진입이 늘었다"는 뜻.
+    평소 비율은 **그 장비 자신의 이력** 기준이다(CLN_Flow처럼 특정 장비에서만 일어나는
+    현상을 4대 평균과 비교하면 왜곡되기 때문) — "다른 장비 대비"로 설명하면 안 됨.
   - estimated_days_to_spec_out: margin 기울기로 이 스크립트가 직접 추정한 정량적
     "예상 며칠 뒤" — 나빠지는 중일 때만 값이 있고, 안정적이거나 좋아지는 중이거나
     이미 SPEC_OUT이면 null. 표본이 작아 숫자 자체보다 "며칠 단위/몇 주 단위" 정도의
@@ -103,8 +107,9 @@ with open(HEALTH_INDEX_DATA, encoding="utf-8") as f:
     DATA = json.load(f)
 
 MACHINES = DATA["machines"]
-# 26.08.05 관계DB(JHdaimma) 최신 판정으로 교체 — Micro_Crack Vibration/Cooling_Flow 강등 등
-# 반영. 기존 키(defects/owner/direction/mechanism)는 그대로라 아래 코드는 수정 불필요.
+# 26.08.06 관계DB(JHdaimma) 2세대 판정(T1~T4 티어)으로 교체 — 확정 원인 6개
+# (Power_Efficiency/Laser_Power/Head_Temp/CLN_Pressure/CLN_Flow/Cooling_Flow).
+# 기존 키(defects/owner/direction/mechanism)는 그대로라 아래 코드는 수정 불필요.
 with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
     CAUSE_FACTORS = json.load(f)["cause_factors"]
 LEVEL_TREND = pd.read_csv(LEVEL_TREND_CSV)
@@ -315,11 +320,12 @@ SYSTEM_PROMPT = """\
 - **발생**: {actual_occurred_recent_7d가 true면 "최근 7일 내내(7/7)" 또는 "{occurred_days_recent_7d}/7일" \
 | false면 "없음(조짐 단계)"}
 - **원인**: `{worst_factors[0]의 factor}` — spec_source에 따라 다르게 쓸 것(규칙 10 참고):
-    - mentor_spec/provisional_percentile: 현재 `{current_value}` / {direction이 up이면 "상한" \
-      down이면 "하한"} `{usl 또는 lsl}` [{mentor_spec이면 "스펙기준" provisional_percentile이면 "임시기준"}]
-    - defect_zone_rate(CLN_Pressure/Surface_Roughness): current_value/usl/lsl 대신 \
+    - mentor_spec/mentor_spec_recomputed_target/provisional_percentile: 현재 `{current_value}` / \
+      {direction이 up이면 "상한" down이면 "하한"} `{usl 또는 lsl}` \
+      [{spec_source가 mentor_spec으로 시작하면 "스펙기준", provisional_percentile이면 "임시기준"}]
+    - defect_zone_rate(CLN_Pressure/Surface_Roughness/CLN_Flow): current_value/usl/lsl 대신 \
       `{defect_zone_rate_pct}`% (평소 `{defect_zone_baseline_pct}`%) [불량검증기준]으로 쓸 것 \
-      — 이 둘은 health가 current_value와 직접 연결되지 않으므로 섞어 쓰면 틀린다.
+      — 이들은 health가 current_value와 직접 연결되지 않으므로 섞어 쓰면 틀린다.
    공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_spec_out이 \
 null이 아닐 때만 ", 스펙아웃 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
 절대 지어내지 마라}
@@ -367,10 +373,13 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 10. spec_source를 반드시 확인하고 다르게 말하라(위 출력 형식의 "원인" 줄에도 이미 반영됨). \
     "mentor_spec"(Laser_Power/Power_Efficiency/Laser_Centering_Position/Frequency/Feed_Speed/ \
     Head_Temp/Kerf_Width_Profile/Coating_Thickness/Coating_Uniformity 등 10개 변수만 해당)은 \
-    멘토가 준 진짜 스펙이라 "스펙기준"이라고 확실하게 말해도 된다. "provisional_percentile"( \
-    나머지 대부분)은 정상군 분포로 대체한 임시값일 뿐이니 "임시기준"이라고만 표시하고 "스펙"이라는 \
-    단어를 쓰지 마라. "defect_zone_rate"(CLN_Pressure/Surface_Roughness)는 실제 불량 발생 \
-    데이터로 검증된 경계라 "불량검증기준"이라고 말할 수 있지만 멘토 스펙은 아니다. 셋을 같은 \
+    멘토가 준 진짜 스펙이라 "스펙기준"이라고 확실하게 말해도 된다. \
+    "mentor_spec_recomputed_target"도 LSL/USL은 멘토 스펙 그대로라 똑같이 "스펙기준"이다 \
+    (TARGET만 실측 median으로 다시 잡은 것 — 이걸 "임시기준"이라고 부르면 틀린다). \
+    "provisional_percentile"(나머지 대부분)은 정상군 분포로 대체한 임시값일 뿐이니 \
+    "임시기준"이라고만 표시하고 "스펙"이라는 단어를 쓰지 마라. \
+    "defect_zone_rate"(CLN_Pressure/Surface_Roughness/CLN_Flow)는 실제 불량 발생 \
+    데이터로 검증된 경계라 "불량검증기준"이라고 말할 수 있지만 멘토 스펙은 아니다. 넷을 같은 \
     확신으로 말하면 안 된다.
 11. 한국어로 답하되, 위 출력 형식을 벗어난 부가 설명 문단을 붙이지 마라. 사용자가 형식에 없는 걸 \
     추가로 물으면(예: SOP 상세 설명, 왜 이런 판정인지) 그 부분만 짧게 답하고 전체 형식은 유지하라.
@@ -381,6 +390,39 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 # 파이썬 정규식의 \b가 한글도 "단어 문자"로 취급해서 경계로 인식하지 못해 매칭이 깨진다.
 # 대신 앞뒤에 다른 영숫자만 없으면 되도록 lookaround로 직접 제한한다.
 _MACHINE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])DP0[1-4](?![0-9])", re.IGNORECASE)
+
+
+def _spec_tag(spec_source: str | None) -> str:
+    """spec_source를 화면에 붙일 신뢰도 꼬리표로 변환.
+
+    (26.08.06 수정) 예전엔 `"스펙기준" if spec_source == "mentor_spec" else "임시기준"`이라
+    두 가지를 틀리게 표시했다 — LSL/USL이 멘토 실측 스펙 그대로인
+    "mentor_spec_recomputed_target"(Kerf_Width_Profile/Coating_Uniformity)이 "임시기준"으로
+    깎여 보였고, 실제 불량 데이터로 검증한 "defect_zone_rate"(CLN_Pressure/Surface_Roughness/
+    CLN_Flow)도 똑같이 "임시기준"이 돼서 SYSTEM_PROMPT 규칙 10이 요구하는 구분이 화면
+    패널에서만 무너져 있었다.
+    """
+    if (spec_source or "").startswith("mentor_spec"):
+        return "스펙기준"
+    if spec_source == "defect_zone_rate":
+        return "불량검증기준"
+    return "임시기준"
+
+
+def _level_phrase(c: dict) -> str:
+    """"지금 레벨이 얼마나 나쁜가"를 spec_source에 맞는 수치로 한 구절 만든다.
+
+    defect_zone_rate 컬럼(CLN_Pressure/Surface_Roughness/CLN_Flow)은 health/margin이
+    current_value가 아니라 "그날 샷 중 몇 %가 불량 위험구간에 들어갔나"에서 나온다 —
+    current_value와 lsl/usl을 나란히 보여주면 근거가 아닌 숫자를 근거처럼 읽게 된다
+    (SYSTEM_PROMPT 규칙 10이 Claude에게 금지한 것과 같은 실수를 패널 코드가 하고 있었음).
+    """
+    tag = _spec_tag(c.get("spec_source"))
+    if c.get("spec_source") == "defect_zone_rate" and c.get("defect_zone_rate_pct") is not None:
+        return (f"위험구간 진입 `{c['defect_zone_rate_pct']}%` "
+                f"(이 장비 평소 `{c.get('defect_zone_baseline_pct')}%`) [{tag}]")
+    bound_label, bound_val = ("상한", c.get("usl")) if c.get("direction") == "up" else ("하한", c.get("lsl"))
+    return f"현재 `{c.get('current_value')}` / {bound_label} `{bound_val}` [{tag}]"
 
 
 def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | None:
@@ -398,7 +440,6 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
     occ_txt = ("최근 7일 내내(7/7)" if sig.get("occurred_days_recent_7d") == 7
                else (f"{sig.get('occurred_days_recent_7d', 0)}/7일" if occurred
                      else "없음(조짐 단계)"))
-    tag = "스펙기준" if c.get("spec_source") == "mentor_spec" else "임시기준"
     bound_label, bound_val = ("상한", c["usl"]) if c.get("direction") == "up" else ("하한", c["lsl"])
     trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
     spec_out = c.get("estimated_days_to_spec_out")
@@ -414,8 +455,7 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
     title = f"{icon} {machine_id} · {rank}순위 - {defect} (HI `{hi}`)"
     explanation_md = (
         f"- **발생**: {occ_txt}\n"
-        f"- **원인**: `{factor}` 현재 `{c['current_value']}` / {bound_label} `{bound_val}` "
-        f"[{tag}], {trend_word}추세{spec_out_txt}\n"
+        f"- **원인**: `{factor}` {_level_phrase(c)}, {trend_word}추세{spec_out_txt}\n"
         f"- **메커니즘**: {c.get('mechanism', '-')}\n"
         f"- **SOP**: {sop_line} `[미검증초안]`"
     )
@@ -436,7 +476,7 @@ def _panel_from_chart(chart: dict) -> dict:
     factor, machine_id = chart["factor"], chart["machine_id"]
     series = chart.get("series") or []
     latest = series[-1]["value"] if series else None
-    tag = "스펙기준" if chart.get("spec_source") == "mentor_spec" else "임시기준"
+    tag = _spec_tag(chart.get("spec_source"))
     trend_word = {"up": "상승", "down": "하강"}.get(chart.get("trend_direction"), "")
 
     lines = [
