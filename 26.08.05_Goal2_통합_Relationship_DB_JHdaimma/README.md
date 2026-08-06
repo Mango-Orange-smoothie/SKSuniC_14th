@@ -26,15 +26,19 @@ Particle/Remain_Coat는 다른 브랜치를 `git show`로 읽으므로 **원격 
 
 **판정 기준은 [TIER_기준.md](TIER_기준.md), 미결 사항은 [결정_대기_사항.md](결정_대기_사항.md) 참조.**
 
-### 현재 티어 분포 (`rel_20`)
+### 현재 티어 분포 (`rel_20`) — 확정 도메인 11건
 
 | 티어 | 건수 | 인자 |
 |---|---|---|
 | **T1 즉시조치** | **5** | Chipping `Power_Efficiency` `Laser_Power` `Head_Temp` · Remain_Coat `CLN_Flow` `CLN_Pressure`(급락알람) |
-| T2 조건부조치 | 3 | Chipping `Cooling_Flow` `Vibration`(추세알람) · Particle `CLN_Flow` |
-| T3 감시 | 3 | Micro_Crack `Cooling_Flow` `Vibration` · Particle `CLN_Pressure` |
+| T2 조건부조치 | 2 | Chipping `Cooling_Flow` · Particle `CLN_Flow` |
+| T3 감시 | 2 | Micro_Crack `Cooling_Flow` · Particle `CLN_Pressure` |
 | T4 판단보류 | 1 | Micro_Crack `Cooling_Water_Temp` — 도메인과 데이터 방향 반대 |
 | M1 감시지표 | 1 | Particle `Surface_Roughness` |
+
+> 🔔 **`Vibration`은 티어표에서 제외했습니다** (2026-08-06).
+> 유효인자(원인) 트랙이 아니라 **별도 알람 트랙**으로 운영합니다 — 추세 상승과 spec 이탈만
+> 감시해 알람을 주고 **조치 지시는 하지 않습니다.** 제외 사유는 스크립트의 `VIBRATION_EXCLUDED` 참조.
 
 **SOP 칸은 비어 있습니다** — `sop_status = "SOP 미수령 — 멘토 제공 대기"`
 

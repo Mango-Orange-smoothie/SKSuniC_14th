@@ -55,8 +55,16 @@ DOMAIN = [
     ("Chipping",    "Laser_Power",        "down", "level", "멘토 확정"),
     ("Chipping",    "Head_Temp",          "up",   "level", "멘토 확정"),
     ("Chipping",    "Cooling_Flow",       "down", "level", "멘토 확정"),
-    ("Chipping",    "Vibration",          "up",   "trend", "멘토 확정 (추세·틀어짐 알람)"),
-    ("Micro_Crack", "Vibration",          "up",   "trend", "멘토 확정 (추세·틀어짐 알람)"),
+]
+
+# Vibration은 유효인자 판정에서 제외한다 (2026-08-06 결정).
+#   Chipping/Vibration, Micro_Crack/Vibration 2건을 뺐다.
+#   사유 — 유효인자(원인) 트랙이 아니라 별도 알람 트랙으로 운영하기로 했다.
+#          추세 상승과 spec 이탈만 감시해 알람을 주고, 조치 지시는 하지 않는다.
+#   따라서 티어표에는 넣지 않는다. 알람 규칙은 별도 산출물로 관리한다.
+VIBRATION_EXCLUDED = [
+    ("Chipping", "Vibration"),
+    ("Micro_Crack", "Vibration"),
 ]
 
 DEFECTS = ["Chipping", "Micro_Crack", "Particle", "Remain_Coat"]
@@ -285,7 +293,8 @@ tt.to_csv(OUT / "rel_20_tier_table.csv", index=False, encoding="utf-8-sig")
 print("[5/5] 완료\n")
 W = 118
 print("=" * W)
-print("유효인자 티어표 — 확정 도메인 13건 × (통계검정 + RandomForest)")
+print(f"유효인자 티어표 — 확정 도메인 {len(DOMAIN)}건 × (통계검정 + RandomForest)")
+print(f"※ Vibration {len(VIBRATION_EXCLUDED)}건은 제외 — 별도 알람 트랙(추세·spec 이탈)으로 운영")
 print("=" * W)
 print(f"{'티어':4s} {'defect':12s} {'인자':20s} {'액션':14s}"
       f" {'delta':>8s} {'통계':>4s} {'RF':>4s}  {'재현성':22s}")
