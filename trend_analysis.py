@@ -39,6 +39,9 @@ Z_THRESHOLD = 2.0
 VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
 APPROACH_MARGIN_RATIO = 0.2  # S유형: LSL~USL 폭의 이 비율 이하로 여유가 남으면 "접근 중"
+PERSIST_WINDOW = 3  # 몇 행 연속으로 조건을 만족해야 "진짜 상태"로 볼지 (main은 5를 씀 —
+# 검증해보니 5는 노이즈는 잘 줄이지만 실제 탐지력(Recall)까지 과하게 깎아서(same-row
+# 기준 Spec 대비 오히려 낮아짐, 24시간 이내 탐지율 42%) 3으로 낮춰 재검증한다.
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
@@ -190,6 +193,31 @@ def compute_std_trend(rolling_std):
 
 
 # ----------------------------------------------------------------------
+# 5-2. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
+#      (main 브랜치 검증: C유형 entered_first가 임계값 근처 노이즈로 계속 새로
+#      트리거되던 문제, variability_warning이 10행 표본 std 추정 노이즈로 너무 자주
+#      뜨던 문제를 줄여준다. 다만 main의 PERSIST_WINDOW=5는 과했음 — 이 버전은 3.)
+# ----------------------------------------------------------------------
+def _sustained_state(condition: np.ndarray, persist_n: int) -> np.ndarray:
+    """condition이 최근 persist_n행 연속 True인 시점부터를 True로 표시(그 구간 전체, 상태형)."""
+    n = len(condition)
+    if n < persist_n:
+        return np.zeros(n, dtype=bool)
+    windows = np.lib.stride_tricks.sliding_window_view(condition, persist_n)
+    sustained = windows.all(axis=1)
+    full = np.zeros(n, dtype=bool)
+    full[persist_n - 1:] = sustained
+    return full
+
+
+def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
+    """_sustained_state 중에서도 그 상태가 "막 시작된" 시점 1행만 True(이벤트형)."""
+    full = _sustained_state(condition, persist_n)
+    prev_full = np.concatenate(([False], full[:-1]))
+    return full & ~prev_full
+
+
+# ----------------------------------------------------------------------
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
@@ -295,10 +323,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 std_ratio = rolling_std / ref_std
             else:
                 std_ratio = np.full(len(current_value), np.nan)
-            variability_warning = (
+            variability_raw = (
                 ~np.isnan(std_slope) & (std_slope > 0)
                 & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
             )
+            # 10행 표본 std는 추정 노이즈가 커서, PERSIST_WINDOW행 연속 유지될 때만
+            # "진짜 변동성 확대"로 본다(상태형 — 지속되는 동안 계속 표시).
+            variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
 
             early_warning = np.zeros(len(current_value), dtype=bool)
             messages = np.array([""] * len(current_value), dtype=object)
@@ -338,13 +369,14 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     else:
                         entered_raw = (current_value >= baseline_arr) & valid_baseline
                         slope_toward_risk = slope > 0
-                    # 위험영역에 처음 진입한 시점만 경고 (이미 진입해 있던 이후 시점은 반복 경고하지 않음)
-                    prev_entered = np.concatenate(([False], entered_raw[:-1]))
-                    entered_first = entered_raw & ~prev_entered
-                    approaching = (
+                    # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고
+                    # (노이즈로 임계값 근처를 오락가락하는 걸 매번 "새 진입"으로 잡던 문제 방지)
+                    entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
+                    approaching_raw = (
                         (~entered_raw) & slope_toward_risk & calc_mask
                         & (np.abs(normalized_deviation) >= Z_THRESHOLD)
                     )
+                    approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
                     ew = entered_first | approaching
                     early_warning |= ew
                     for i in np.where(entered_first)[0]:
@@ -374,10 +406,9 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 # 실제 Spec(LSL/TARGET/USL) 기반 판정. 세 가지를 모두 본다.
                 valid_spec = ~np.isnan(lsl_arr) & ~np.isnan(usl_arr) & ~np.isnan(baseline_arr)
 
-                # 1) LSL/USL 이탈: 최초 진입 시점만 경고(C유형과 동일한 반복 경고 억제)
+                # 1) LSL/USL 이탈: "PERSIST_WINDOW행 연속" 벗어나 있었을 때만 그 시작 시점 1행 경고
                 entered_raw = valid_spec & ((current_value <= lsl_arr) | (current_value >= usl_arr))
-                prev_entered = np.concatenate(([False], entered_raw[:-1]))
-                entered_first = entered_raw & ~prev_entered
+                entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
 
                 # 2) 접근 중: 아직 Spec 이내지만, 가까운 한계선 쪽으로 지속 이동하며
                 #    남은 여유가 Spec 폭(USL-LSL)의 APPROACH_MARGIN_RATIO 이하로 좁혀짐
@@ -387,10 +418,11 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 nearer_low = dist_to_lsl <= dist_to_usl
                 margin = np.where(nearer_low, dist_to_lsl, dist_to_usl)
                 slope_toward_risk = np.where(nearer_low, slope < 0, slope > 0)
-                approaching = (
+                approaching_raw = (
                     valid_spec & (~entered_raw) & slope_toward_risk
                     & (margin <= spec_width * APPROACH_MARGIN_RATIO)
                 )
+                approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
 
                 # 3) TARGET에서 지속적으로 벌어지는 추세 (B/E유형과 동일한 지속성 스타일)
                 dev_dir = np.where(rolling_mean > baseline_arr, "up", "down")
