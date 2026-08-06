@@ -46,16 +46,39 @@ with open(REL_DB / "agent_cause_factors.json") as f:
 
 ---
 
-## ⚠️ 먼저 — 티어표가 두 개입니다
+## 📁 파일 구성
 
-| 파일 | 상태 | 기준 |
-|---|---|---|
-| **`rel_20_tier_table.csv`** | ✅ **정본 (이걸 쓰세요)** | **확정 도메인 13건**만 후보 → 통계검정 + RandomForest. 멘토 방향성 반영본 |
-| `rel_12_tiers.csv` | 📦 이력 보관 (사용 안 함) | 도메인 게이트 적용 **이전**. 담당자 판정 + Jun 교차대조 |
+### Agent가 읽는 것
 
-티어 이름 체계도 다릅니다 — `rel_20`은 `T1~T4 / M1`, `rel_12`는 `C1~C3 / M1~M3 / P1~P2`입니다.
+| 파일 | |
+|---|---|
+| **`agent_cause_factors.json`** | 🔒 **경로·이름 고정** — main의 `agent.py`가 읽음 |
 
-**판정 기준은 [TIER_기준.md](TIER_기준.md), 미결 사항은 [결정_대기_사항.md](결정_대기_사항.md) 참조.**
+### 산출물
+
+| 파일 | 내용 |
+|---|---|
+| **`rel_20_tier_table.csv`** | **티어표 11행 × 56열** ← 중심 |
+| `rel_28_vibration_alarm.csv` | **Vibration 별도 알람 영역** (티어표 밖) |
+| `rel_29_ng_code_summary.csv` | NG_Code 요약 (20만행) |
+| `rel_30_trend_interface.csv` | **추세팀 인터페이스** |
+| `rel_26_scenario_injection_check.csv` | 검정 가능성 (39행) |
+| `rel_27_spec_vs_data_threshold.csv` | 규격 간극 (3행) |
+| `rel_14` · `rel_15` | 냉각·레이저노후 경향 (근거) |
+
+### 문서
+
+`TIER_기준.md` (판정 기준) · `결정_대기_사항.md` (미결 16건) · `규격과_실제불량_간극.md`
+
+### 📦 `_history/` — 1세대, **사용 안 함**
+
+도메인 게이트 적용 **이전** 산출물 17개를 이력으로 보관합니다.
+`rel_00`~`rel_13` + 구 스크립트 3개.
+
+> 🔴 **`_history/build_agent_payload.py`는 절대 실행하지 마세요.**
+> 상위 폴더의 `agent_cause_factors.json`을 **1세대 내용으로 덮어씁니다.**
+
+자세한 내용은 [_history/README.md](_history/README.md) 참조.
 
 ### 현재 티어 분포 (`rel_20`) — 확정 도메인 11건
 

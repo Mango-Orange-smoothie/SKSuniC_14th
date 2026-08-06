@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "generated_at": "2026-08-06T07:33:10.545121+00:00",
+  "generated_at": "2026-08-06T08:03:59.879926+00:00",
   "basis": "확정 도메인 11건 × (통계검정 Mann-Whitney U + Cliff's delta + BH-FDR, RandomForest 순열중요도). 원본 10만 + r1 10만 = 20만행.",
   "cause_factors": {
     "Power_Efficiency": {
