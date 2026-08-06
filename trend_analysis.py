@@ -10,9 +10,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_INPUT_FILES = [
     ("DP_HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "data", "raw", "DP_HealthIndex_Dataset.csv")),
 ]
-# r1(DP_HealthIndex_Dataset_r1.csv, 멘토 배포 파일)은 git에 없고 아직 로컬에도 없어서
-# 잠정 제외했다. 파일 받으면 여기에 다시 추가할 것 —
-# ("DP_HealthIndex_Dataset_r1.csv", os.path.join(BASE_DIR, "DP_HealthIndex_Dataset_r1.csv")),
+# r1(DP_HealthIndex_Dataset_r1.csv, 멘토 배포 파일)은 로컬에 있지만 여기 일부러 안 넣는다
+# — r1은 C유형 threshold를 "학습"하는 데만 쓰는 별도 데이터셋이고(pipeline/config.py의
+# BASELINE_C_DEFECT_MAP 주석 참고), 모니터링 대상 데이터에 섞으면 학습에 쓴 데이터로
+# 다시 경보를 판정하는 셈이 된다. git에도 안 올린다(.gitignore).
 
 CLASSIFICATION_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_column_classification.csv")
 STRATUM_STD_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_stratum_baseline_stats_by_opcond.csv")
@@ -27,7 +28,9 @@ CROSS_VALIDATION_CSV = os.path.join(OUTPUT_DIR, "trend_cross_validation.csv")
 
 GROUP_KEYS = ["Machine_ID", "Product_ID", "Recipe_ID"]
 WINDOW = 10
-Z_THRESHOLD = 2.0
+# (26.08.06) Z_THRESHOLD(=2.0) 상수는 A/B/E 판정이 CUSUM으로, C 판정이 danger_rate로
+# 바뀌면서 아무 데서도 안 쓰이게 돼 제거했다. 지금 판정 임계값은 CUSUM_K/CUSUM_H(A/B/E)와
+# C_DANGER_RATE_MULTIPLE(C)이다.
 VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
 PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "진짜 상태"로 볼지 —
@@ -262,27 +265,37 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------
-# 5-3. Type C "접근" 판정용 정상 danger_rate — 컬럼별로 "평소엔 위험구간에 샷이 얼마나
-#      들어가는지"를 미리 재둔다(그룹별 비율의 median, 특정 그룹이 튀어도 안 흔들리게).
+# 5-3. Type C "접근" 판정용 정상 danger_rate — **장비×컬럼별로** "평소엔 위험구간에 샷이
+#      얼마나 들어가는지"를 미리 재둔다(그 장비 안 Product×Recipe 그룹별 비율의 median,
+#      특정 그룹이 튀어도 안 흔들리게).
 #      build_health_index.py의 defect_zone_rate 기준(zone_base_rate)과 같은 방식.
+#
+#      (26.08.06) 원래는 4대 장비를 풀링해서 컬럼당 하나로 잡았는데, CLN_Flow처럼 위험구간
+#      진입이 특정 장비(DP04)만의 일인 컬럼에선 "항상 0%"인 나머지 3대가 평소 비율을
+#      인위적으로 짓눌렀다(DP04 자신은 1.72%인데 풀링하면 0.44%). "평소"는 그 장비 자신의
+#      이력이어야 맞다 — build_health_index.py에서 같은 이유로 고친 것과 동일한 수정이다.
+#      (이번 데이터에선 WINDOW=10이라 danger_rate가 10% 단위로만 움직여서 판정 결과가
+#      실제로 바뀌지는 않았지만, 기준이 틀린 채로 두면 장비별 편차가 큰 컬럼이 새로 들어올
+#      때 그대로 오판이 된다.)
 # ----------------------------------------------------------------------
 def compute_c_type_baseline_rate(df, column_type, c_map):
     baseline_rate = {}
     c_columns = [col for col, t in column_type.items() if t == "C" and col in df.columns]
     for col in c_columns:
-        group_rates = []
-        for (product_id, recipe_id), g in df.groupby(["Product_ID", "Recipe_ID"]):
-            info = c_map.get((col, f"{product_id}|{recipe_id}"))
-            if info is None:
-                continue
-            values = g[col].to_numpy(dtype=float)
-            if info["risky_direction"] == "low_is_risky":
-                risky = values < info["threshold"]
-            else:
-                risky = values > info["threshold"]
-            group_rates.append(risky.mean())
-        if group_rates:
-            baseline_rate[col] = float(np.median(group_rates))
+        for machine_id, mdf in df.groupby("Machine_ID"):
+            group_rates = []
+            for (product_id, recipe_id), g in mdf.groupby(["Product_ID", "Recipe_ID"]):
+                info = c_map.get((col, f"{product_id}|{recipe_id}"))
+                if info is None:
+                    continue
+                values = g[col].to_numpy(dtype=float)
+                if info["risky_direction"] == "low_is_risky":
+                    risky = values < info["threshold"]
+                else:
+                    risky = values > info["threshold"]
+                group_rates.append(risky.mean())
+            if group_rates:
+                baseline_rate[(machine_id, col)] = float(np.median(group_rates))
     return baseline_rate
 
 
@@ -377,10 +390,17 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             )
             normalized_deviation[z_base] = rolling_mean[z_base] - baseline_arr[z_base]
 
-            # 조기경보(A/B/E의 persistent 판정)용 로컬 추세 방향. 10개 단위 로컬 slope는
-            # 장기 drift 신호와 스케일이 달라(뒤 compute_reference_style_trend 참고)
-            # 여기서는 단순 부호 기준을 그대로 쓴다.
-            trend_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
+            # 10개 단위 로컬 slope의 부호. 장기 drift 신호와는 스케일이 달라서(뒤
+            # compute_reference_style_trend 참고) 이것만으로 추세를 주장하면 안 된다.
+            # (26.08.06 수정) 예전엔 이 값을 그대로 trend_direction으로 내보냈는데, 저장되는
+            # 행은 전부 early_warning=True인 행이고 그 경보를 실제로 띄운 건 CUSUM(A/B/E)
+            # 이나 threshold 진입(C)이지 이 로컬 slope가 아니다. 그래서 "지속적인 하강이
+            # 감지되었습니다" 메시지에 trend_direction="up"이 붙는 행이 절반 가까이 나왔고
+            # (하강 경고 11,945행 중 5,383행), build_health_index -> agent.py가 그걸 그대로
+            # 읽어서 엔지니어에게 반대 방향을 알려주고 있었다. 이제 경보가 뜬 행은 아래에서
+            # 그 경보 자신의 방향으로 덮어쓴다(alert_direction).
+            local_slope_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
+            trend_direction = local_slope_direction.copy()
 
             # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
             std_slope = compute_std_trend(rolling_std)
@@ -423,6 +443,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 else:
                     ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
+                trend_direction[ew] = bad_dir  # 경보를 띄운 CUSUM의 방향 = A유형의 나쁜 방향
                 dir_word = "상승" if bad_dir == "up" else "하강"
                 for i in np.where(ew)[0]:
                     messages[i] = (
@@ -437,7 +458,9 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
                 for i in np.where(ew)[0]:
-                    side = "높은" if cusum_pos[i] > CUSUM_H else "낮은"
+                    up_side = cusum_pos[i] > CUSUM_H
+                    trend_direction[i] = "up" if up_side else "down"  # 경보를 띄운 CUSUM 쪽
+                    side = "높은" if up_side else "낮은"
                     messages[i] = (
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                         f"정상 Baseline(최적값) 대비 {side} 방향으로 지속적으로 벌어지는 편차가 감지되었습니다."
@@ -470,29 +493,35 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
                     windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
                     danger_rate = windows_risky.mean(axis=1)
-                    base_rate = c_baseline_rate.get(col)
+                    base_rate = c_baseline_rate.get((machine_id, col))
                     if base_rate and base_rate > 0:
-                        approaching_raw = (
-                            (~entered_raw) & slope_toward_risk & valid_threshold
-                            & (danger_rate >= C_DANGER_RATE_MULTIPLE * base_rate)
-                        )
+                        rate_exceeded = danger_rate >= C_DANGER_RATE_MULTIPLE * base_rate
                     else:
-                        approaching_raw = np.zeros(len(current_value), dtype=bool)
+                        # 이 장비는 평소 이 위험구간에 들어간 적이 없다 — "평소 대비 몇 배"가
+                        # 정의 안 되므로, 한 샷이라도 들어가면 그 자체가 이상이다.
+                        rate_exceeded = danger_rate > 0
+                    approaching_raw = (
+                        (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
+                    )
                     # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
                     # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
                     approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
                     ew = entered_first | approaching
                     early_warning |= ew
+                    # C유형 경보의 방향 = 위험 threshold 쪽으로 가는 방향(진입했든 접근 중이든).
+                    trend_direction[ew] = "down" if risky_direction == "low_is_risky" else "up"
                     for i in np.where(entered_first)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                             f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
                         )
+                    base_txt = (f"이 장비 평소 {base_rate*100:.1f}%" if base_rate
+                                else "이 장비는 평소 진입 이력 없음")
                     for i in np.where(approaching)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
                             f"최근 {WINDOW}개 샷 중 {danger_rate[i]*100:.0f}%가 위험 Threshold"
-                            f"({threshold_arr[i]:.4f}) 구간에 들어감(평소 {base_rate*100:.1f}%) — "
+                            f"({threshold_arr[i]:.4f}) 구간에 들어감({base_txt}) — "
                             f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                         )
 
@@ -503,6 +532,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
                 for i in np.where(ew)[0]:
+                    trend_direction[i] = "up" if cusum_pos[i] > CUSUM_H else "down"
                     messages[i] = (
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                         f"이론 기준값({baseline_arr[i]:.4f}) 대비 지속적으로 벌어지는 편차가 감지되었습니다."
@@ -708,7 +738,8 @@ def main():
               f"(행 수 대비 {total_episodes/total_warn*100:.1f}% — 나머지는 같은 사건이 지속된 것)")
 
     if total_warn == 0:
-        print("[점검] early_warning이 0건입니다. 임계값(Z_THRESHOLD) 또는 Baseline 매핑 로직을 점검해야 합니다.")
+        print("[점검] early_warning이 0건입니다. 임계값(CUSUM_H / C_DANGER_RATE_MULTIPLE) 또는 "
+              "Baseline 매핑 로직을 점검해야 합니다.")
 
     cross_validate_machine_trend(RAW_INPUT_FILES[0][1], analysis_columns)
 
