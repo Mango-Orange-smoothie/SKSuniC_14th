@@ -1,0 +1,25 @@
+﻿dataset,machine,factor,chain_step,kerf_candidate,expected_direction,median_z_at_machine,n_machines_worse_expected_dir,n_machines_opposite_dir,mean_delta_vs_others,supported_all3,supported_2plus
+원본,DP02,Power_Efficiency,Laser Aging -> Power_Efficiency 감소,False,down,-0.26590501094748525,2,0,-0.19654072178423568,False,True
+원본,DP02,Kerf_Angle,Power_Efficiency 감소 -> Kerf 증가,True,up,0.0,0,0,-0.0014466311003106247,False,False
+원본,DP02,Top_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,0.2534948476791288,2,0,0.18235737465917282,False,True
+원본,DP02,Bottom_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,0.30248802647230727,2,0,0.21162325129294612,False,True
+원본,DP02,Kerf_Width_Profile,Power_Efficiency 감소 -> Kerf 증가,True,up,0.23421623353612636,0,0,0.17393673167016574,False,False
+원본,DP03,Head_Temp,Cooling Failure -> Head_Temp 상승,False,up,0.1959317630356118,0,0,0.14603124127313297,False,False
+원본,DP03,Cooling_Flow,Cooling Failure -> 냉각 유량 부족,False,down,-0.034973594935813465,0,0,-0.024803783606156055,False,False
+원본,DP04,CLN_Flow,Cleaning Failure -> CLN_Flow 감소,False,down,-0.9105625252934073,3,0,-0.44649845508189917,True,True
+r1,DP02,Power_Efficiency,Laser Aging -> Power_Efficiency 감소,False,down,-12.348369288878795,3,0,-0.7544111041403908,True,True
+r1,DP02,Kerf_Angle,Power_Efficiency 감소 -> Kerf 증가,True,up,1.2779824916398979,2,1,0.3234835661496587,False,True
+r1,DP02,Top_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,9.201491959865384,3,0,0.680047530129734,True,True
+r1,DP02,Bottom_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,12.357413272244965,3,0,0.7081495744303151,True,True
+r1,DP02,Kerf_Width_Profile,Power_Efficiency 감소 -> Kerf 증가,True,up,9.1877795779204,3,0,0.6938583288355374,True,True
+r1,DP03,Head_Temp,Cooling Failure -> Head_Temp 상승,False,up,4.795119180816813,2,0,0.44567617150066474,False,True
+r1,DP03,Cooling_Flow,Cooling Failure -> 냉각 유량 부족,False,down,-0.820326599363427,2,0,-0.34900455145634846,False,True
+r1,DP04,CLN_Flow,Cleaning Failure -> CLN_Flow 감소,False,down,-1.2927739556634714,3,0,-0.4765483855664992,True,True
+합침,DP02,Power_Efficiency,Laser Aging -> Power_Efficiency 감소,False,down,-1.0929248417445676,3,0,-0.4422083725566255,True,True
+합침,DP02,Kerf_Angle,Power_Efficiency 감소 -> Kerf 증가,True,up,0.5246039240373075,2,0,0.18379626341230015,False,True
+합침,DP02,Top_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,1.0205084178786898,3,0,0.406953654225194,True,True
+합침,DP02,Bottom_Kerf,Power_Efficiency 감소 -> Kerf 증가,True,up,1.1038419698138966,3,0,0.4298014907512097,True,True
+합침,DP02,Kerf_Width_Profile,Power_Efficiency 감소 -> Kerf 증가,True,up,1.0143170987536696,3,0,0.40739969605598425,True,True
+합침,DP03,Head_Temp,Cooling Failure -> Head_Temp 상승,False,up,0.5884509359442759,2,0,0.25865391350374894,False,True
+합침,DP03,Cooling_Flow,Cooling Failure -> 냉각 유량 부족,False,down,-0.3616834507338126,2,0,-0.18119648361121168,False,True
+합침,DP04,CLN_Flow,Cleaning Failure -> CLN_Flow 감소,False,down,-1.0549727263608182,3,0,-0.4615010762496276,True,True

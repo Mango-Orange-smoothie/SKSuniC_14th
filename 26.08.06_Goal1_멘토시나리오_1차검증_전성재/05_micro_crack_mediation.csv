@@ -1,0 +1,8 @@
+﻿dataset,machine,defect,mediator_set,mediators,or_machine_only,or_adjusted,excess_risk_explained_pct,note
+원본,DP03,Micro_Crack,냉각 인자(진혁님 도메인),"Cooling_Flow, Cooling_Water_Temp",0.5498335295520264,0.5505544752569851,0.1601509113375985,
+원본,DP03,Micro_Crack,냉각 + Vibration,"Cooling_Flow, Cooling_Water_Temp, Vibration",0.5498335295520264,0.5417348178910321,-1.7990481727648517,
+원본,DP02,Chipping,-,,,,,Chipping 4건 — 표본 부족으로 판정 불가
+r1,DP03,Micro_Crack,냉각 인자(진혁님 도메인),"Cooling_Flow, Cooling_Water_Temp",1.1889023678321906,0.9144816955755268,145.27116594983204,
+r1,DP03,Micro_Crack,냉각 + Vibration,"Cooling_Flow, Cooling_Water_Temp, Vibration",1.1889023678321906,1.1128342306890726,40.26849319892713,
+r1,DP02,Chipping,냉각 인자(진혁님 도메인),"Cooling_Flow, Cooling_Water_Temp",15.730512270887184,24.846934612367352,-61.888019736404644,
+r1,DP02,Chipping,냉각 + Vibration,"Cooling_Flow, Cooling_Water_Temp, Vibration",15.730512270887184,7.923504112965711,52.9988911068011,

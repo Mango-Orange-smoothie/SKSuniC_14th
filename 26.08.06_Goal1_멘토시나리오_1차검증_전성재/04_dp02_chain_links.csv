@@ -1,0 +1,13 @@
+﻿dataset,link,kerf_column,scope,metric,value,p_value,n,expected,matches_mentor,note
+원본,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,전체,Spearman r,-0.2640531544827915,0.0,100000,음수(효율 낮을수록 Kerf 큼),True,
+원본,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,DP02만,Spearman r,-0.28447321264329356,0.0,24882,음수(효율 낮을수록 Kerf 큼),True,
+원본,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,전체,Cliff's delta,,,4,양수(Chipping 행의 Kerf가 큼),,Chipping 발생 4건 — 표본 부족으로 판정 불가
+원본,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,DP02만,Cliff's delta,,,1,양수(Chipping 행의 Kerf가 큼),,Chipping 발생 1건 — 표본 부족으로 판정 불가
+r1,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,전체,Spearman r,-0.7473761408707994,0.0,100000,음수(효율 낮을수록 Kerf 큼),True,
+r1,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,DP02만,Spearman r,-0.888908712457751,0.0,24835,음수(효율 낮을수록 Kerf 큼),True,
+r1,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,전체,Cliff's delta,0.9564076859504786,0.0,24171,양수(Chipping 행의 Kerf가 큼),True,
+r1,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,DP02만,Cliff's delta,0.8830918801930712,0.0,16185,양수(Chipping 행의 Kerf가 큼),True,
+합침,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,전체,Spearman r,-0.5524622590768703,0.0,200000,음수(효율 낮을수록 Kerf 큼),True,
+합침,A. Power_Efficiency 감소 -> Kerf 증가,Bottom_Kerf,DP02만,Spearman r,-0.8240407477793079,0.0,49717,음수(효율 낮을수록 Kerf 큼),True,
+합침,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,전체,Cliff's delta,0.9793637420633794,0.0,24175,양수(Chipping 행의 Kerf가 큼),True,
+합침,B. Kerf 증가 -> Chipping 증가,Bottom_Kerf,DP02만,Cliff's delta,0.9692567391444356,0.0,16186,양수(Chipping 행의 Kerf가 큼),True,

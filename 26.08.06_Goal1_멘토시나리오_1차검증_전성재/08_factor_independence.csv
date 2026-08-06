@@ -1,0 +1,7 @@
+﻿dataset,machine,defect,hold_fixed,tested,n_informative_bins,n_bins_significant,verdict,max_abs_delta
+원본,DP02,Chipping,Power_Efficiency,Head_Temp,0,0,판정 불가(표본 부족),
+원본,DP02,Chipping,Power_Efficiency,Laser_Power,0,0,판정 불가(표본 부족),
+원본,DP03,Chipping,Cooling_Flow,Head_Temp,0,0,판정 불가(표본 부족),
+r1,DP02,Chipping,Power_Efficiency,Head_Temp,1,1,독립 — 별개 조치항목,0.4921043510140146
+r1,DP02,Chipping,Power_Efficiency,Laser_Power,1,1,독립 — 별개 조치항목,0.6649054308520388
+r1,DP03,Chipping,Cooling_Flow,Head_Temp,5,5,독립 — 별개 조치항목,0.9108367448891541

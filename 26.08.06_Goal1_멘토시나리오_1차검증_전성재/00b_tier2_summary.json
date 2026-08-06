@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-08-06T06:44:02.677669+00:00",
+  "purpose": "1차(멘토 시나리오) x 진혁님 티어표 충돌 지점을 장비 각도로 판정 (26.08.06)",
+  "pure_label_finding": "진혁님 build_tier_table.py의 pure 라벨이 불량군에만 적용되고 비교군에는 적용되지 않는다(코드 82행 vs 바로 아래 LABEL_DEF 문구 불일치). 그 방식으로 rel_20 13개 항목이 소수점 4자리까지 전부 재현된다. 문서 문구대로 양쪽에서 제외하면 Micro_Crack/Vibration만 +0.0633 -> +0.2211로 판정이 뒤집히고 나머지 12건은 판정 유지.",
+  "vibration_correction": "최초 해석('Vibration은 DP02·DP03 한정 인자')은 틀렸다. 4대 전부 +0.17~+0.25로 비슷하고, 장비 층화 가중평균(+0.206)과 pooled(+0.214) 차이가 -0.009라 장비 분할로 얻는 신호가 없다. 남은 쟁점은 진혁님 기재값 +0.063이 어느 조합으로도 재현되지 않는다는 것(원본 +0.103 / r1 +0.214 / 합침 +0.227).",
+  "conflicts_examined": {
+    "A_micro_crack": "멘토는 DP03 Cooling Failure -> Micro_Crack, 진혁님은 Micro_Crack 확정 원인 0건(냉각 인자 전부 강등). 장비 수준 vs 스트립 수준 불일치.",
+    "B_head_temp": "진혁님 rel_15에 'Head_Temp 귀속 미확정(냉각/레이저)'으로 남은 항목. 멘토님은 DP03(Cooling Failure) 쪽에 배치하셨다."
+  },
+  "jh_source": "26.08.05_Goal2_통합_Relationship_DB_JHdaimma/rel_20_tier_table.csv, rel_15 (커밋 f48a8f6 — 현재 브랜치에 미병합, 값을 옮겨 적었음)",
+  "method": "OPCOND 층별 강건 z-score. 매개분석은 L1 아닌 기본 로지스틱, 층별 독립성은 포화 층(불량률 >=90% 또는 <=1%) 제외. SHAP/Boosting 미사용.",
+  "datasets": [
+    "원본",
+    "r1"
+  ]
+}

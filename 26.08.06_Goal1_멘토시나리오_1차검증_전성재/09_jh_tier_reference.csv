@@ -1,0 +1,14 @@
+﻿defect,factor,tier,role,stat_pass,delta,repro
+Chipping,Power_Efficiency,T1,원인(FDC),True,-0.8789,판정불가(원본 표본부족)
+Chipping,Laser_Power,T1,원인(FDC),True,-0.8523,판정불가(원본 표본부족)
+Chipping,Head_Temp,T1,원인(FDC),True,0.8727,판정불가(원본 표본부족)
+Chipping,Cooling_Flow,T2,원인(FDC),True,-0.478,판정불가(원본 표본부족)
+Chipping,Vibration,T2,원인(FDC),True,0.8161,판정불가(원본 표본부족)
+Remain_Coat,CLN_Pressure,T1,원인(FDC),True,-0.2466,통과
+Remain_Coat,CLN_Flow,T1,원인(FDC),True,-0.5556,통과
+Particle,CLN_Flow,T2,원인(FDC),False,-0.0052,통과
+Particle,CLN_Pressure,T3,원인(FDC),False,0.0117,통과
+Particle,Surface_Roughness,M1,감시지표(Response),True,0.6063,통과
+Micro_Crack,Cooling_Flow,T3,원인(FDC),False,-0.0232,실패(데이터셋간 방향 불일치)
+Micro_Crack,Vibration,T3,원인(FDC),False,0.0633,실패(데이터셋간 방향 불일치)
+Micro_Crack,Cooling_Water_Temp,T4,원인(FDC),False,-0.0125,실패(데이터셋간 방향 불일치)
