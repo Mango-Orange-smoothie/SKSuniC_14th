@@ -16,9 +16,17 @@ get_machine_health가 반환하는 구조 핵심:
   - worst_defects / worst_factors: 나쁜 순서로 최대 3개 정렬된 목록 (1개만 보지 말 것)
   - current_value / lsl / usl / spec_status: 추상적 %가 아니라 실제 값 — spec_status가
     "SPEC_OUT"이면 이미 스펙을 벗어난 것, "OK"면 아직 스펙 안
-  - spec_source: "mentor_spec"(멘토가 26.08.05 직접 준 진짜 스펙, 10개 변수만)이면 신뢰도
-    높음. "provisional_percentile"(정상군 분포 기반 임시 대체값, 나머지 변수)이면 진짜
-    스펙이 아니라는 걸 반드시 같이 언급할 것 — 둘을 같은 확신으로 말하면 안 됨
+  - spec_source: 세 가지가 있고 신뢰도가 다르다.
+      "mentor_spec"(멘토가 26.08.05 직접 준 진짜 스펙, 10개 변수만)이면 신뢰도 높음.
+      "provisional_percentile"(정상군 분포 기반 임시 대체값, 대부분의 변수)이면 진짜
+        스펙이 아니라는 걸 반드시 같이 언급할 것.
+      "defect_zone_rate"(CLN_Pressure/Surface_Roughness 2개만) — 이 둘은 성격이 달라서
+        health/margin이 "값이 스펙에서 얼마나 벗어났나"가 아니라 "그날 샷 중 몇 %가
+        불량 급증 구간에 들어갔나"에서 나온다. defect_zone_rate_pct(현재 비율)와
+        defect_zone_baseline_pct(평소 비율)를 같이 인용해서 설명할 것.
+    셋을 같은 확신으로 말하면 안 됨.
+  - defect_zone_rate_pct / defect_zone_baseline_pct: 위 "defect_zone_rate" 컬럼에만 값이
+    있고 나머지는 null. 예: 7.53%(평소 6.13%)면 "평소보다 위험구간 진입이 늘었다"는 뜻.
   - estimated_days_to_spec_out: margin 기울기로 이 스크립트가 직접 추정한 정량적
     "예상 며칠 뒤" — 나빠지는 중일 때만 값이 있고, 안정적이거나 좋아지는 중이거나
     이미 SPEC_OUT이면 null. 표본이 작아 숫자 자체보다 "며칠 단위/몇 주 단위" 정도의
@@ -29,6 +37,17 @@ get_machine_health가 반환하는 구조 핵심:
     경보가 켜져 있다"는 뜻 — margin_used_pct(레벨)이 아직 낮아도(예: 20%) 이게 true면
     "레벨은 아직 여유 있어 보여도 추세분석 쪽에서는 지속적인 이상 추세가 잡혔다"고
     같이 말해줄 것. trend_message에 사람이 읽는 설명이 이미 들어있으니 그대로 인용해도 됨.
+    단, trend_message는 최근 경고 "1건"의 예시일 뿐이라 특정 Product/Recipe를 언급해도
+    그게 대표 원인이라는 뜻은 아님 — 어느 조합이 문제인지는 recipe_hotspots를 봐야 함.
+  - recipe_hotspots / n_product_recipe_combos_affected / recipe_hotspot_concentrated:
+    "어느 설비가 문제인지"는 machine_id 자체가 답이지만, "어느 제품/레시피 조합이
+    문제인지"는 이 필드가 답한다(전체 54개 Product×Recipe 조합 중 경고가 집중된 순위,
+    build_health_index.py의 load_trend_warning_status가 trend_analysis_results.csv에서
+    직접 집계). recipe_hotspot_concentrated가 true면 top1 조합이 조합당 평균의 2배 이상
+    — 특정 Product/Recipe 조합을 점검 대상으로 콕 집어 말해도 된다. false면 거의 모든
+    조합(n_product_recipe_combos_affected로 몇 개인지 확인)에 고르게 퍼진 것이니
+    "특정 레시피 문제가 아니라 설비/공정 전반의 문제"라고 말할 것 — recipe_hotspots에
+    숫자가 있어도 그걸 "이 레시피가 원인"이라고 단정하면 안 됨.
   - actual_occurred_recent_7d: Health Index와 완전히 별개 — 이미 터진 불량 여부
 
 데이터 출처: 26.08.01_Goal5_HealthIndex_Dashboard_김시우/health_index_data.json
@@ -246,7 +265,11 @@ SYSTEM_PROMPT = """\
    그대로 활용해라 — 1등만 말하지 말고 상위 몇 개를 순서대로 짚어줘라.
 3. margin_used_pct 같은 추상적 %를 그대로 부르지 말고, current_value/lsl/usl로 실제 값을 인용해서 \
    설명하라 (예: "지금 0.17인데 위험 상한이 0.21입니다"). spec_status가 "SPEC_OUT"이면 이미 스펙을 \
-   벗어난 것이니 그렇다고 명확히 말하고 percentage는 언급하지 마라. "OK"면 아직 스펙 안이라는 뜻이다.
+   벗어난 것이니 그렇다고 명확히 말하고 percentage는 언급하지 마라. "OK"면 아직 스펙 안이라는 뜻이다. \
+   단 spec_source가 "defect_zone_rate"인 컬럼(CLN_Pressure/Surface_Roughness)은 예외다 — 이 둘은 \
+   health가 current_value에서 나오지 않으므로 current_value와 health를 인과처럼 엮어 말하면 틀린다. \
+   대신 defect_zone_rate_pct와 defect_zone_baseline_pct를 인용하라 \
+   (예: "지금 샷의 7.5%가 불량 급증 구간에 들어갑니다, 평소는 6.1%입니다").
 4. estimated_days_to_spec_out에 값이 있으면(null이 아니면) "이 속도가 유지되면 약 N일 뒤 스펙아웃 \
    예상"이라고 반드시 언급하라. null이면 안정적이거나 좋아지는 중이거나 이미 SPEC_OUT이라 의미 없는 \
    것이니 억지로 만들어내지 마라.
@@ -268,12 +291,20 @@ SYSTEM_PROMPT = """\
     실제 발생 날짜를 찾고, 그 날짜를 get_trend_chart_data의 center_date로 넘겨서 그 주변(예: \
     앞뒤 3일씩 총 7일)을 보여줘라. Particle/Remain_Coat는 발생일이 매우 많을 수 있으니, 그럴 \
     땐 가장 최근 날짜 하나를 골라 쓰거나 사용자에게 어느 날짜를 원하는지 물어봐라.
-12. spec_source를 반드시 확인하고 다르게 말하라. "mentor_spec"(Laser_Power/Power_Efficiency/ \
+12. "어느 제품/레시피가 문제야?"처럼 물으면 recipe_hotspots를 확인하라. \
+    recipe_hotspot_concentrated가 true면 top1 조합(product_id/recipe_id)을 우선 점검 \
+    대상으로 구체적으로 짚어줘라(예: "PKG_E×RCP_5 조합에서 유독 자주 발생"). false면 \
+    n_product_recipe_combos_affected(예: 54개 중 54개)를 근거로 "특정 레시피 문제가 \
+    아니라 설비 자체 문제로 보인다"고 명확히 말하고, recipe_hotspots 숫자만 보고 \
+    특정 레시피를 원인으로 단정하지 마라.
+13. spec_source를 반드시 확인하고 다르게 말하라. "mentor_spec"(Laser_Power/Power_Efficiency/ \
     Laser_Centering_Position/Frequency/Feed_Speed/Head_Temp/Kerf_Width_Profile/Coating_Thickness/ \
     Coating_Uniformity 등 10개 변수만 해당)은 멘토가 준 진짜 스펙이라 "스펙 기준으로 봤을 때"라고 \
     확실하게 말해도 된다. "provisional_percentile"(나머지 대부분)은 정상군 분포로 대체한 임시값일 \
-    뿐이니 "정상 범위 대비"라고만 말하고 "스펙"이라는 단어를 쓰지 마라 — 둘을 같은 확신으로 \
-    말하면 안 된다.
+    뿐이니 "정상 범위 대비"라고만 말하고 "스펙"이라는 단어를 쓰지 마라. \
+    "defect_zone_rate"(CLN_Pressure/Surface_Roughness)는 실제 불량 발생 데이터로 검증된 경계라 \
+    "불량이 급증하기 시작하는 지점 기준"이라고 말할 수 있지만, 멘토 스펙은 아니므로 "스펙"이라는 \
+    단어는 쓰지 마라. 셋을 같은 확신으로 말하면 안 된다.
 """
 
 

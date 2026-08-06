@@ -186,6 +186,55 @@ def compute_machine_daily_series(df: pd.DataFrame, opcond_baseline: pd.DataFrame
     return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
 
 
+def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -> pd.DataFrame:
+    """C유형 컬럼: 날짜×장비별로 "불량 위험구간에 들어간 샷 비율"을 집계한다.
+
+    (26.08.05 추가) 왜 필요한가 — C유형 threshold는 개별 샷 데이터로 학습한 경계라
+    샷 단위로만 의미가 있는데, Health Index는 일평균을 그 경계와 비교하고 있었다.
+    일평균은 수백 샷을 평균낸 값이라 분산이 훨씬 작아서, 실측으로 확인해보니
+    개별 샷은 6.4~6.7%가 경계를 넘는데도(그래서 Remain_Coat가 실제로 발생) 일평균은
+    356일 내내 단 하루도 경계를 안 넘었다. 그 결과 이 컬럼들의 health가 영구히
+    97~100에 고정돼 경보를 낼 수 없는 상태였다(compute_boundary_z docstring이 경고한
+    day-vs-shot granularity 불일치와 같은 문제).
+
+    그래서 "일평균이 경계에서 얼마나 떨어졌나" 대신 "그날 샷 중 몇 %가 경계를
+    넘었나"를 센다 — 불량이 샷 단위 사건이므로 이게 맞는 granularity다.
+
+    threshold는 Product_ID x Recipe_ID 그룹마다 다르므로, 샷별로 자기 그룹의
+    threshold를 적용한 뒤 장비×날짜로 집계한다(그룹 대표값 하나로 뭉개지 않음).
+    """
+    thr_map = {
+        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        for r in baseline_c.itertuples(index=False)
+    }
+    columns = sorted({c for c, _ in thr_map})
+
+    work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime"] + columns].copy()
+    work["date"] = work["DateTime"].dt.date
+    work["group_key"] = work["Product_ID"] + "|" + work["Recipe_ID"]
+
+    rows = []
+    for col in columns:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+        in_zone = np.where(
+            direction == "low_is_risky", work[col] < thr,
+            np.where(direction == "high_is_risky", work[col] > thr, np.nan),
+        )
+        tmp = pd.DataFrame({
+            "Machine_ID": work["Machine_ID"],
+            "date": work["date"],
+            "in_zone": pd.to_numeric(pd.Series(in_zone, index=work.index), errors="coerce"),
+        }).dropna(subset=["in_zone"])
+        agg = tmp.groupby(["Machine_ID", "date"])["in_zone"].agg(["size", "sum"])
+        agg = agg.reset_index().rename(columns={"size": "n_shots", "sum": "n_in_zone"})
+        agg["column"] = col
+        agg["defect_zone_rate"] = agg["n_in_zone"] / agg["n_shots"]
+        rows.append(agg[["Machine_ID", "column", "date", "n_shots", "n_in_zone", "defect_zone_rate"]])
+
+    return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
+
+
 def compute_machine_column_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
     """compute_machine_daily_series 결과에 Mann-Kendall(=kendalltau)+OLS 기울기 검정.
 
@@ -466,11 +515,17 @@ def compute_baseline_type_b(ok_df: pd.DataFrame) -> pd.DataFrame:
     """B유형(U자형/최적구간형, 방향 무관): 그룹별 baseline.
 
     (26.08.05) A유형과 동일하게, SPEC에 있는 컬럼은 멘토 TARGET을 우선한다.
+    단, config.TARGET_RECOMPUTE_FROM_DATA에 있는 컬럼(현재 Kerf_Width_Profile)은
+    예외 — 실측 평균이 멘토 TARGET에서 스펙 폭의 12%나 벗어나 있고 89일 내내 안
+    줄어드는 정적 오프셋이라, LSL/USL(위험 경계)은 멘토 값을 신뢰하되 TARGET(정상
+    기준값)만 OK median으로 재계산한다.
     """
     medians = _ok_median_baseline(ok_df, config.BASELINE_B_COLUMNS)
     rows = []
     for (column, group_key), median_value in medians.items():
-        if column in SPEC:
+        if column in SPEC and column in config.TARGET_RECOMPUTE_FROM_DATA:
+            baseline_value, method = median_value, "opcond_OK_median (target 재계산, LSL/USL은 멘토값 유지)"
+        elif column in SPEC:
             baseline_value, method = SPEC[column]["TARGET"], "mentor_target"
         elif column == "CLN_Time":
             baseline_value, method = median_value, "opcond_OK_median (재분류: C->B)"
@@ -620,6 +675,11 @@ def main() -> None:
 
     baseline_c = compute_baseline_type_c(df)
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
+
+    # C유형 threshold는 샷 단위 경계라 일평균과 직접 비교하면 안 된다(위 함수 docstring 참고).
+    # Health Index가 쓸 "그날 위험구간에 들어간 샷 비율"을 여기서 미리 집계해둔다.
+    defect_zone_rate = compute_daily_defect_zone_rate(df, baseline_c)
+    save_table(defect_zone_rate, "00_machine_daily_defect_zone_rate.csv", subdir="preprocessing")
 
     baseline_e = compute_baseline_type_e(ok_ng_code)
     save_table(baseline_e, "00_baseline_E.csv", subdir="preprocessing")

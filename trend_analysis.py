@@ -34,12 +34,76 @@ PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "�
 # 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
 # 22,948건 중 21,426건이 진입 이벤트였음) 방지용. 1행짜리 순간 판정 대신 지속성 요구.
 
+# (26.08.05 추가) Type C "접근" 판정을 위한 danger_rate 배수. rolling_mean 기반 risk_margin_z는
+# 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의 위험 진입을 지워버린다
+# (CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling mean은 0.00%만 아래로
+# 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을 쓰면 10개 중 1개만
+# 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다. 그래서 build_
+# health_index.py의 defect_zone_rate(위험구간에 들어간 샷 비율)와 같은 방식 — "윈도우 안
+# 위험구간 진입 비율"이 평소(baseline_rate) 대비 이 배수 이상이면 "접근 중"으로 본다.
+C_DANGER_RATE_MULTIPLE = 2.0
+
+# (26.08.05 추가) A/B/E유형의 "지속적 편차" 판정을 CUSUM(누적합)으로 교체.
+# 기존 방식(WINDOW=10 rolling mean + PERSIST_WINDOW=5 연속조건)은 구조적으로 최소
+# WINDOW+PERSIST_WINDOW-1행(그룹당 하루 ~5샷이면 최소 3일)의 지연이 있고, 실측으로는
+# CLN_Flow가 실제 하강 시작(2/16) 대비 첫 경고까지 6~7일 걸렸다(rolling mean이 전환
+# 자체를 완전히 반영하기까지 추가 지연). CUSUM은 매 샷마다 target 대비 편차를 누적해서
+# 작은 편차(CUSUM_K 미만)는 계속 무시하고 버리되, 그보다 큰 편차가 쌓이면 빠르게
+# 경보 임계값(CUSUM_H)을 넘는다 — SPC(통계적 공정관리)에서 지속적 이동 감지에 쓰는
+# 표준 방법. k=0.5, h=4는 교과서 관례값(약 1시그마 크기의 이동을 합리적인 오탐률로 잡음).
+CUSUM_K = 0.7   # 허용 편차(시그마 단위) — 이보다 작은 편차는 누적 안 함(정상 노이즈)
+CUSUM_H = 4.5   # 경보 임계값(시그마 단위) — 누적합이 이걸 넘으면 "지속적 이동" 확정
+# (26.08.05) 파라미터를 실측으로 두 번 튜닝했다.
+#   1차(K=0.5, H=4.0, OPCOND 공통 target): Laser_Power에서 DP02가 다른 장비보다 0.44시그마
+#     낮게 89일 내내 고정 운영되는 걸 "지속 이동"으로 잘못 잡아 그 컬럼 알람율이 15.6%까지
+#     치솟았다(정상적으론 거의 0%여야 함) — Coating_Uniformity는 거의 전체 행(96,484건)이
+#     경보 상태가 됨.
+#   2차 시도(그룹별 초반 30샷 평균을 기준점으로): 장비 간 차이 문제는 피했지만, 30개
+#     표본만으로 추정한 기준점 자체가 우연히 실제 평균과 어긋나는 그룹이 나왔다(한
+#     사례: 초반 30개 평균이 전체 평균보다 0.58시그마 낮게 나와서 그 뒤 447개 샷 내내
+#     "위로 지속 이동"으로 오인, 알람율 93%). 표본이 작을수록 이 위험이 커진다.
+#   최종: OPCOND 공통 target으로 되돌리고, K를 0.5->0.7, H를 4.0->4.5로 올려 "장비 간
+#     자연스러운 0.4~0.6시그마 차이"에는 반응하지 않게 둔감화했다. 실측 검증(아래):
+#       Laser_Power/Bottom_Kerf(추세 없는 안정 컬럼) 알람율 0.5%/1.0%대로 하락(20배+ 개선)
+#       CLN_Flow(DP04, 실제 2/16~18 하강) 첫 경고 중앙값 2/22 18:06 — 기존 rolling+
+#       persistence 방식(2/22~23)과 비슷한 속도를 유지하면서 오탐만 크게 줄였다.
+#     SPC 이론상 "민감도(빠른 탐지)"와 "오탐률"은 같은 k/h로 동시에 최적화가 안 되는
+#     근본적 트레이드오프라(작은 목표 이동폭 2k와 자연 변동폭이 겹치면 어느 한쪽을
+#     포기해야 함), 이 데이터에서는 오탐 억제를 우선했다 — 지연을 더 줄이려면 목표
+#     이동폭을 이 정도로 잡는 대신 오탐 증가를 감수해야 한다.
+
+
+def compute_cusum(z_values):
+    """target 기준 정규화된 z-score 시계열(샷 단위, 전체 길이)에 양방향 CUSUM 적용.
+
+    s_pos: 위쪽으로 지속 이동 중이면 커짐(0 아래로는 안 내려감 — 정상/반대방향이면 리셋).
+    s_neg: 아래쪽으로 지속 이동 중이면 작아짐(음수, 0 위로는 안 올라감).
+    """
+    n = len(z_values)
+    s_pos = np.zeros(n)
+    s_neg = np.zeros(n)
+    prev_pos, prev_neg = 0.0, 0.0
+    for i in range(n):
+        prev_pos = max(0.0, prev_pos + z_values[i] - CUSUM_K)
+        prev_neg = min(0.0, prev_neg + z_values[i] + CUSUM_K)
+        s_pos[i] = prev_pos
+        s_neg[i] = prev_neg
+    return s_pos, s_neg
+
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
-    "column", "type", "matched_defect", "baseline", "current_value", "rolling_mean", "rolling_std",
+    "column", "type", "matched_defect", "baseline", "threshold", "current_value", "rolling_mean", "rolling_std",
     "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
     "variability_warning", "early_warning", "message",
 ]
+# (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
+# baseline 자리에 그대로 넣어써서, normalized_deviation(추세/경고용 "정상에서 얼마나
+# 벗어났는지")이 "위험선에서 얼마나 벗어났는지"로 계산되는 문제가 있었다(안전한 쪽으로
+# 멀리 떨어져 있을 뿐인데도 큰 편차로 잡혀 CLN_Pressure 경고의 75%가 사실상 오탐이었음).
+# 이제 baseline = 모든 유형 공통으로 "정상 기준값(target)"(Type C는 00_stratum_baseline_
+# stats_by_opcond.csv의 Product×Recipe별 OK median, 나머지는 기존과 동일), threshold =
+# Type C 전용 위험 경계값으로 분리한다. normalized_deviation/trend_direction은 baseline
+# 기준으로(A/B/E와 동일 의미), entered/approaching 판정만 threshold 기준으로 따로 계산.
 
 
 # ----------------------------------------------------------------------
@@ -111,16 +175,22 @@ def load_baseline_maps():
 
 
 # ----------------------------------------------------------------------
-# 4. std fallback 참조 테이블 (표준편차 0/NaN일 때 안전 대체용)
-#    기존 analysis_outputs/preprocessing/00_stratum_baseline_stats_by_opcond.csv 재사용
-#    (Product_ID x Recipe_ID x column 단위의 기존 표준편차)
+# 4. std fallback + Type C target 참조 테이블
+#    analysis_outputs/preprocessing/00_stratum_baseline_stats_by_opcond.csv 재사용
+#    (Product_ID x Recipe_ID x column 단위, OK 데이터 기준 std/median)
+#    (26.08.05) median을 Type C 컬럼의 target으로도 쓴다 — Type C는 원래 "위험 threshold"만
+#    있고 "정상일 때 이 값이어야 한다"는 target이 없었는데(threshold를 target 자리에 대신
+#    써서 문제가 생겼음), 이 파일에 이미 Product×Recipe별 OK median이 있어서(Health Index
+#    쪽 provisional_percentile 계산이 이미 같은 파일로 target을 쓰고 있음) 그대로 재사용한다.
 # ----------------------------------------------------------------------
-def load_fallback_std_map():
-    strat = pd.read_csv(STRATUM_STD_CSV, usecols=["Product_ID", "Recipe_ID", "column", "std"])
-    fb = {}
+def load_stratum_reference_maps():
+    strat = pd.read_csv(STRATUM_STD_CSV, usecols=["Product_ID", "Recipe_ID", "column", "std", "median"])
+    fb_std, target_map = {}, {}
     for row in strat.itertuples(index=False):
-        fb[(row.Product_ID, row.Recipe_ID, row.column)] = row.std
-    return fb
+        key = (row.Product_ID, row.Recipe_ID, row.column)
+        fb_std[key] = row.std
+        target_map[key] = row.median
+    return fb_std, target_map
 
 
 # ----------------------------------------------------------------------
@@ -192,11 +262,36 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------
+# 5-3. Type C "접근" 판정용 정상 danger_rate — 컬럼별로 "평소엔 위험구간에 샷이 얼마나
+#      들어가는지"를 미리 재둔다(그룹별 비율의 median, 특정 그룹이 튀어도 안 흔들리게).
+#      build_health_index.py의 defect_zone_rate 기준(zone_base_rate)과 같은 방식.
+# ----------------------------------------------------------------------
+def compute_c_type_baseline_rate(df, column_type, c_map):
+    baseline_rate = {}
+    c_columns = [col for col, t in column_type.items() if t == "C" and col in df.columns]
+    for col in c_columns:
+        group_rates = []
+        for (product_id, recipe_id), g in df.groupby(["Product_ID", "Recipe_ID"]):
+            info = c_map.get((col, f"{product_id}|{recipe_id}"))
+            if info is None:
+                continue
+            values = g[col].to_numpy(dtype=float)
+            if info["risky_direction"] == "low_is_risky":
+                risky = values < info["threshold"]
+            else:
+                risky = values > info["threshold"]
+            group_rates.append(risky.mean())
+        if group_rates:
+            baseline_rate[col] = float(np.median(group_rates))
+    return baseline_rate
+
+
+# ----------------------------------------------------------------------
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
                   ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
-                  state):
+                  stratum_target_map, state):
     df = pd.read_csv(path)
     n_input_rows = len(df)
 
@@ -209,6 +304,8 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
     df["source_file"] = source_name
     df["DateTime"] = pd.to_datetime(df["DateTime"])
     df = df.sort_values(GROUP_KEYS + ["DateTime"]).reset_index(drop=True)
+
+    c_baseline_rate = compute_c_type_baseline_rate(df, column_type, c_map)
 
     total_out_rows = 0
     warning_count = 0
@@ -233,18 +330,22 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
             col_type = column_type.get(col)
             baseline = np.nan
+            threshold = np.nan
             extra = {}
             if col_type in ("A", "B"):
                 baseline = ab_value_map.get((col, group_key), np.nan)
             elif col_type == "C":
                 info = c_map.get((col, group_key))
                 if info is not None:
-                    baseline = info["threshold"]
+                    threshold = info["threshold"]
                     extra = info
+                # target(정상 기준값)은 threshold와 별개 — Product×Recipe별 OK median.
+                baseline = stratum_target_map.get((product_id, recipe_id, col), np.nan)
             elif col_type == "E":
                 baseline = e_value_map.get(col, np.nan)
 
             baseline_arr = np.full(len(current_value), baseline, dtype=float)
+            threshold_arr = np.full(len(current_value), threshold, dtype=float)
 
             # --- std 안전 대체 로직 ---
             eff_std = rolling_std.copy()
@@ -300,11 +401,27 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             early_warning = np.zeros(len(current_value), dtype=bool)
             messages = np.array([""] * len(current_value), dtype=object)
 
+            # --- CUSUM(누적합) — A/B/E유형의 "지속적 편차" 판정에 공통으로 쓴다 ---
+            # rolling_mean 기반 WINDOW+PERSIST_WINDOW 방식보다 반응이 빠르다. target(OPCOND
+            # 공통 baseline)과 안정적인 참조 std(rolling 아닌 스칼라)로 샷 단위 z-score를
+            # 만들고 전체 이력에 누적합을 씌운다 — K/H 튜닝 배경은 위 CUSUM_K/H 주석 참고.
+            ref_std_scalar = np.nan
+            if col_type == "E":
+                ref_std_scalar = e_std_map.get(col, np.nan)
+            if ref_std_scalar is None or (isinstance(ref_std_scalar, float) and np.isnan(ref_std_scalar)) or ref_std_scalar == 0:
+                ref_std_scalar = fallback_std_map.get((product_id, recipe_id, col), np.nan)
+            cusum_pos = cusum_neg = None
+            if col_type in ("A", "B", "E") and not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
+                z_full = (values - baseline) / ref_std_scalar
+                s_pos_full, s_neg_full = compute_cusum(z_full)
+                cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
+
             if col_type == "A":
                 bad_dir = direction_map.get(col)
-                dev_dir = np.where(current_value > baseline_arr, "up", "down")
-                strong_dev = calc_mask & (np.abs(normalized_deviation) >= Z_THRESHOLD)
-                ew = strong_dev & (trend_direction == bad_dir) & (dev_dir == bad_dir) & valid_baseline
+                if cusum_pos is not None:
+                    ew = (cusum_pos > CUSUM_H) if bad_dir == "up" else (cusum_neg < -CUSUM_H)
+                else:
+                    ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
                 dir_word = "상승" if bad_dir == "up" else "하강"
                 for i in np.where(ew)[0]:
@@ -314,13 +431,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     )
 
             elif col_type == "B":
-                # 일시적 이상값이 아니라 baseline에서 계속 멀어지는 지속 추세일 때만 경고
-                dev_dir = np.where(rolling_mean > baseline_arr, "up", "down")
-                persistent = (trend_direction == dev_dir)
-                ew = calc_mask & (np.abs(normalized_deviation) >= Z_THRESHOLD) & persistent
+                if cusum_pos is not None:
+                    ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
+                else:
+                    ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
                 for i in np.where(ew)[0]:
-                    side = "높은" if rolling_mean[i] > baseline_arr[i] else "낮은"
+                    side = "높은" if cusum_pos[i] > CUSUM_H else "낮은"
                     messages[i] = (
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                         f"정상 Baseline(최적값) 대비 {side} 방향으로 지속적으로 벌어지는 편차가 감지되었습니다."
@@ -328,21 +445,39 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
             elif col_type == "C":
                 risky_direction = extra.get("risky_direction") if extra else None
-                if risky_direction is not None and valid_baseline.any():
+                valid_threshold = ~np.isnan(threshold_arr)
+                if risky_direction is not None and valid_threshold.any():
                     if risky_direction == "low_is_risky":
-                        entered_raw = (current_value <= baseline_arr) & valid_baseline
+                        entered_raw = (current_value <= threshold_arr) & valid_threshold
                         slope_toward_risk = slope < 0
+                        risky_side_raw = values < threshold
                     else:
-                        entered_raw = (current_value >= baseline_arr) & valid_baseline
+                        entered_raw = (current_value >= threshold_arr) & valid_threshold
                         slope_toward_risk = slope > 0
+                        risky_side_raw = values > threshold
                     # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고.
                     # 예전엔 1행만 넘어도 진입으로 잡아서 임계값 근처 노이즈가 계속 "새로 진입"
                     # 취급됐음(Surface_Roughness 22,948건 중 21,426건이 이 케이스였음).
                     entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
-                    approaching_raw = (
-                        (~entered_raw) & slope_toward_risk & calc_mask
-                        & (np.abs(normalized_deviation) >= Z_THRESHOLD)
-                    )
+                    # (26.08.05) 예전엔 rolling_mean 기준 risk_margin_z(정상 쪽 편차도 다 잡던
+                    # 버그)를 썼다가, 그다음엔 "위험선까지 남은 여유가 Z_THRESHOLD std 미만"으로
+                    # 고쳤는데, CLN_Pressure로 검증해보니 rolling MEAN 자체가 개별 샷 위험 진입을
+                    # 지워버리는 문제가 있었다(개별 샷 6.68%가 threshold 아래인데 rolling mean은
+                    # 356일 중 0번만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN을 쓰면
+                    # 10개 중 1개만 넘어도 걸려 개별샷 확률의 절반(49.47%)까지 과민해진다.
+                    # build_health_index.py의 defect_zone_rate(위험구간 진입 샷 비율)와 같은
+                    # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
+                    # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
+                    windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
+                    danger_rate = windows_risky.mean(axis=1)
+                    base_rate = c_baseline_rate.get(col)
+                    if base_rate and base_rate > 0:
+                        approaching_raw = (
+                            (~entered_raw) & slope_toward_risk & valid_threshold
+                            & (danger_rate >= C_DANGER_RATE_MULTIPLE * base_rate)
+                        )
+                    else:
+                        approaching_raw = np.zeros(len(current_value), dtype=bool)
                     # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
                     # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
                     approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
@@ -351,19 +486,21 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     for i in np.where(entered_first)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                            f"위험 Threshold({baseline_arr[i]:.4f})에 진입했습니다."
+                            f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
                         )
                     for i in np.where(approaching)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
-                            f"현재 위험 Threshold 이내이지만, 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
+                            f"최근 {WINDOW}개 샷 중 {danger_rate[i]*100:.0f}%가 위험 Threshold"
+                            f"({threshold_arr[i]:.4f}) 구간에 들어감(평소 {base_rate*100:.1f}%) — "
+                            f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                         )
 
             elif col_type == "E":
-                # 일시적 이상값이 아니라 이론값에서 계속 멀어지는 지속 추세일 때만 경고
-                dev_dir = np.where(rolling_mean > baseline_arr, "up", "down")
-                persistent = (trend_direction == dev_dir)
-                ew = calc_mask & (np.abs(normalized_deviation) >= Z_THRESHOLD) & persistent
+                if cusum_pos is not None:
+                    ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
+                else:
+                    ew = np.zeros(len(current_value), dtype=bool)
                 early_warning |= ew
                 for i in np.where(ew)[0]:
                     messages[i] = (
@@ -393,6 +530,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "type": col_type if col_type else "NONE",
                 "matched_defect": matched_defect_arr,
                 "baseline": baseline_arr,
+                "threshold": threshold_arr,
                 "current_value": current_value,
                 "rolling_mean": rolling_mean,
                 "rolling_std": rolling_std,
@@ -516,7 +654,7 @@ def main():
     print(analysis_columns)
 
     column_type, direction_map, ab_value_map, c_map, e_value_map, e_std_map = load_baseline_maps()
-    fallback_std_map = load_fallback_std_map()
+    fallback_std_map, stratum_target_map = load_stratum_reference_maps()
 
     mapped = [c for c in analysis_columns if c in column_type]
     unmapped = [c for c in analysis_columns if c not in column_type]
@@ -531,7 +669,8 @@ def main():
         try:
             n_in, n_out, n_warn, samples = process_file(
                 source_name, path, analysis_columns, column_type, direction_map,
-                ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map, state,
+                ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
+                stratum_target_map, state,
             )
         except Exception as exc:
             print(f"[오류] {source_name} 처리 중 예외 발생: {exc}", file=sys.stderr)

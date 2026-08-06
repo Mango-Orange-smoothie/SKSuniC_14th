@@ -193,6 +193,12 @@ TREND_ANALYSIS_CSV = REPO_ROOT / "analysis_outputs" / "trend_analysis_results.cs
 # "지금도 활성 상태"로 본다. trend_analysis.py의 early_warning은 상태형(조건이 유지되는
 # 동안 계속 True)이라 마지막 발생일이 최신 데이터와 가까우면 지금도 켜져 있다는 뜻이다.
 TREND_WARNING_ACTIVE_WITHIN_DAYS = 1
+# (machine, column) 단위로 보여줄 Product x Recipe 핫스팟 개수.
+RECIPE_HOTSPOT_TOP_N = 3
+# top1 조합의 경고 건수가 "조합당 평균"의 이 배수 이상이면 "특정 조합에 몰림"으로 본다.
+# 미만이면(예: CLN_Flow처럼 전 조합에 고르게 퍼진 경우) 레시피 문제가 아니라 설비/공정
+# 전반의 문제라는 뜻이라 agent가 그렇게 말해야 한다.
+RECIPE_HOTSPOT_CONCENTRATION_RATIO = 2.0
 
 
 def load_step0_outputs():
@@ -219,12 +225,24 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
     기울기만으로 추세를 다시 계산해서, trend_analysis.py와 완전히 분리된 채 돌고
     있었다 — 원래 설계 의도(전처리→추세분석→Health Index가 그 결과를 읽어 씀)와
     안 맞아서 여기서 연결.)
+
+    (26.08.05 추가) trend_message는 이 (machine, column)의 "가장 최근 경고 1건"의
+    메시지를 그대로 인용하는데, 그 메시지가 특정 Product_ID/Recipe_ID를 콕 집어
+    말해도(예: "DP01 / PKG_A / RCP_2의 Vibration...") 정작 margin_used_pct/current_value는
+    그 machine의 전체 Product/Recipe를 뭉친 값이라 서로 근거 층위가 어긋났었다.
+    trend_analysis_results.csv가 이미 Product_ID/Recipe_ID를 갖고 있으므로(샷 단위
+    원본 grain), 여기서 (machine, column) 안에서 Product×Recipe 조합별 경고 건수를
+    같이 집계해 recipe_hotspots로 반환한다 — "어느 설비가 문제인가"(machine, column
+    자체가 이미 답함)뿐 아니라 "어느 제품/레시피 조합이 문제인가"까지 agent가 답할 수
+    있게 하기 위함. top1이 조합당 평균 경고 건수의 RECIPE_HOTSPOT_CONCENTRATION_RATIO배
+    이상이면 "특정 조합에 몰림"(recipe_hotspot_concentrated=True), 아니면 전 조합에
+    고르게 퍼진 것이라 레시피 문제가 아니라 설비/공정 전반의 문제로 봐야 한다.
     """
     if not TREND_ANALYSIS_CSV.exists():
         return {}
     tr = pd.read_csv(
         TREND_ANALYSIS_CSV,
-        usecols=["DateTime", "Machine_ID", "column", "trend_direction", "message"],
+        usecols=["DateTime", "Machine_ID", "Product_ID", "Recipe_ID", "column", "trend_direction", "message"],
     )
     tr["DateTime"] = pd.to_datetime(tr["DateTime"])
     dataset_latest = tr["DateTime"].max()
@@ -233,11 +251,24 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
     for (machine, col), g in tr.groupby(["Machine_ID", "column"]):
         latest_row = g.loc[g["DateTime"].idxmax()]
         days_since = (dataset_latest - latest_row["DateTime"]) / pd.Timedelta(days=1)
+
+        combo_counts = g.groupby(["Product_ID", "Recipe_ID"]).size().sort_values(ascending=False)
+        n_combos_affected = int(combo_counts.size)
+        avg_per_combo = float(combo_counts.mean())
+        top1_count = int(combo_counts.iloc[0])
+        recipe_hotspots = [
+            {"product_id": p, "recipe_id": r, "warning_count": int(c)}
+            for (p, r), c in combo_counts.head(RECIPE_HOTSPOT_TOP_N).items()
+        ]
+
         status[(machine, col)] = {
             "trend_direction": latest_row["trend_direction"],
             "early_warning_active": bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS),
             "trend_message": latest_row["message"],
             "days_since_last_warning": round(float(days_since), 1),
+            "recipe_hotspots": recipe_hotspots,
+            "n_product_recipe_combos_affected": n_combos_affected,
+            "recipe_hotspot_concentrated": bool(top1_count >= RECIPE_HOTSPOT_CONCENTRATION_RATIO * avg_per_combo),
         }
     return status
 
@@ -332,6 +363,87 @@ def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> 
     return boundary_z
 
 
+# C유형 health 스케일: "위험구간에 들어간 샷 비율"이 정상 기준의 몇 배가 되면 health 0(스펙아웃
+# 취급)으로 볼지. 2.0 = 평소의 2배로 늘면 최악. 임의로 정한 관례값이며 최적화된 값이 아니다 —
+# 다만 "절대 안 울리는" 기존 상태(일평균은 356일 내내 경계를 한 번도 안 넘음)보다는 낫다.
+# 실제 조치 기준으로 쓰기 전에 멘토/현장 확인 필요.
+DEFECT_ZONE_SPECOUT_MULTIPLE = 2.0
+
+
+def load_daily_defect_zone_rate() -> pd.DataFrame:
+    """Step0가 집계한 "날짜×장비별 위험구간 샷 비율"을 로드(없으면 빈 DataFrame)."""
+    path = config.PREPROCESSING_DIR / "00_machine_daily_defect_zone_rate.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    z = pd.read_csv(path)
+    z["date"] = pd.to_datetime(z["date"])
+    return z
+
+
+def load_target_override_map() -> dict[str, float]:
+    """config.TARGET_RECOMPUTE_FROM_DATA(현재 Kerf_Width_Profile)의 재계산된 target을 로드.
+
+    (26.08.05 추가) opcond_baseline(00_stratum_baseline_stats_by_opcond.csv)의 median은
+    _apply_mentor_target_override가 SPEC 있는 컬럼을 전부 멘토 TARGET으로 덮어써버려서,
+    "실측 OK median"을 다시 구하려면 그 override를 안 거치는 다른 소스가 필요하다.
+    compute_baseline_type_b(step0_preprocessing.py)가 TARGET_RECOMPUTE_FROM_DATA 컬럼은
+    이미 원본 OK median으로 00_baseline_AB.csv에 저장해두므로 그걸 그대로 읽는다.
+    """
+    path = config.PREPROCESSING_DIR / "00_baseline_AB.csv"
+    if not path.exists() or not config.TARGET_RECOMPUTE_FROM_DATA:
+        return {}
+    ab = pd.read_csv(path)
+    result = {}
+    for col in config.TARGET_RECOMPUTE_FROM_DATA:
+        sub = ab[ab["column"] == col]
+        if len(sub):
+            result[col] = float(sub["baseline_value"].mean())
+    return result
+
+
+def load_defect_threshold_map() -> dict[str, dict]:
+    """C유형(CLN_Pressure/Surface_Roughness)의 "불량률이 급변하는 경계값"을 컬럼별 대표값으로 로드.
+
+    (26.08.05 추가) 이 두 컬럼은 멘토 SPEC(pipeline/spec.py)에 없어서 그동안
+    provisional_percentile(정상군 일평균 p0.5~p99.5)로 경계를 대체하고 있었는데, 그 값이
+    실제 불량 발생 지점과 크게 어긋난다는 걸 확인했다 — CLN_Pressure의 임시 LSL은
+    target에서 0.16σ(= 하루 ~270샷 평균의 표준오차 폭 그 자체, 즉 "일평균이 평소 얼마나
+    흔들리나"를 잰 값)인데, 실제 Remain_Coat가 터지기 시작하는 지점은 target에서 1.60σ
+    떨어진 296.90이다(9.8배 차이). 반면 Step0가 결정트리 스텀프로 학습한 이 threshold는
+    10만 행 검증에서 경계 아래위로 불량률이 약 20배 점프하는 게 확인됐다
+    (CLN_Pressure 20.6% -> 2.4%, Surface_Roughness 1.2% -> 20.8%).
+
+    그래서 이 2개 컬럼만큼은 임시 percentile보다 이 threshold가 훨씬 나은 기준이라
+    따로 쓴다(spec_source="defect_zone_rate"). 우선순위는 mentor_spec > defect_zone_rate
+    > provisional_percentile.
+
+    단, threshold 자체를 일평균과 직접 비교하지는 않는다 — threshold는 샷 단위 경계라
+    일평균은 356일 내내 거기 못 닿는다. 실제 margin은 compute_daily_defect_zone_rate가
+    센 "그날 위험구간에 들어간 샷 비율"로 계산한다(compute_level_and_trend 참고).
+
+    Product_ID x Recipe_ID 54개 그룹별로 학습된 값이라 컬럼 대표값은 median을 쓴다
+    (compute_spec_values가 baseline_median을 뽑는 방식과 동일 — level_trend는 OPCOND가
+    아니라 장비x컬럼 단위라 그룹별 값을 그대로는 못 씀).
+    """
+    path = config.PREPROCESSING_DIR / "00_baseline_C.csv"
+    if not path.exists():
+        return {}
+    c = pd.read_csv(path)
+    result: dict[str, dict] = {}
+    for col, g in c.groupby("column"):
+        directions = g["risky_direction"].unique()
+        if len(directions) != 1:
+            # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄임 — 임시 percentile로 폴백.
+            print(f"[경고] {col}: risky_direction이 그룹별로 불일치({directions}) — defect_threshold 미적용")
+            continue
+        result[col] = {
+            "threshold": float(g["threshold"].median()),
+            "risky_direction": str(directions[0]),
+            "matched_defect": str(g["matched_defect"].iloc[0]),
+        }
+    return result
+
+
 def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, target: float, usl: float) -> pd.Series:
     """멘토 실측 스펙(pipeline/spec.py) 기준 margin_used_pct. 0=TARGET, 100=USL/LSL 도달.
 
@@ -355,6 +467,9 @@ def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, tar
 def compute_level_and_trend(
     daily_series: pd.DataFrame, boundary_z: dict[str, float], spec_values: dict[str, dict],
     trend_status: dict[tuple[str, str], dict] | None = None,
+    defect_threshold_map: dict[str, dict] | None = None,
+    zone_rate_df: pd.DataFrame | None = None,
+    target_override_map: dict[str, float] | None = None,
 ) -> pd.DataFrame:
     """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
@@ -378,17 +493,60 @@ def compute_level_and_trend(
     스크립트가 직접 추정한 속도, 후자는 팀이 따로 검증한 판정 로직의 결과다.
     """
     trend_status = trend_status or {}
+    defect_threshold_map = defect_threshold_map or {}
+    target_override_map = target_override_map or {}
+
+    # (machine, column) -> date별 위험구간 비율 Series / column -> 정상 기준 비율
+    zone_lookup: dict[tuple[str, str], pd.Series] = {}
+    zone_base_rate: dict[str, float] = {}
+    if zone_rate_df is not None and len(zone_rate_df):
+        for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
+            zone_lookup[(m, c)] = zg.set_index("date")["defect_zone_rate"].sort_index()
+        # "정상 기준" = 전 장비 풀링한 일별 비율의 median(로버스트). 특정 장비가 나빠진
+        # 구간이 있어도 기준 자체가 끌려가지 않게 median을 쓴다.
+        zone_base_rate = zone_rate_df.groupby("column")["defect_zone_rate"].median().to_dict()
+
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
         g = g.sort_values("date")
         direction = direction_of(col)
         real_spec = SPEC.get(col)
+        defect_thr = defect_threshold_map.get(col)
+        zone_rate_now = None
 
         if real_spec is not None:
-            spec_source = "mentor_spec"
-            lsl_disp, usl_disp, baseline_disp = real_spec["LSL"], real_spec["USL"], real_spec["TARGET"]
+            spec_source = "mentor_spec" if col not in target_override_map else "mentor_spec_recomputed_target"
+            lsl_disp, usl_disp = real_spec["LSL"], real_spec["USL"]
+            # LSL/USL(위험 경계)은 멘토 값을 그대로 신뢰하되, TARGET_RECOMPUTE_FROM_DATA에
+            # 있는 컬럼(Kerf_Width_Profile)은 target(정상 기준값)만 실측 OK median으로 바꾼다
+            # — load_target_override_map docstring 참고(멘토 TARGET과 스펙폭의 12% 어긋남,
+            # 89일 내내 안 줄어드는 정적 오프셋이라 반복 오탐의 원인이었음).
+            baseline_disp = target_override_map.get(col, real_spec["TARGET"])
             margin_pct = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
             margin_pct.index = g.index
+        elif defect_thr is not None and spec_values.get(col) and (machine, col) in zone_lookup:
+            # C유형: 임시 percentile도, 일평균 대 threshold 비교도 아니고,
+            # "그날 샷 중 몇 %가 불량 위험구간에 들어갔나"로 잰다.
+            # (일평균은 356일 내내 threshold를 한 번도 안 넘어서 경보 자체가 불가능했음 —
+            #  compute_daily_defect_zone_rate docstring 참고.)
+            spec_source = "defect_zone_rate"
+            baseline_disp = spec_values[col]["baseline_median"]
+            thr = defect_thr["threshold"]
+            risky_direction = defect_thr["risky_direction"]
+            if risky_direction == "low_is_risky":
+                lsl_disp, usl_disp = thr, baseline_disp
+            else:
+                lsl_disp, usl_disp = baseline_disp, thr
+
+            zr = zone_lookup[(machine, col)].reindex(g["date"].values)
+            base_rate = zone_base_rate[col]
+            if base_rate and base_rate > 0:
+                span = base_rate * (DEFECT_ZONE_SPECOUT_MULTIPLE - 1.0)
+                margin_pct = ((zr.values - base_rate) / span * 100).clip(min=0.0)
+            else:
+                margin_pct = np.full(len(g), np.nan)
+            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float)
+            zone_rate_now = zr.values
         else:
             b = boundary_z.get(col)
             spec = spec_values.get(col)
@@ -436,6 +594,7 @@ def compute_level_and_trend(
             continue
         current_margin_pct = float(valid.iloc[-1])
         latest_idx = valid.index[-1]
+        latest_pos = g.index.get_loc(latest_idx)  # zone_rate_now(위치 기반 배열) 조회용
         latest_date = g.loc[latest_idx, "date"]
         current_value = float(g.loc[latest_idx, "daily_mean"])
         health_index_var = 100 - min(max(current_margin_pct, 0.0), 100.0)
@@ -466,6 +625,16 @@ def compute_level_and_trend(
             "usl": round(usl_disp, 4),
             "spec_source": spec_source,
             "spec_status": "SPEC_OUT" if spec_out else "OK",
+            # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
+            # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
+            # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
+            "defect_zone_rate_pct": (
+                round(float(zone_rate_now[latest_pos]) * 100, 2)
+                if zone_rate_now is not None and not pd.isna(zone_rate_now[latest_pos]) else None
+            ),
+            "defect_zone_baseline_pct": (
+                round(zone_base_rate[col] * 100, 2) if spec_source == "defect_zone_rate" else None
+            ),
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),
             "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
@@ -473,6 +642,9 @@ def compute_level_and_trend(
             "trend_direction": ta_status.get("trend_direction"),
             "early_warning_active": ta_status.get("early_warning_active", False),
             "trend_message": ta_status.get("trend_message"),
+            "recipe_hotspots": ta_status.get("recipe_hotspots", []),
+            "n_product_recipe_combos_affected": ta_status.get("n_product_recipe_combos_affected"),
+            "recipe_hotspot_concentrated": ta_status.get("recipe_hotspot_concentrated", False),
             "is_cause_factor": col in CAUSE_COLS,
         })
     return pd.DataFrame(rows)
@@ -587,11 +759,16 @@ def build_machine_snapshot(
                     "spec_source": row["spec_source"],
                     "spec_status": row["spec_status"],
                     "health_index": row["health_index"],
+                    "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
+                    "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                     "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
                     "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
                     "trend_direction": _none_if_nan(row["trend_direction"]),
                     "early_warning_active": bool(row["early_warning_active"]),
                     "trend_message": _none_if_nan(row["trend_message"]),
+                    "recipe_hotspots": row["recipe_hotspots"],
+                    "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
+                    "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
                     "direction": meta["direction"],
                     "mechanism": meta["mechanism"],
                     "source": meta["owner"],
@@ -618,11 +795,16 @@ def build_machine_snapshot(
                 "usl": row["usl"],
                 "spec_source": row["spec_source"],
                 "spec_status": row["spec_status"],
+                "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
+                "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                 "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
                 "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
                 "trend_direction": _none_if_nan(row["trend_direction"]),
                 "early_warning_active": bool(row["early_warning_active"]),
                 "trend_message": _none_if_nan(row["trend_message"]),
+                "recipe_hotspots": row["recipe_hotspots"],
+                "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
+                "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
                 "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용",
             })
 
@@ -643,8 +825,14 @@ def main() -> None:
     boundary_z = compute_daily_boundary_z(daily_series_raw)
     spec_values = compute_spec_values(opcond_baseline)
     trend_status = load_trend_warning_status()
+    defect_threshold_map = load_defect_threshold_map()
+    zone_rate_df = load_daily_defect_zone_rate()
+    target_override_map = load_target_override_map()
 
-    level_trend = compute_level_and_trend(daily_series_raw, boundary_z, spec_values, trend_status)
+    level_trend = compute_level_and_trend(
+        daily_series_raw, boundary_z, spec_values, trend_status, defect_threshold_map, zone_rate_df,
+        target_override_map,
+    )
     level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 
     defect_index, machine_index = aggregate_health_index(level_trend)
