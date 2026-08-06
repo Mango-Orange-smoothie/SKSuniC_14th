@@ -6,6 +6,8 @@ import pandas as pd
 from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+from pipeline.spec import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
 
 RAW_INPUT_FILES = [
     ("DP_HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "data", "raw", "DP_HealthIndex_Dataset.csv")),
@@ -76,6 +78,57 @@ CUSUM_H = 4.5   # 경보 임계값(시그마 단위) — 누적합이 이걸 넘
 #     이동폭을 이 정도로 잡는 대신 오탐 증가를 감수해야 한다.
 
 
+# (26.08.06 추가) 멘토 실측 스펙(pipeline/spec.py) LSL/USL 위반 검사.
+#
+# 왜 CUSUM/threshold와 별개로 필요한가: 기존 판정은 전부 "정상군 baseline 대비 얼마나
+# 벗어났나"(상대 기준)다. 멘토 스펙은 유일한 절대 기준이라, 같은 CUSUM 경보라도 "스펙
+# 안에서 드리프트 중"인지 "이미 스펙 밖"인지는 완전히 다른 급함이다. 그래서 모든 출력
+# 행에 spec_lsl/spec_usl/spec_status를 같이 실어서 소비자(Health Index/Agent)가 그 구분을
+# 할 수 있게 한다.
+#
+# 알림은 왜 "샷 1개 위반"으로 안 내는가 — 실측으로 확인한 결과 이 데이터의 스펙 위반은
+# 전부 **공정 이탈이 아니라 정상 분포의 꼬리**였다:
+#   - 10개 중 8개 컬럼(Laser_Power/Power_Efficiency/Head_Temp/Kerf_Width_Profile 등)은
+#     89일 100,000샷 내내 위반 0건 — 멘토 스펙이 자연 변동폭보다 넓다.
+#   - Feed_Speed 1.27%(639건 하한/630건 상한 — 완벽히 대칭), Coating_Thickness 0.10%,
+#     Frequency 0.01%. 장비별 위반율도 거의 동일(Feed_Speed 1.21/1.34/1.30/1.24%)이고
+#     월별로도 평평(1.31/1.19/1.30%) — 특정 장비나 시점의 문제가 아니라는 뜻.
+#   - 그룹 내 최대 연속 위반이 Feed_Speed 2샷, 나머지는 1샷.
+# 즉 샷 단위로 알리면 1,366건이 전부 오탐이 된다. 반대로 "연속 r샷 위반"은 우연히는
+# 사실상 안 생긴다 — 아래 required_run_length가 컬럼별 평소 위반율 p로부터 "p^r x 전체
+# 샷수 < 0.01(즉 이 데이터 크기에서 우연히 한 번도 안 나올 수준)"이 되는 최소 r을 직접
+# 구한다(Feed_Speed r=4, Coating_Thickness r=3, Frequency r=2, 위반 이력이 없는 컬럼 r=1).
+# 임의 상수를 새로 만들지 않고 데이터가 r을 정하게 한 것이다.
+#
+# 평소 위반율은 (defect_zone_rate와 달리) **장비별이 아니라 컬럼 전체로** 잡는다 —
+# 멘토 스펙은 절대 기준이라, 특정 장비가 원래 자주 위반한다고 해서 그 장비의 기준을
+# 느슨하게 해주면 정작 제일 나쁜 장비가 자기 이력 뒤에 숨는다.
+SPEC_RUN_EXPECTED_MAX = 0.01  # "우연히 이만큼도 안 나온다"고 볼 기대 발생 횟수 상한
+
+
+def compute_spec_violation_rules(df, usable_columns):
+    """컬럼별 (lsl, usl, 평소 위반율, 경보에 필요한 연속 위반 샷 수)를 미리 계산.
+
+    SPEC은 10개지만 실제 검사 대상은 9개다 — Focus는 멘토가 "분석에 활용하지 않아도
+    된다"고 명시적으로 제외한 변수라(config.MENTOR_EXCLUDED_VARS) 분석 대상 컬럼
+    목록에서 이미 빠져 있다.
+    """
+    rules = {}
+    n = len(df)
+    usable = set(usable_columns)
+    for col, s in SPEC.items():
+        if col not in df.columns or col not in usable:
+            continue
+        values = df[col].to_numpy(dtype=float)
+        out = (values < s["LSL"]) | (values > s["USL"])
+        p = float(np.nanmean(out))
+        run = 1
+        while run < WINDOW and (p ** run) * n >= SPEC_RUN_EXPECTED_MAX:
+            run += 1
+        rules[col] = {"lsl": s["LSL"], "usl": s["USL"], "rate": p, "run": run}
+    return rules
+
+
 def compute_cusum(z_values):
     """target 기준 정규화된 z-score 시계열(샷 단위, 전체 길이)에 양방향 CUSUM 적용.
 
@@ -95,9 +148,13 @@ def compute_cusum(z_values):
 
 OUTPUT_COLUMNS = [
     "source_file", "DateTime", "Machine_ID", "Product_ID", "Recipe_ID",
-    "column", "type", "matched_defect", "baseline", "threshold", "current_value", "rolling_mean", "rolling_std",
+    "column", "type", "matched_defect", "baseline", "threshold",
+    # (26.08.06 추가) 멘토 실측 스펙 — SPEC에 없는 컬럼은 NaN/"" 이다. spec_status는
+    # 그 행의 current_value(샷 값) 기준 "OUT_OF_SPEC"/"OK".
+    "spec_lsl", "spec_usl", "spec_status",
+    "current_value", "rolling_mean", "rolling_std",
     "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "early_warning", "episode_id", "message",
+    "variability_warning", "spec_violation_warning", "early_warning", "episode_id", "message",
 ]
 # (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
 # baseline 자리에 그대로 넣어써서, normalized_deviation(추세/경고용 "정상에서 얼마나
@@ -319,6 +376,10 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
     df = df.sort_values(GROUP_KEYS + ["DateTime"]).reset_index(drop=True)
 
     c_baseline_rate = compute_c_type_baseline_rate(df, column_type, c_map)
+    spec_rules = compute_spec_violation_rules(df, usable_columns)
+    print(f"[{source_name}] 멘토 스펙 검사 대상 {len(spec_rules)}개 컬럼: "
+          + ", ".join(f"{c}(평소위반 {r['rate']*100:.3f}%, 연속 {r['run']}샷이면 경보)"
+                      for c, r in spec_rules.items()))
 
     total_out_rows = 0
     warning_count = 0
@@ -420,6 +481,25 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
             early_warning = np.zeros(len(current_value), dtype=bool)
             messages = np.array([""] * len(current_value), dtype=object)
+
+            # --- 멘토 실측 스펙(LSL/USL) 위반 — A/B/C/E 유형 판정과 무관하게 공통 적용 ---
+            # 상대 기준(baseline 대비 드리프트)만 보던 기존 판정에 절대 기준을 하나 더한다.
+            # 판정 근거/연속 샷 수를 정한 이유는 compute_spec_violation_rules 주석 참고.
+            rule = spec_rules.get(col)
+            if rule is not None:
+                spec_lsl_arr = np.full(len(current_value), rule["lsl"], dtype=float)
+                spec_usl_arr = np.full(len(current_value), rule["usl"], dtype=float)
+                out_full = (values < rule["lsl"]) | (values > rule["usl"])
+                spec_status_arr = np.where(out_full[WINDOW - 1:], "OUT_OF_SPEC", "OK").astype(object)
+                # 전체 이력에 대해 "연속 run샷 위반"이 막 시작된 시점만 이벤트로 잡는다
+                # (상태형으로 두면 긴 이탈 구간 내내 매 샷 알림이 나감 — episode_id가 있긴
+                #  하지만 진입 시점이 알림의 단위여야 맞다. Type C entered_first와 동일 논리).
+                spec_violation = _sustained_first(out_full, rule["run"])[WINDOW - 1:]
+            else:
+                spec_lsl_arr = np.full(len(current_value), np.nan)
+                spec_usl_arr = np.full(len(current_value), np.nan)
+                spec_status_arr = np.full(len(current_value), "", dtype=object)
+                spec_violation = np.zeros(len(current_value), dtype=bool)
 
             # --- CUSUM(누적합) — A/B/E유형의 "지속적 편차" 판정에 공통으로 쓴다 ---
             # rolling_mean 기반 WINDOW+PERSIST_WINDOW 방식보다 반응이 빠르다. target(OPCOND
@@ -545,7 +625,18 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     f"정상 대비 지속적으로 확대되고 있습니다."
                 )
                 messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
-            early_warning = early_warning | variability_warning
+            # 멘토 스펙 위반도 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
+            # 뜰 수 있으므로(예: CUSUM 드리프트 끝에 실제로 스펙을 벗어남) 메시지를 덧붙인다.
+            # 이게 제일 급한 신호라 앞에 붙인다.
+            for i in np.where(spec_violation)[0]:
+                smsg = (
+                    f"{machine_id} / {product_id} / {recipe_id}의 {col}이(가) 멘토 실측 스펙"
+                    f"(LSL {rule['lsl']} ~ USL {rule['usl']})을 {rule['run']}샷 연속으로 "
+                    f"벗어났습니다(현재 {current_value[i]:.4f}). 평소 위반율 {rule['rate']*100:.3f}%"
+                    f"로는 우연히 나올 수 없는 수준입니다."
+                )
+                messages[i] = f"{smsg} {messages[i]}".strip() if messages[i] else smsg
+            early_warning = early_warning | variability_warning | spec_violation
 
             matched_defect_val = extra.get("matched_defect", "") if extra else ""
             matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
@@ -561,6 +652,9 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "matched_defect": matched_defect_arr,
                 "baseline": baseline_arr,
                 "threshold": threshold_arr,
+                "spec_lsl": spec_lsl_arr,
+                "spec_usl": spec_usl_arr,
+                "spec_status": spec_status_arr,
                 "current_value": current_value,
                 "rolling_mean": rolling_mean,
                 "rolling_std": rolling_std,
@@ -570,6 +664,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "normalized_deviation": normalized_deviation,
                 "trend_direction": trend_direction,
                 "variability_warning": variability_warning,
+                "spec_violation_warning": spec_violation,
                 "early_warning": early_warning,
                 # (26.08.05 추가) early_warning은 상태형이라 이상이 지속되는 동안 매 샷마다
                 # True로 계속 저장된다 — "몇 건"을 셀 때 샷 행 수를 세면 하나의 지속 사건이
@@ -736,6 +831,22 @@ def main():
         total_episodes = len(ew.drop_duplicates(["Machine_ID", "Product_ID", "Recipe_ID", "column", "episode_id"]))
         print(f"early_warning 총합(독립 사건 수): {total_episodes}  "
               f"(행 수 대비 {total_episodes/total_warn*100:.1f}% — 나머지는 같은 사건이 지속된 것)")
+
+    # (26.08.06 추가) 멘토 실측 스펙 기준 현황 — 경보 건수와 별개로, 저장된 경보 행 중
+    # 실제로 스펙을 벗어나 있는 게 몇 건인지가 "얼마나 급한가"의 절대 기준이 된다.
+    if total_warn > 0 and os.path.exists(OUTPUT_CSV):
+        sp = pd.read_csv(OUTPUT_CSV, usecols=["column", "spec_status", "spec_violation_warning"])
+        n_spec_alerts = int(sp["spec_violation_warning"].sum())
+        checked = sp[sp["spec_status"].isin(["OK", "OUT_OF_SPEC"])]
+        n_out = int((checked["spec_status"] == "OUT_OF_SPEC").sum())
+        print(f"\n===== 멘토 실측 스펙(LSL/USL) 검사 =====")
+        print(f"스펙 위반 경보(연속 위반): {n_spec_alerts}건")
+        print(f"경보 행 중 스펙 검사 대상: {len(checked)}행, 그중 값이 스펙 밖: {n_out}행")
+        if n_spec_alerts == 0:
+            print("  -> 지속적 스펙 이탈은 없음. 이 데이터의 스펙 위반은 전부 정상 분포의 "
+                  "꼬리(단발성)이며, 8개 컬럼은 89일 내내 위반 0건입니다 "
+                  "— 멘토 스펙이 자연 변동폭보다 넓다는 뜻(상세 근거는 "
+                  "compute_spec_violation_rules 주석).")
 
     if total_warn == 0:
         print("[점검] early_warning이 0건입니다. 임계값(CUSUM_H / C_DANGER_RATE_MULTIPLE) 또는 "
