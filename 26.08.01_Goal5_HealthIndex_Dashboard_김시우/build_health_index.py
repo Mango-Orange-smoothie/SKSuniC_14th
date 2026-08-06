@@ -91,85 +91,17 @@ from pipeline.spec import SPEC
 OUT_DIR = Path(__file__).resolve().parent
 
 # ---------------------------------------------------------------------------
-# 팀이 각 defect별로 확정한 "원인(cause)" FDC/response 변수. 출처:
-#   Particle:    daeho  26.07.31_2058_Goal2_PARTICLE_후속검증 (선행신호 검증까지 완료)
-#   Remain_Coat: 전성재 26.07.31_Goal2_REM_COAT_유효인자_분석_전성재 (Machine 통제 다변량, v2)
-#   Chipping:    JHdaimma 26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma (3방법 합의:
-#                통계검정+permutation importance+SHAP), Jun의 CHIP 분석(confirmed) 교차확인
-#   Micro_Crack: JHdaimma 동일 (Vibration/Cooling_Flow = Chipping과 공유 원인)
-# direction: "up"=높을수록 위험, "down"=낮을수록 위험, "either"=양방향 다 위험(U자형 등)
+# 팀이 각 defect별로 확정한 "원인(cause)" FDC/response 변수.
+# (26.08.05) 예전엔 여기 하드코딩돼 있었으나, 팀 통합 검증(JHdaimma 26.08.05_Goal2_통합_
+# Relationship_DB — 담당자 판정 + Jun 대조본 교차검증 + SHAP)으로 교체한다. 특히 Micro_Crack의
+# Vibration/Cooling_Flow는 "확정 원인 0건"으로 강등됐다(도메인 지지 철회 + 대조 실패 —
+# rel_07_health_index_link.csv 참고). agent.py도 같은 파일을 쓰므로 두 스크립트가 이제
+# 같은 원인 판정을 공유한다. direction: "up"=높을수록 위험, "down"=낮을수록 위험,
+# "either"=양방향 다 위험(U자형 등).
 # ---------------------------------------------------------------------------
-CAUSE_FACTORS = {
-    "Vibration": {
-        "direction": "up",
-        "defects": ["Particle", "Micro_Crack"],
-        "owner": "daeho / JHdaimma",
-        "mechanism": "기계적 진동 -> 디브리 비산/재부착(Particle), 응력 축적(Micro_Crack)",
-    },
-    "CLN_Pressure": {
-        "direction": "down",
-        "defects": ["Remain_Coat"],
-        "owner": "전성재",
-        "mechanism": "세정 압력 부족 -> 코팅 미제거",
-    },
-    "Laser_Power": {
-        "direction": "down",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "출력 부족 -> low-k 불완전 승화 -> 블레이드가 잔류물 타격",
-    },
-    "Power_Efficiency": {
-        "direction": "either",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "효율 이상(과다/과소 모두) -> 승화 불완전 (멘토: U자형 비선형 주의)",
-    },
-    "Head_Temp": {
-        "direction": "up",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "헤드온도 상승 -> 굴절률 변화 -> 센터링 변화 -> Chipping",
-    },
-    "Laser_Centering_Position": {
-        "direction": "either",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "빔 중심 이탈 -> 비대칭 절단",
-    },
-    "Cooling_Flow": {
-        "direction": "down",
-        "defects": ["Micro_Crack"],
-        "owner": "JHdaimma",
-        "mechanism": "냉각 유량 부족(Chipping과 공유 원인으로 확인)",
-    },
-    "Kerf_Width_Profile": {
-        "direction": "either",
-        "defects": ["Chipping"],
-        "owner": "Jun / JHdaimma",
-        "mechanism": "가공폭 과다/과소 모두 위험 -> 패키지 크기 불균형 또는 가공영역 이탈 "
-                     "(JHdaimma: 통계검정/permutation/SHAP 3방법 합의, Jun: confirmed)",
-    },
-    "Top_Kerf": {
-        "direction": "either",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정)",
-    },
-    "Bottom_Kerf": {
-        "direction": "either",
-        "defects": ["Chipping"],
-        "owner": "JHdaimma",
-        "mechanism": "Kerf_Width_Profile과 동일 메커니즘 상속 (3방법 합의로 확정, "
-                     "값 중복 여부는 팀 자체 검증 완료 — 중복 아님)",
-    },
-    "Groove_Depth": {
-        "direction": "down",
-        "defects": ["Chipping"],
-        "owner": "Jun",
-        "mechanism": "가공 깊이 부족(shallow가 위험, deep은 문제 아님) -> Low-k가 완전히 "
-                     "승화되지 못해 Blade 진입 시 Chipping 발생. 통계검정 confirmed.",
-    },
-}
+REL_DB = REPO_ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
+with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
+    CAUSE_FACTORS = json.load(f)["cause_factors"]
 CAUSE_COLS = set(CAUSE_FACTORS.keys())
 
 DEFECT_RATE_COLS = {
