@@ -1,0 +1,4 @@
+﻿defect,factor,tier,spec_LSL,spec_TARGET,spec_USL,data_threshold,risky_side,gap_from_spec,n_risky,n_risky_but_in_spec,pct_risky_in_spec,defect_rate_in_gap_pct,defect_rate_overall_pct,spec_source,threshold_source
+Chipping,Head_Temp,T1,38.0,42.0,47.0,42.646,높을수록 위험,4.354,34338,34333,99.99,34.611,6.234,"멘토 제공 공식 스펙 (26.08.05, 김시우 pipeline/spec.py)",DecisionTree stump(깊이1)로 불량률이 가장 크게 갈리는 지점 탐색
+Chipping,Power_Efficiency,T1,92.0,95.0,98.0,94.742,낮을수록 위험,2.742,39529,39520,99.98,29.61,6.234,"멘토 제공 공식 스펙 (26.08.05, 김시우 pipeline/spec.py)",DecisionTree stump(깊이1)로 불량률이 가장 크게 갈리는 지점 탐색
+Chipping,Laser_Power,T1,17.8,18.5,19.2,18.38,낮을수록 위험,0.58,41919,39657,94.6,25.617,6.234,"멘토 제공 공식 스펙 (26.08.05, 김시우 pipeline/spec.py)",DecisionTree stump(깊이1)로 불량률이 가장 크게 갈리는 지점 탐색
