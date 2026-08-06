@@ -235,12 +235,12 @@ def get_trend_chart_data(
 
     사용자가 "그래프로 보여줘", "추세 그려줘"처럼 시각적으로 보고 싶어할 때만 호출한다.
     반환값에는 baseline/LSL/USL 기준선과 날짜별 실측값이 들어있어, 화면에서 바로
-    선그래프로 그릴 수 있다. factor는 CAUSE_FACTORS 11개뿐 아니라 전체 연속형 변수
-    아무거나 가능하다(안전망 대상 포함).
+    선그래프로 그릴 수 있다. factor는 CAUSE_FACTORS(현재 6개)뿐 아니라 전체 연속형
+    변수 아무거나 가능하다(안전망 대상 포함).
 
     Args:
         machine_id: 장비 ID, 예: "DP01", "DP02", "DP03", "DP04".
-        factor: 변수 이름, 예: "Vibration", "Laser_Power", "CLN_Flow".
+        factor: 변수 이름, 예: "Head_Temp", "Laser_Power", "CLN_Flow".
         days: 최근 며칠치를 보여줄지. 기본 30일(최근 한 달) — 전체 기간(89일)을 다
             보여주면 최근 동향이 묻힌다. 사용자가 "최근 일주일만", "전체 기간 다"처럼
             요청하면 그에 맞게 조정(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜

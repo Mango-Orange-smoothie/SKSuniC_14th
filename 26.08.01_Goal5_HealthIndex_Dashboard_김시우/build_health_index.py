@@ -108,11 +108,16 @@ OUT_DIR = Path(__file__).resolve().parent
 # ---------------------------------------------------------------------------
 # 팀이 각 defect별로 확정한 "원인(cause)" FDC/response 변수.
 # (26.08.05) 예전엔 여기 하드코딩돼 있었으나, 팀 통합 검증(JHdaimma 26.08.05_Goal2_통합_
-# Relationship_DB — 담당자 판정 + Jun 대조본 교차검증 + SHAP)으로 교체한다. 특히 Micro_Crack의
-# Vibration/Cooling_Flow는 "확정 원인 0건"으로 강등됐다(도메인 지지 철회 + 대조 실패 —
-# rel_07_health_index_link.csv 참고). agent.py도 같은 파일을 쓰므로 두 스크립트가 이제
-# 같은 원인 판정을 공유한다. direction: "up"=높을수록 위험, "down"=낮을수록 위험,
+# Relationship_DB)으로 교체한다. agent.py도 같은 파일을 쓰므로 두 스크립트가 이제 같은
+# 원인 판정을 공유한다. direction: "up"=높을수록 위험, "down"=낮을수록 위험,
 # "either"=양방향 다 위험(U자형 등).
+# (26.08.06) 1세대(담당자 판정+Jun 대조본+SHAP, 11개 후보 중 확정 6개 — Vibration/
+# Laser_Centering_Position 포함)에서 2세대(T1~T4 통계 티어 체계, 확정 도메인 11건 검정)로
+# 갱신됨에 따라 구성이 Power_Efficiency/Laser_Power/Head_Temp/CLN_Pressure/CLN_Flow/
+# Cooling_Flow로 바뀌었다 — Vibration/Laser_Centering_Position은 빠지고 CLN_Flow가
+# 새로 들어옴(risk_ratio 24.67, 우리 쪽 결정트리 스캔의 24.8배와 독립적으로 일치).
+# 1세대 산출물(rel_00~13)은 26.08.05_Goal2_통합_Relationship_DB_JHdaimma/_history/로
+# 이관됨 — 옛 rel_07_health_index_link.csv 등 경로는 더 이상 유효하지 않음.
 # ---------------------------------------------------------------------------
 REL_DB = REPO_ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
 with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
