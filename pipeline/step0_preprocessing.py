@@ -36,10 +36,44 @@ from pipeline import mentor
 from pipeline.mentor import SPEC
 from pipeline.common import (
     compute_stratum_baseline_stats,
+    load_defect_pairing_from_db,
     mann_kendall,
     save_table,
     zscore_transform,
 )
+
+_DEFECT_PAIRING_CACHE: dict[str, str] | None = None
+
+
+def resolve_defect_pairing() -> dict[str, str]:
+    """인자↔defect 짝짓기의 단일 출처 — Goal2 관계DB 우선, 실패하면 config 폴백.
+
+    (26.08.08) 예전엔 config.BASELINE_C_DEFECT_MAP 하드코딩이 유일한 출처였다.
+    관계DB(rel_30/rel_20)가 팀 공식 판정이고 rel_30은 아예 추세분석 앞으로 만들어진
+    인계 파일인데 파이프라인이 안 읽고 있었다 — 근거는 common.load_defect_pairing_from_db
+    주석 참고. 무엇이 왜 제외됐는지 매 실행마다 찍어서, 조용히 바뀌는 일이 없게 한다.
+    """
+    global _DEFECT_PAIRING_CACHE
+    if _DEFECT_PAIRING_CACHE is not None:
+        return _DEFECT_PAIRING_CACHE
+
+    fallback = dict(config.BASELINE_C_DEFECT_MAP)
+    loaded = load_defect_pairing_from_db()
+    if loaded is None:
+        print("[관계DB] rel_30/rel_20을 읽을 수 없어 config.BASELINE_C_DEFECT_MAP로 진행합니다.")
+        _DEFECT_PAIRING_CACHE = fallback
+        return _DEFECT_PAIRING_CACHE
+
+    pairing, detail = loaded
+    print(f"[관계DB] 짝짓기 {len(pairing)}건 채택 (alert_usable=True AND repro_state=통과)")
+    for row in detail.itertuples(index=False):
+        mark = "채택" if row.adopted else "제외"
+        print(f"   {mark} {row.factor} ↔ {row.defect}"
+              f"  (alert_usable={row.alert_usable}, repro_state={row.repro_state})")
+    if pairing != fallback:
+        print(f"   [주의] config 폴백값과 다릅니다 — config={fallback}")
+    _DEFECT_PAIRING_CACHE = pairing
+    return _DEFECT_PAIRING_CACHE
 
 CONTINUOUS_TREND_COLS = config.FDC_COLS + config.RESPONSES + ["Yield"]
 CONTINUOUS_BASELINE_COLS = CONTINUOUS_TREND_COLS + config.DOMAIN_FEATURES
@@ -304,6 +338,95 @@ def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -
         rows.append(agg[["Machine_ID", "column", "date", "n_shots", "n_in_zone", "defect_zone_rate"]])
 
     return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
+
+
+def find_stable_baseline_days(daily_rate: pd.Series) -> int:
+    """일별 진입률 계열에서 "아직 상승 추세가 없는" 초기 구간(Phase I)의 길이를 돌려준다.
+
+    최소 길이부터 하루씩 늘려가며 Mann-Kendall을 다시 검정하고, 상승 추세가 유의해지는
+    순간 직전에서 끊는다. 진입률은 "위험구간에 들어간 비율"이라 올라가는 것만 나빠지는
+    방향이므로 tau > 0 쪽만 본다(low/high_is_risky는 in_zone 계산에서 이미 흡수됨).
+
+    구간을 늘려가며 반복 검정하므로 유의수준이 명목값보다 느슨해지지만, 그 방향의 오류는
+    "안정 구간을 실제보다 짧게 잡는" 쪽 = baseline을 보수적으로 낮게 잡는 쪽이라 경보를
+    놓치지 않는다. 반대로 길게 잡으면 열화가 baseline에 섞여 경보가 죽는다(config.py
+    C_BASELINE_MIN_STABLE_DAYS 주석 참고).
+    """
+    s = daily_rate.dropna()
+    if len(s) < config.C_BASELINE_MIN_STABLE_DAYS:
+        return len(s)
+    for end in range(config.C_BASELINE_MIN_STABLE_DAYS, len(s) + 1):
+        window = s.iloc[:end]
+        tau, p_value = mann_kendall(pd.Series(np.arange(len(window))), window)
+        if pd.notna(p_value) and p_value < config.TREND_ALPHA and tau > 0:
+            return end - 1
+    return len(s)
+
+
+def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) -> pd.DataFrame:
+    """C유형 컬럼의 "평소 위험구간 진입률"을 안정 구간 x OK샷 기준으로 산출한다.
+
+    (26.08.08 신설) 왜 여기서 한 번에 만드는가 — 예전엔 이 값을 소비자가 각자 계산했고,
+    정의가 셋으로 갈려 있었다: trend_analysis.py는 그룹별 진입률의 median(전체 샷),
+    build_health_index.py는 일별 진입률의 median(전체 샷). 같은 이름으로 화면에 찍히는
+    값과 경보를 내는 값이 달랐다. 단일 출처로 합친다.
+
+    안정 구간은 (장비 x 컬럼) 단위로 정한다 — Product x Recipe 그룹까지 쪼개면 그룹당
+    하루 5샷 수준이라 일별 계열 자체가 성립하지 않는다. 반면 진입률 자체는 그룹별로
+    내는데(같은 안정 구간 안에서), threshold가 그룹마다 다르고 실측 그룹간 편차도
+    작지 않기 때문이다(CLN_Pressure 1.2~9.0%, Surface_Roughness 13~33%).
+
+    반환 컬럼: Machine_ID / column / group_key / stable_days / n_ok_shots / n_in_zone /
+    baseline_rate. 장비 단위 대표값이 필요한 소비자는 group_key 축으로 median을 잡는다
+    (기존 trend_analysis.py와 같은 방식).
+    """
+    thr_map = {
+        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        for r in baseline_c.itertuples(index=False)
+    }
+    columns = sorted({c for c, _ in thr_map})
+
+    work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime", "NG_Code"] + columns].copy()
+    work["date"] = work["DateTime"].dt.date
+    work["group_key"] = work["Product_ID"] + "|" + work["Recipe_ID"]
+    # baseline은 OK 샷만 — 불량 샷은 정의상 위험구간 쪽에 몰려 있어 섞으면 기준이 밀린다.
+    work = work.loc[work["NG_Code"] == "OK"]
+
+    rows = []
+    for col in columns:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+        in_zone = np.where(
+            direction == "low_is_risky", work[col] < thr,
+            np.where(direction == "high_is_risky", work[col] > thr, np.nan),
+        )
+        tmp = pd.DataFrame({
+            "Machine_ID": work["Machine_ID"],
+            "group_key": work["group_key"],
+            "date": work["date"],
+            "in_zone": pd.to_numeric(pd.Series(in_zone, index=work.index), errors="coerce"),
+        }).dropna(subset=["in_zone"])
+
+        for machine, mg in tmp.groupby("Machine_ID"):
+            daily = mg.groupby("date")["in_zone"].mean().sort_index()
+            stable_days = find_stable_baseline_days(daily)
+            stable_dates = set(daily.index[:stable_days])
+            phase1 = mg.loc[mg["date"].isin(stable_dates)]
+            for group_key, gg in phase1.groupby("group_key"):
+                n = len(gg)
+                if not n:
+                    continue
+                rows.append({
+                    "Machine_ID": machine,
+                    "column": col,
+                    "group_key": group_key,
+                    "stable_days": stable_days,
+                    "n_ok_shots": n,
+                    "n_in_zone": int(gg["in_zone"].sum()),
+                    "baseline_rate": float(gg["in_zone"].mean()),
+                })
+
+    return pd.DataFrame(rows).sort_values(["Machine_ID", "column", "group_key"])
 
 
 def compute_machine_column_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
@@ -621,8 +744,14 @@ def _find_baseline_c_breakpoint(values: pd.Series, defect_flags: pd.Series) -> d
     x = values.to_numpy().reshape(-1, 1)
     y = defect_flags.to_numpy()
 
+    # (26.08.08) class_weight="balanced" 추가 — Goal2 관계DB(rel_20_tier_table.csv)의
+    # threshold_method 컬럼이 "DecisionTree stump(max_depth=1, class_weight=balanced)"로
+    # 명시돼 있는데 여기만 빠져 있었다. 불량률이 2~8%인 불균형 데이터라 가중치 없이는
+    # 다수 클래스(정상)를 맞히는 쪽으로 분할점이 끌린다. 같은 방법이라고 문서에 적힌
+    # 두 구현이 다른 값을 내면 안 되므로 DB 쪽에 맞춘다(김시우님 지적).
     tree = DecisionTreeClassifier(
-        max_depth=1, min_samples_leaf=config.BASELINE_C_MIN_SAMPLES_LEAF, random_state=0
+        max_depth=1, min_samples_leaf=config.BASELINE_C_MIN_SAMPLES_LEAF,
+        class_weight="balanced", random_state=0,
     )
     tree.fit(x, y)
 
@@ -657,7 +786,7 @@ def compute_baseline_type_c(df: pd.DataFrame) -> pd.DataFrame:
     """
     rows = []
     for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
-        for column, defect_col in config.BASELINE_C_DEFECT_MAP.items():
+        for column, defect_col in resolve_defect_pairing().items():
             result = _find_baseline_c_breakpoint(group[column], group[defect_col])
             if result is None:
                 continue
@@ -687,7 +816,7 @@ def scan_type_c_candidates(
 ) -> pd.DataFrame:
     """전 컬럼 x 전 defect에 결정트리 스텀프를 돌려 C유형 후보를 스캔한다(순열검정 포함).
 
-    (26.08.07 추가) 왜 필요한가 — 지금까지 C유형 배정은 config.BASELINE_C_DEFECT_MAP에
+    (26.08.07 추가) 왜 필요한가 — 지금까지 C유형 배정은 resolve_defect_pairing()(관계DB)에
     하드코딩돼 있고, compute_baseline_type_c는 **거기 이미 적힌 컬럼만** threshold를
     계산한다. 즉 파이프라인이 새 후보를 스스로 발견할 수도, 기존 배정이 여전히 유효한지
     확인할 수도 없었다. 실제로 근거 계산은 파이프라인 밖 일회성 코드로 돌리고 결과 수치는
@@ -752,7 +881,7 @@ def scan_type_c_candidates(
                 # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄인다(CLN_Time이 이래서 B유형).
                 "direction_consistency": round(float(counts.iloc[0] / len(directions)), 3),
                 "has_mentor_spec": col in SPEC,
-                "assigned_type_c": config.BASELINE_C_DEFECT_MAP.get(col) == defect,
+                "assigned_type_c": resolve_defect_pairing().get(col) == defect,
             })
     return pd.DataFrame(rows).sort_values(["defect", "separation_ratio_median"], ascending=[True, False])
 
@@ -782,7 +911,7 @@ def warn_type_c_mismatch(candidates: pd.DataFrame, min_direction_consistency: fl
         print(f"  {defect}: 천장 {ceiling}배 | 상위 {detail}")
 
     assigned = candidates[candidates["assigned_type_c"]]
-    missing_rows = set(config.BASELINE_C_DEFECT_MAP.items()) - set(zip(assigned["column"], assigned["defect"]))
+    missing_rows = set(resolve_defect_pairing().items()) - set(zip(assigned["column"], assigned["defect"]))
     weak = assigned[(assigned["signal_over_noise"] <= 1.0)
                     | (assigned["direction_consistency"] < min_direction_consistency)]
     for r in weak.itertuples(index=False):
@@ -901,6 +1030,11 @@ def main() -> None:
     # (여기는 원본 df 그대로 — threshold는 R1에서 배웠지만, 적용/감시 대상은 원본이다.)
     defect_zone_rate = compute_daily_defect_zone_rate(df, baseline_c)
     save_table(defect_zone_rate, "00_machine_daily_defect_zone_rate.csv", subdir="preprocessing")
+
+    # "평소 진입률"의 단일 출처 — trend_analysis.py(경보)와 build_health_index.py(화면)가
+    # 각자 다르게 계산하던 값을 여기서 한 번만 만든다. 안정 구간 x OK샷 기준.
+    c_entry_baseline = compute_c_entry_rate_baseline(df, baseline_c)
+    save_table(c_entry_baseline, "00_baseline_C_entry_rate.csv", subdir="preprocessing")
 
     baseline_e = compute_baseline_type_e(ok_ng_code)
     save_table(baseline_e, "00_baseline_E.csv", subdir="preprocessing")

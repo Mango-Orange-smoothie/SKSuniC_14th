@@ -120,6 +120,87 @@ def zscore_transform(
     return result
 
 
+def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
+    """Goal2 관계DB에서 "이 인자는 이 defect로 감시한다" 짝짓기를 읽어온다.
+
+    (26.08.08 신설) 왜 필요한가 — 이 짝짓기가 config.BASELINE_C_DEFECT_MAP에 손으로
+    적혀 있었다. 지금은 DB 판정과 일치하지만 수동 사본이라 DB가 갱신되면 조용히
+    어긋난다. 실제로 이번에 확인해보니 우리가 안 읽고 있던 정보가 세 가지 있었다:
+
+      - alert_usable=False: "위험구간 불량률이 정상구간보다 낮음 — 이 경계값으로
+        경보를 걸면 안 됨". 우리 코드엔 이 개념 자체가 없었다.
+      - repro_state: 감시 데이터(원본)에서도 재현되는지에 대한 팀 공식 판정.
+        Chipping 짝 인자들은 원본 defect 표본이 3건뿐이라 "판정불가"다 — 이걸 모르고
+        C유형에 넣으면 감시 데이터에서 경보가 0건 나온다(실측 확인).
+      - watch_mode: CLN_Pressure만 "spike"(순간 급락). CUSUM은 지속적 수준 이동용이라
+        구조적으로 안 맞는다.
+
+    채택 조건은 두 파일의 AND다 — rel_30(인계 파일)의 alert_usable이 True이고,
+    rel_20(근거표)의 repro_state가 "통과"인 짝만 쓴다. 지금 데이터에서는 결과가
+    현행 하드코딩 3개와 같다(CLN_Pressure/CLN_Flow/Surface_Roughness).
+
+    반환: ({column: defect}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한 컬럼이
+    없으면 None — 호출부가 config 폴백으로 되돌아간다.
+    """
+    iface = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
+    tiers = config.RELATIONSHIP_DB_DIR / "rel_20_tier_table.csv"
+    if not iface.exists() or not tiers.exists():
+        return None
+    need_iface = {"factor", "defect", "alert_usable"}
+    need_tiers = {"factor", "defect", "repro_state", "watch_mode"}
+    try:
+        i_df = pd.read_csv(iface)
+        t_df = pd.read_csv(tiers)
+    except Exception:
+        return None
+    if not need_iface <= set(i_df.columns) or not need_tiers <= set(t_df.columns):
+        return None
+
+    merged = i_df[list(need_iface)].merge(
+        t_df[list(need_tiers)], on=["factor", "defect"], how="left"
+    )
+    merged["adopted"] = (
+        merged["alert_usable"].astype(str).str.lower().eq("true")
+        & merged["repro_state"].astype(str).str.strip().eq("통과")
+    )
+    adopted = merged.loc[merged["adopted"]]
+    if adopted.empty:
+        return None
+    # 한 인자가 여러 defect로 통과하면 지금 구조(컬럼당 defect 하나)로는 담을 수 없다.
+    # 그런 경우가 생기면 알아채야 하므로 조용히 첫 행을 쓰지 않고 경고한다.
+    dup = adopted["factor"].duplicated(keep=False)
+    if dup.any():
+        print(f"[관계DB] 경고: 한 인자에 defect가 둘 이상 채택됨 — "
+              f"{sorted(adopted.loc[dup, 'factor'].unique())}. 첫 행만 사용합니다.")
+    pairing = dict(zip(adopted["factor"], adopted["defect"]))
+    return pairing, merged
+
+
+def binomial_alert_count(base_rate: float, n_trials: int, alpha: float) -> int:
+    """평소 비율 base_rate에서 n_trials 중 k개 이상이 우연히 나올 확률이 alpha 미만이
+    되는 최소 k를 돌려준다. 도달 불가능하면 n_trials + 1(= 절대 경보 안 뜸).
+
+    (26.08.08 신설) 왜 "평소의 몇 배" 대신 이걸 쓰는가 — 고정 배수는 평소 비율에 따라
+    엄격도가 제멋대로 달라진다. 10샷 창 기준 실측(2.0배일 때 평소에도 우연히 통과할 확률):
+        CLN_Flow      평소  0.5% -> 10샷 중 1개면 통과 ->  4.7%
+        CLN_Pressure  평소  6.4% -> 10샷 중 2개면 통과 -> 13.0%
+        Surface_Rough 평소 32.0% -> 10샷 중 7개면 통과 ->  1.5%
+    같은 "2배"가 컬럼마다 8.7배 차이 나는 기준이 된다(김시우님 지적). 배수를 고정하지
+    말고 **오탐 확률을 고정**해야 컬럼 간에 비교 가능한 기준이 된다.
+
+    base_rate=0이어도 정의된다(k=1) — 예전엔 "비율이 정의 안 됨"이라 별도 분기로
+    빠졌는데, 이 식은 같은 공식이 자연히 그 답을 준다.
+    """
+    if not np.isfinite(base_rate) or base_rate < 0 or n_trials < 1:
+        return n_trials + 1
+    p = min(max(float(base_rate), 0.0), 1.0)
+    for k in range(1, n_trials + 1):
+        # sf(k-1) = P(X >= k)
+        if scipy_stats.binom.sf(k - 1, n_trials, p) < alpha:
+            return k
+    return n_trials + 1
+
+
 # ---------------------------------------------------------------------------
 # [제공 도구] 강제 적용 안 함 — 필요할 때 갖다 쓰는 용도. 호출부가 없는 게 정상이며
 # 미사용이라고 지우면 안 된다(pipeline/README.md "추가 피처 엔지니어링 도구" 참고).

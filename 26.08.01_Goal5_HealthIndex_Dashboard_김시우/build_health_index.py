@@ -104,6 +104,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
+from pipeline.common import binomial_alert_count
 from pipeline.mentor import SPEC
 
 OUT_DIR = Path(__file__).resolve().parent
@@ -126,6 +127,34 @@ REL_DB = REPO_ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
 with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
     CAUSE_FACTORS = json.load(f)["cause_factors"]
 CAUSE_COLS = set(CAUSE_FACTORS.keys())
+
+
+def _usable_defects(meta: dict) -> list[str]:
+    """한 인자가 "경보에 쓸 수 있는" defect 목록.
+
+    (26.08.08) 예전엔 meta["defects"]를 그대로 썼는데, 관계DB는 인자 레벨
+    alert_usable 말고 per_defect[defect].alert_usable을 따로 들고 있고 둘이 다를 수
+    있다. 실제로 CLN_Flow는 인자 레벨 True인데 per_defect["Particle"]는 False다
+    (risk_ratio 0.80 — 위험구간 불량률이 정상구간보다 오히려 낮다는 뜻이라 DB가
+    "이 경계값으로 경보를 걸면 안 됨"이라고 적어놨다). 그걸 무시한 결과 Particle
+    건강도가 CLN_Flow 건강도의 복사본이 돼서, DP03의 Particle이 6.8%->10.2%로
+    늘어나는 동안 건강도는 100.0을 유지했다(김시우님 지적).
+    """
+    per = meta.get("per_defect") or {}
+    return [d for d in meta.get("defects", [])
+            if per.get(d, {}).get("alert_usable", meta.get("alert_usable", True))]
+
+
+_dropped = [(f, d) for f, meta in CAUSE_FACTORS.items()
+            for d in meta.get("defects", []) if d not in _usable_defects(meta)]
+if _dropped:
+    print("[관계DB] per_defect.alert_usable=False 라 Health Index 원인에서 제외: "
+          + ", ".join(f"{f}↔{d}" for f, d in _dropped))
+_orphans = [d for d in ("Particle", "Remain_Coat", "Micro_Crack", "Chipping")
+            if not any(d in _usable_defects(m) for m in CAUSE_FACTORS.values())]
+if _orphans:
+    print(f"[관계DB] 경고: 쓸 수 있는 원인 인자가 하나도 없는 defect {_orphans} — "
+          "이 defect는 Health Index가 감시하지 못한다(가짜 100점을 내지 않도록 제외됨).")
 
 DEFECT_RATE_COLS = {
     "Particle": "Particle_rate",
@@ -265,18 +294,26 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
         latest_row = g.loc[g["DateTime"].idxmax()]
         days_since = (dataset_latest - latest_row["DateTime"]) / pd.Timedelta(days=1)
 
-        # (26.08.06 추가) "언제부터 이 이상이 시작됐는지"는 가장 최근 경고 행이 속한
-        # episode(같은 Product×Recipe 안에서 early_warning이 끊기지 않고 이어진 구간)의
-        # 첫 행 시각이다. 여기서 알림을 매 행(=매일)마다 새로 보내면 40일 넘게 지속되는
-        # 문제도 40번 알림이 나가버리므로(엔지니어 알림 피로), n8n 등 실제 알림 트리거는
-        # early_warning 행 자체가 아니라 이 episode 시작 시점(alert_since)이 바뀔 때만
-        # 새 알림으로 취급해야 한다.
-        same_episode = g[
-            (g["Product_ID"] == latest_row["Product_ID"])
-            & (g["Recipe_ID"] == latest_row["Recipe_ID"])
-            & (g["episode_id"] == latest_row["episode_id"])
-        ]
-        alert_since = same_episode["DateTime"].min()
+        # (26.08.06) "언제부터 이 이상이 시작됐는지". 알림을 매 행마다 새로 보내면 40일
+        # 지속되는 문제도 40번 나가므로(엔지니어 알림 피로), n8n 등 실제 알림 트리거는
+        # early_warning 행이 아니라 이 alert_since가 바뀔 때만 새 알림으로 취급해야 한다.
+        #
+        # (26.08.08 개정) 예전엔 "가장 최근 행이 속한 episode"(같은 Product×Recipe 안에서
+        # 끊기지 않은 구간)의 시작을 썼는데, 그러면 상태가 유지되지 않고 계속 리셋됐다 —
+        # 경보는 Product×Recipe 그룹별로 판정되는데 서로 다른 그룹의 샷이 시간축에서
+        # 뒤섞이므로 한 그룹의 경보는 자연히 끊긴다. 실측: 128개 (장비,컬럼) 조합 중
+        # 54개가 "1일 미만"으로 표시됐는데 전부 실제로는 30일 넘게 경보 상태였다
+        # (DP03 Surface_Roughness는 224개 episode로 쪼개져 "0.1일째"). 엔지니어가 보는
+        # 건 "이 장비의 이 변수가 언제부터 이상한가"이지 레시피별 조각이 아니다(김시우님 지적).
+        #
+        # 그래서 (장비, 컬럼) 단위로, 경보 간격이 TREND_WARNING_ACTIVE_WITHIN_DAYS 이내면
+        # 같은 상태가 이어진 것으로 보고 이어붙인다. 이 상수는 바로 위 early_warning_active
+        # 판정이 이미 "마지막 경보가 이만큼 이내면 지금도 켜져 있다"는 뜻으로 쓰는 값이라
+        # 새 튜닝값을 만들지 않는다.
+        times = g["DateTime"].sort_values()
+        gap_breaks = times.diff() > pd.Timedelta(days=TREND_WARNING_ACTIVE_WITHIN_DAYS)
+        run_id = gap_breaks.cumsum()
+        alert_since = times[run_id == run_id.iloc[-1]].min()
         alert_active_days = (dataset_latest - alert_since) / pd.Timedelta(days=1)
 
         combo_counts = g.groupby(["Product_ID", "Recipe_ID"]).size().sort_values(ascending=False)
@@ -392,11 +429,17 @@ def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> 
     return boundary_z
 
 
-# C유형 health 스케일: "위험구간에 들어간 샷 비율"이 정상 기준의 몇 배가 되면 health 0(스펙아웃
-# 취급)으로 볼지. 2.0 = 평소의 2배로 늘면 최악. 임의로 정한 관례값이며 최적화된 값이 아니다 —
-# 다만 "절대 안 울리는" 기존 상태(일평균은 356일 내내 경계를 한 번도 안 넘음)보다는 낫다.
-# 실제 조치 기준으로 쓰기 전에 멘토/현장 확인 필요.
-DEFECT_ZONE_SPECOUT_MULTIPLE = 2.0
+# C유형 health 스케일: "위험구간에 들어간 샷 비율"이 어디까지 가면 margin 100%(=스펙아웃
+# 취급)로 볼지.
+#
+# (26.08.08 개정) 예전엔 "평소의 2.0배"라는 고정 배수였는데 두 가지가 문제였다:
+#   (1) 평소 비율이 낮은 컬럼일수록 쉽게 넘어서, 컬럼마다 엄격도가 달랐다.
+#   (2) 평소 비율이 0에 가까우면 비율 자체가 폭주했다 — DP04 CLN_Flow는 평소 0.032%
+#       (안정구간 15,604샷 중 5건)라 margin이 23,412%로 찍혔고, 안정구간 진입이 2건이었다면
+#       58,500%가 나왔을 값이다. 분모가 작아서 숫자가 불안정하다.
+# 이제 경계를 "그날 샷 수에서 이만큼 진입할 확률이 C_DANGER_ALPHA 미만이 되는 지점"으로
+# 잡는다. 분모가 작아도 안정적이고(위 사례에서 5건이든 2건이든 경계가 거의 같다),
+# 평소 비율이 0이어도 정의된다. trend_analysis.py의 경보 판정과 같은 기준이다.
 
 
 def load_daily_defect_zone_rate() -> pd.DataFrame:
@@ -593,24 +636,33 @@ def compute_level_and_trend(
 
     # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
+    zone_shots: dict[tuple[str, str], pd.Series] = {}  # 그날 샷 수 — 이항 경계 계산에 필요
     zone_base_rate: dict[tuple[str, str], float] = {}
-    # (26.08.06 개정) 원래는 "정상 기준"을 4대 장비 풀링 median으로 잡았다 — 특정 장비가
-    # 일시적으로 나빠진 구간이 있어도 기준 자체가 끌려가지 않게 하려는 의도였다. 그런데
-    # CLN_Flow처럼 애초에 "이 위험구간에 들어가는 게 특정 장비(DP04)만의 일"인 컬럼에선
-    # 이 가정이 틀렸다 — DP01~03을 풀링에 같이 넣으면 걔들의 "항상 0%"가 평소 비율을
-    # 인위적으로 짓눌러서(0.48%), DP04가 원래도 가끔 겪는 정상적 편차(7.53%)조차 비율로
-    # 따지면 1469%짜리 폭주로 보이게 만들었다(김시우님 지적). "평소"는 그 장비 자신의
-    # 이력 기준이어야 맞다 — 다른 장비를 섞을 이유가 없다. 그래서 이제 장비별로 따로
-    # 잡는다. (CLN_Pressure/Surface_Roughness는 애초에 4대가 서로 비슷한 비율이라
-    # 이 변경으로 값이 거의 안 바뀐다 — 확인됨.)
+    # (26.08.06) "평소"는 그 장비 자신의 이력 기준이어야 맞다 — 4대 풀링 median을 쓰던 때는
+    # CLN_Flow처럼 위험구간 진입이 DP04만의 일인 컬럼에서 나머지 3대의 "항상 0%"가 평소
+    # 비율을 짓눌러(0.48%) DP04의 정상적 편차(7.53%)조차 1469%짜리 폭주로 보이게 만들었다.
+    #
+    # (26.08.08) 여기서 직접 median을 잡지 않고 step0 산출물을 읽는다. 예전엔 이 파일이
+    # 일별 진입률의 median을, trend_analysis.py는 그룹별 진입률의 median을 썼다 — 같은
+    # "평소 X%"가 화면과 경보에서 다른 수였다. 게다가 둘 다 89일 전체 × 전체 샷이라
+    # 불량 샷과 열화 기간이 baseline에 섞였다(김시우님 지적). 이제 안정 구간 × OK샷으로
+    # 잰 단일 출처를 양쪽이 같이 읽는다(config.py C_BASELINE_MIN_STABLE_DAYS 주석 참고).
+    # zone_lookup(날짜별 실제 진입률)은 계속 일별 집계 파일에서 온다 — 이건 "지금 값"이라
+    # baseline과 달리 전 구간이 필요하다.
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
-            series = zg.set_index("date")["defect_zone_rate"].sort_index()
-            zone_lookup[(m, c)] = series
-            base = series.median()
-            if not base:
-                base = series.mean()  # median도 0이면(절반 넘는 날이 0%) mean으로 대체
-            zone_base_rate[(m, c)] = float(base) if base else 0.0
+            zg = zg.set_index("date").sort_index()
+            zone_lookup[(m, c)] = zg["defect_zone_rate"]
+            zone_shots[(m, c)] = zg["n_shots"]
+    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷) — 근거는
+    # trend_analysis.py compute_c_type_baseline_rate 주석 참고(희귀 사건에서 median이
+    # 0으로 붕괴해 DP04 CLN_Flow의 크기 정보가 사라졌다).
+    entry_path = config.PREPROCESSING_DIR / "00_baseline_C_entry_rate.csv"
+    if entry_path.exists():
+        entry = pd.read_csv(entry_path)
+        agg = entry.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
+        for (m, c), v in (agg["n_in_zone"] / agg["n_ok_shots"]).items():
+            zone_base_rate[(m, c)] = float(v)
 
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):
@@ -645,18 +697,30 @@ def compute_level_and_trend(
                 lsl_disp, usl_disp = baseline_disp, thr
 
             zr = zone_lookup[(machine, col)].reindex(g["date"].values)
-            base_rate = zone_base_rate.get((machine, col), 0.0)
-            if base_rate and base_rate > 0:
-                span = base_rate * (DEFECT_ZONE_SPECOUT_MULTIPLE - 1.0)
-                margin_pct = ((zr.values - base_rate) / span * 100).clip(min=0.0)
-            else:
-                # 이 장비는 이 위험구간에 들어간 적이 사실상 없다(평소 비율=0) — "평소 대비
-                # 몇 배"라는 비율 자체가 정의 안 됨. 조금이라도 들어간 날은 경계(100%)로,
-                # 안 들어간 날은 정상(0%)으로 본다. 데이터가 없는 날(NaN)은 np.where가
-                # NaN>0을 False로 처리해 "정상 0%"로 둔갑시키므로 NaN을 그대로 남긴다
-                # (아래 dropna가 걸러서 그 날은 최신값 후보에서 빠짐).
-                margin_pct = np.where(pd.isna(zr.values), np.nan, np.where(zr.values > 0, 100.0, 0.0))
-            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float)
+            n_shots = zone_shots[(machine, col)].reindex(g["date"].values)
+            base_rate = zone_base_rate.get((machine, col), 0.0) or 0.0
+            # margin 100% = "그날 샷 수에서 이만큼 진입할 확률이 alpha 미만" 지점.
+            # 그날 샷 수가 다르면 경계도 달라지므로 날짜별로 계산한다(같은 샷 수는 캐시).
+            need_by_n: dict[int, int] = {}
+            alert_rate = np.full(len(zr), np.nan)
+            for i, n in enumerate(n_shots.values):
+                if not np.isfinite(n) or n < 1:
+                    continue
+                n = int(n)
+                if n not in need_by_n:
+                    need_by_n[n] = binomial_alert_count(base_rate, n, config.C_DANGER_ALPHA)
+                k = need_by_n[n]
+                if k <= n:
+                    alert_rate[i] = k / n
+            span = alert_rate - base_rate
+            # 데이터가 없는 날(zr NaN)은 NaN을 그대로 남긴다 — 0.0으로 두면 "그날은 완벽히
+            # 정상"으로 둔갑해서 최신값 후보에 잘못 끼어든다(아래 dropna가 걸러야 함).
+            margin_pct = np.where(
+                pd.isna(zr.values) | ~np.isfinite(span) | (span <= 0),
+                np.nan,
+                (zr.values - base_rate) / np.where(span > 0, span, np.nan) * 100,
+            )
+            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float).clip(lower=0.0)
             zone_rate_now = zr.values
         else:
             b = boundary_z.get(col)
@@ -703,11 +767,24 @@ def compute_level_and_trend(
         valid = margin_pct.dropna()
         if valid.empty:
             continue
-        current_margin_pct = float(valid.iloc[-1])
         latest_idx = valid.index[-1]
         latest_pos = g.index.get_loc(latest_idx)  # zone_rate_now(위치 기반 배열) 조회용
         latest_date = g.loc[latest_idx, "date"]
-        current_value = float(g.loc[latest_idx, "daily_mean"])
+        # (26.08.08) "현재 상태"를 마지막 하루가 아니라 최근 RECENT_DEFECT_WINDOW_DAYS일의
+        # 중앙값으로 잡는다. 예전엔 valid.iloc[-1](하루치)을 썼는데, 이 신호의 일별 변동이
+        # 그 자체로 크다 — CLN_Pressure 진입률은 4대 모두 89일 평균 6.76~7.11%에 표준편차
+        # 1.30~1.67%p로, 하루 사이 4%p씩 튄다. 그래서 3/30 하루의 1.1%p 차이(DP01 7.41%
+        # vs DP02 6.29%, 표준편차보다도 작은 노이즈)만으로 Remain_Coat 건강도가 57.9 대
+        # 83.1로 25점 갈렸고, 추세 페널티를 0으로 놔도 드리프트 17개인 DP02가 4개인
+        # DP01보다 좋게 나왔다(김시우님 지적). 7일 중앙값으로 재면 DP01 6.59% /
+        # DP02 6.57%로 차이가 사라지고 89일 평균과도 맞는다.
+        # 창 길이는 이미 "최근"의 의미로 쓰는 RECENT_DEFECT_WINDOW_DAYS를 재사용한다.
+        # median을 쓰는 것도 이 파이프라인이 baseline/threshold에서 쓰는 방식과 같다.
+        window = valid.iloc[-RECENT_DEFECT_WINDOW_DAYS:]
+        current_margin_pct = float(window.median())
+        value_window = g.loc[window.index, "daily_mean"].dropna()
+        current_value = float(value_window.median()) if len(value_window) else float(
+            g.loc[latest_idx, "daily_mean"])
         # 예전엔 margin_used_pct를 100%에서 clip해서, 경계를 살짝 넘은 것(margin 105%)과
         # 몇 배로 폭주한 것(margin 291%)이 똑같이 "HI 0.0"으로 뭉개졌다 — worst_factors/
         # worst_defects/장비 순위에서 뭐가 더 급한지 구분이 안 됐다(김시우님 피드백).
@@ -759,9 +836,14 @@ def compute_level_and_trend(
             # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
             # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
             # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
+            # margin과 같은 창(최근 RECENT_DEFECT_WINDOW_DAYS일 중앙값)으로 낸다 —
+            # 화면에 보이는 진입률과 점수의 근거가 어긋나면 안 된다.
             "defect_zone_rate_pct": (
-                round(float(zone_rate_now[latest_pos]) * 100, 2)
-                if zone_rate_now is not None and not pd.isna(zone_rate_now[latest_pos]) else None
+                round(float(np.nanmedian(zone_rate_now[
+                    [g.index.get_loc(i) for i in window.index]])) * 100, 2)
+                if zone_rate_now is not None
+                and np.isfinite(np.nanmedian(zone_rate_now[
+                    [g.index.get_loc(i) for i in window.index]])) else None
             ),
             "defect_zone_baseline_pct": (
                 round(zone_base_rate.get((machine, col), 0.0) * 100, 2) if spec_source == "defect_zone_rate" else None
@@ -801,7 +883,7 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
     for (machine, defect), _ in [
         ((m, d), None) for m in cause_rows["Machine_ID"].unique() for d in DEFECT_RATE_COLS
     ]:
-        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
         sub = cause_rows[(cause_rows["Machine_ID"] == machine) & (cause_rows["column"].isin(factor_names))]
         if sub.empty:
             continue
@@ -883,7 +965,7 @@ def build_machine_snapshot(
         # defect별로 원인변수 묶기
         defect_signals: dict[str, dict] = {}
         for defect in DEFECT_RATE_COLS:
-            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
             factor_rows = cause_rows[cause_rows["column"].isin(factor_names)]
             if factor_rows.empty:
                 continue

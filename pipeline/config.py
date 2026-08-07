@@ -15,6 +15,11 @@ INPUT_CSV_R1 = ROOT / "DP_HealthIndex_Dataset_r1.csv"
 OUTPUT_DIR = ROOT / "analysis_outputs"
 PREPROCESSING_DIR = OUTPUT_DIR / "preprocessing"
 
+# Goal2 통합 관계DB(JHdaimma) — 인자↔defect 짝짓기의 팀 공식 출처.
+# rel_30_trend_interface.csv는 trend_owner="김시우(추세분석)"로 명시된 인계 파일이고,
+# rel_20_tier_table.csv는 그 근거표(재현성 판정 repro_state 포함)다.
+RELATIONSHIP_DB_DIR = ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
+
 # 분석키: Lot_ID+Strip_ID만 유일. Strip_ID 단독은 다른 Lot에서 재사용되므로
 # 분석키·조인키로 절대 단독 사용 금지 (기존 analysis_step_by_step.py와 동일 규약).
 KEY = ["Lot_ID", "Strip_ID"]
@@ -225,6 +230,26 @@ BASELINE_B_COLUMNS = [
 
 BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 경계값 추정 skip
 
+# (26.08.08) C유형 "평소 위험구간 진입률"을 어느 구간에서 잴 것인가 — SPC의 Phase I
+# (관리한계를 정하는 안정 구간) / Phase II(그 한계로 감시) 구분에 해당한다.
+# 예전엔 89일 전체 x 전체 샷으로 쟀는데 두 방향으로 오염됐다(김시우님 지적):
+#   (1) 불량 샷이 baseline에 포함 — 불량 샷은 정의상 위험구간에 있을 확률이 높다.
+#   (2) 열화 기간의 OK 샷도 포함 — "OK"는 "조건이 정상"이 아니라 "이번엔 안 터짐"이라,
+#       분포가 통째로 밀린 뒤의 OK 샷도 위험구간에 들어가 있다.
+# 그 결과 열화가 심할수록 자기 baseline이 올라가 경보 문턱이 같이 올라가는 자기강화
+# 루프가 생겼다 — DP02 Surface_Roughness는 baseline 63.69%까지 올라가 경보선(2배)이
+# 127%가 되어 도달 자체가 불가능했다. 실측: 안정구간 x OK샷으로 재면 4대가 22.3~23.8%
+# 로 수렴한다(동일 사양 장비니 이게 맞는 그림). 89일 전체로는 22~56%로 벌어진다.
+C_BASELINE_MIN_STABLE_DAYS = 14  # Phase I 구간이 이보다 짧으면 추정을 포기(표본 부족)
+
+# (26.08.08) C유형 "위험구간 진입이 평소보다 많다"의 판정 기준. 예전엔 평소 비율의
+# 2.0배(trend_analysis.C_DANGER_RATE_MULTIPLE / build_health_index.DEFECT_ZONE_SPECOUT_
+# MULTIPLE)라는 고정 배수였는데, 그러면 평소 비율이 낮은 컬럼은 노이즈에도 뜨고 높은
+# 컬럼은 진짜 열화에도 안 뜬다(근거 수치는 common.binomial_alert_count 주석 참고).
+# 배수 대신 **오탐 확률**을 고정한다 — 어느 컬럼이든 "평소 상태에서 이만큼 나올 확률이
+# 1% 미만"일 때 경보. 스펙 위반 연속 판정(SPEC_RUN_EXPECTED_MAX)이 이미 쓰는 방식과 같다.
+C_DANGER_ALPHA = 0.01
+
 # (26.08.05 추가) 멘토 스펙이 있는 컬럼 중 실측 평균이 TARGET에서 스펙 폭(USL-LSL)의 10%
 # 이상 벗어난 건 Kerf_Width_Profile(12.0%)과 Coating_Uniformity(13.3%) 둘뿐이었다(나머지
 # 8개는 0.0~1.8%로 거의 정확히 일치 — 멘토 스펙 자체의 신뢰도가 높다는 근거). 이 중
@@ -236,8 +261,15 @@ BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 
 # 경계는 유지하되 "정상일 때 어디에 있어야 하는가"는 실측을 따르는 것. (26.08.05 확정)
 TARGET_RECOMPUTE_FROM_DATA = {"Kerf_Width_Profile", "Coating_Uniformity"}
 
-# C유형 컬럼 -> 매칭 Defect 플래그 컬럼. CLN_Time(방향 불일치 -> B로 재분류)과
-# Groove_Depth(매칭 defect인 Chipping 발생이 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
+# C유형 컬럼 -> 매칭 Defect 플래그 컬럼.
+#
+# (26.08.08) 이 값은 이제 **폴백**이다 — 정상 경로는 Goal2 관계DB에서 읽는다
+# (common.load_defect_pairing_from_db). 여기 손으로 적힌 3개가 DB의 판정과 우연히
+# 일치하는 상태였는데, 수동 사본이라 DB가 갱신되면 조용히 어긋난다. DB 파일이 없거나
+# 스키마가 바뀌면 이 값으로 되돌아간다(파이프라인이 안 멈추게).
+#
+# CLN_Time(방향 불일치 -> B로 재분류)과 Groove_Depth(매칭 defect인 Chipping 발생이
+# 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",

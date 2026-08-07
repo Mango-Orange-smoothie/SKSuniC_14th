@@ -57,9 +57,9 @@ curl -X POST http://localhost:5678/webhook/run-health-pipeline
 {
   "generated_at": "...",
   "alert_threshold": 30,
-  "summary": "⚠️ 위험 장비 2대: DP02(5.2), DP03(15.9)",
+  "summary": "⚠️ 위험 장비 1대: DP04(0.4)",
   "has_warning": true,
-  "warnings": [{"machine_id": "DP02", "health_index": 5.2, "worst_defect": "Chipping"}, ...],
+  "warnings": [{"machine_id": "DP04", "health_index": 0.4, "worst_defect": "Remain_Coat"}, ...],
   "machines": [...]
 }
 ```
@@ -72,6 +72,16 @@ Health Index는 0~100이고 낮을수록 급하다. **10점 미만은 "이미 �
 올리면 되고(50이면 여유 절반 소진 시점), 스펙아웃만 받고 싶으면 10으로 내리면 된다.
 Code 노드 안의 `ALERT_THRESHOLD` 상수 하나만 고치면 되고, 요약/표/상세가 모두 그 값을
 따라간다.
+
+> **(26.08.08) 지금 값 30은 재검토가 필요하다.** 현재 장비 점수는 DP04 0.4 / DP02 51.1 /
+> DP03 53.6 / DP01 78.8이라 **DP04만 메일이 나간다.** 그런데 DP02는 드리프트 변수 17개에
+> 14일 이상 지속된 경보가 6건(최장 59.5일), DP03은 14개/4건(최장 41.8일)이다 — 확인된
+> 열화가 있는데 알림을 못 받는다.
+>
+> Health Index는 "가장 나쁜 원인변수 하나"로 정해지는 값이라, **여러 변수가 조금씩 나빠지는
+> 상태는 점수로 잘 안 드러난다.** 임계값을 55로 올리면 DP02·DP03이 들어오지만 DP01(78.8)과의
+> 간격이 좁아진다. 점수 대신 `alert_active_days >= 14`인 경보 건수로 트리거하는 쪽이
+> 맞을 수도 있다 — 어느 쪽이든 운영 판단이라 정하고 나서 반영할 것.
 
 ## 위험 장비 있으면 메일로 리포트 발송
 

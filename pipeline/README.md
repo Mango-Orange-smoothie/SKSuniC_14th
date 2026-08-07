@@ -20,6 +20,24 @@
 `common.py`의 구역 표시도 같은 이유 — `[제공 도구]`는 호출부가 없는 게 정상이라
 "미사용 = 죽은 코드"로 오진되는 걸 막는다.
 
+### 인자↔defect 짝짓기는 Goal2 관계DB에서 읽는다 (26.08.08)
+
+`config.BASELINE_C_DEFECT_MAP`은 이제 **폴백**이다. 정상 경로는
+`26.08.05_Goal2_통합_Relationship_DB_JHdaimma/`의 두 파일이다.
+
+| 파일 | 쓰는 값 |
+|---|---|
+| `rel_30_trend_interface.csv` | 짝짓기(`factor`↔`defect`), `alert_usable`. `trend_owner = "김시우(추세분석)"`로 명시된 인계 파일 |
+| `rel_20_tier_table.csv` | `repro_state`(감시 데이터 재현 여부), `watch_mode`(spike/level) |
+
+채택 조건은 **`alert_usable=True` AND `repro_state=통과`** 이고, 무엇이 왜 제외됐는지 매 실행마다
+출력한다. DB 파일이 없거나 스키마가 바뀌면 `config` 값으로 되돌아간다(파이프라인이 안 멈추게).
+
+수동 사본을 없앤 이유는 값이 틀려서가 아니라 — 채택 결과가 기존 하드코딩 3개와 같다 —
+**DB가 갱신되면 조용히 어긋나기 때문**이다. 실제로 우리가 안 읽고 있던 정보가 있었다:
+`alert_usable=False`(위험구간 불량률이 정상구간보다 낮아 경보를 걸면 안 되는 짝),
+`repro_state=판정불가`(감시 데이터에 해당 defect 표본이 부족해 검증 불가).
+
 ## 환경 설정
 
 저장소 루트(`suni c 14조/`)에서 실행:
@@ -37,7 +55,7 @@ pip install -r requirements.txt
 python3 -m pipeline.step0_preprocessing
 ```
 
-`analysis_outputs/preprocessing/`에 아래 10개 파일이 생성된다 (10만행 기준 약 8초 소요).
+`analysis_outputs/preprocessing/`에 아래 파일들이 생성된다 (10만행 기준 약 8초 소요).
 
 | 파일 | 내용 |
 |---|---|
@@ -50,6 +68,9 @@ python3 -m pipeline.step0_preprocessing
 | `00_baseline_AB.csv` | A(단조 drift형)/B(U자형·최적구간형) 컬럼 Baseline (Jun `26.07.29 Baseline 관련 작업/` 이식, 아래 설명) |
 | `00_baseline_C.csv` | C(편측 위험 threshold형) 컬럼의 결정트리 기반 위험 경계값 (Jun 이식) |
 | `00_baseline_E.csv` | E(대칭성/정렬형) 컬럼의 이론 상수 Baseline (Jun 이식) |
+| `00_baseline_C_candidates.csv` | C유형 후보 전수 스캔 + 순열검정 노이즈 천장 (사람 배정이 데이터와 맞는지 매 실행 검증) |
+| `00_baseline_C_entry_rate.csv` | **(26.08.08 신설)** 위험구간 "평소 진입률" — 안정구간 × OK샷 기준. 경보(`trend_analysis.py`)와 화면(`build_health_index.py`)이 같이 읽는 단일 출처 |
+| `00_machine_daily_defect_zone_rate.csv` | 장비 × 날짜별 위험구간 진입 샷 비율("지금 값"). 위 baseline이 "평소"라면 이건 "현재" |
 | `00_preprocessing_summary.json` | 행 수/키/정상군 assert 결과 + 다운스트림 기본 포함 컬럼 목록 |
 
 ### `00_baseline_AB.csv` / `00_baseline_C.csv` / `00_baseline_E.csv` — Jun의 baseline 이식 (26.08.04)
@@ -130,6 +151,60 @@ feature_cols = classification.loc[classification.include_in_downstream_default, 
   baseline이 필요할 때(Goal4/5 정규화) 사용.
 
 두 grain의 baseline 파일이 모두 존재하는 이유가 이것이다 — 질문 성격에 맞는 쪽을 골라 쓴다.
+
+## 경보 판정 기준 통일 (26.08.08)
+
+컬럼마다 다른 튜닝값을 두지 않는다. **배수를 고정하지 않고 오탐 확률을 고정한다.**
+
+### 없어진 상수
+
+| 없앤 것 | 있던 곳 | 왜 |
+|---|---|---|
+| `C_DANGER_RATE_MULTIPLE = 2.0` | `trend_analysis.py` | 같은 "2배"가 평소 진입률에 따라 전혀 다른 엄격도가 됐다. 10샷 창 기준 평소에도 우연히 통과할 확률이 CLN_Flow 4.7% / CLN_Pressure 13.0% / Surface_Roughness 1.5% — **컬럼 간 8.7배 차이** |
+| `DEFECT_ZONE_SPECOUT_MULTIPLE = 2.0` | `build_health_index.py` | 같은 이유. 게다가 평소 비율이 0에 가까우면 비율이 폭주했다(DP04 CLN_Flow margin 23,412%) |
+
+### 대체한 것
+
+`config.C_DANGER_ALPHA = 0.01` 하나. **"평소 상태에서 이만큼 나올 확률이 1% 미만이면 경보"** 라는
+뜻이고, `common.binomial_alert_count(base_rate, n_trials, alpha)`가 필요 샷 수를 계산한다.
+
+- 컬럼 간 오탐 확률 편차: 29배 → **1.5배**
+- `base_rate=0`이어도 정의된다(k=1) — 예전의 "비율 정의 불가" 별도 분기가 사라졌다
+- 분모가 작아도 안정적이다. DP04 CLN_Flow는 안정구간 진입이 5건인데, 1~8건 사이에서
+  구 방식은 margin이 117,398%~14,587%로 **12.1배 흔들리는** 반면 신 방식은 6% 이내다
+- 스펙 위반 연속 판정(`SPEC_RUN_EXPECTED_MAX`)이 이미 쓰던 방식과 같다
+
+### "평소"를 어디서 재는가 — Phase I
+
+SPC의 Phase I(관리한계를 정하는 안정 구간) / Phase II(그 한계로 감시) 구분을 따른다.
+`step0.compute_c_entry_rate_baseline()`이 **안정 구간 × OK샷**으로 재서
+`00_baseline_C_entry_rate.csv`에 저장한다.
+
+- **안정 구간**: `find_stable_baseline_days()` — 일별 진입률 계열에 Mann-Kendall을 확장창으로
+  반복 적용해 상승 추세가 유의해지기 직전까지. 최소 길이는 `config.C_BASELINE_MIN_STABLE_DAYS`
+- **OK샷만**: 불량 샷은 정의상 위험구간에 몰려 있어 섞으면 기준이 밀린다
+- **집계는 풀링**(전체 진입 / 전체 OK샷). 그룹별 median은 희귀 사건에서 0으로 붕괴한다 —
+  DP04 CLN_Flow는 54그룹 중 49개가 0건이라 median이 0.000%(실제 5/15,604 = 0.032%)가 됐다
+
+89일 전체로 재면 열화가 baseline에 섞인다. DP04 CLN_Flow의 기존 baseline 1.72%는
+**그 자체가 3월의 열화**였다(2/27 이전 50일간 14,200샷 중 진입 0건).
+
+### CUSUM은 유형과 무관하게 전 컬럼에 적용 (26.08.08)
+
+예전엔 A/B/E만 CUSUM을 받고 C유형은 threshold 판정만 받았다. 이건 원리가 아니라
+**C 컬럼에 baseline을 안 만들어줬던 탓**이다(실제로는 `stratum_target_map`에 이미 있었다).
+
+판단 기준은 위와 같은 값을 썼다 — **"`no_trend` 장비에서의 CUSUM 오경보율 < `C_DANGER_ALPHA`"**.
+35개 컬럼 × 4대 전수 측정에서 0.000~0.364%로 전부 통과해, 붙여서 해로운 컬럼이 없다는 것을
+확인하고 제한을 제거했다.
+
+threshold는 "위험구간에 샷이 들어갔나"(꼬리)를, CUSUM은 "평균 수준이 밀렸나"를 본다 —
+**서로 대체하지 않고 더한다.** 실측으로 CLN_Flow DP04는 CUSUM이 threshold보다 9일 빨랐고
+(2/19 vs 2/28) 나머지 3대에서는 0건이었다.
+
+> 측정할 때 주의: CUSUM은 정상 상태에서도 관측 300~500개마다 발화하는 게 이론값(in-control
+> ARL)이다. "이 그룹이 89일 중 한 번이라도 발화했나"로 재면 정상 공정도 50~80%가 걸린다.
+> `C_DANGER_ALPHA`와 같은 granularity(**판정 1회당**)로 재야 한다.
 
 ## 멘토 피드백 반영 (26.07.31)
 

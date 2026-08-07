@@ -7,6 +7,8 @@ from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
+from pipeline import config
+from pipeline.common import binomial_alert_count
 from pipeline.mentor import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
 
 RAW_INPUT_FILES = [
@@ -23,6 +25,7 @@ MACHINE_TREND_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", 
 BASELINE_AB_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_AB.csv")
 BASELINE_C_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C.csv")
 BASELINE_E_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_E.csv")
+BASELINE_C_ENTRY_RATE_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C_entry_rate.csv")
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "trend_analysis_results.csv")
@@ -39,14 +42,15 @@ PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "�
 # 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
 # 22,948건 중 21,426건이 진입 이벤트였음) 방지용. 1행짜리 순간 판정 대신 지속성 요구.
 
-# (26.08.05 추가) Type C "접근" 판정을 위한 danger_rate 배수. rolling_mean 기반 risk_margin_z는
-# 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의 위험 진입을 지워버린다
-# (CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling mean은 0.00%만 아래로
-# 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을 쓰면 10개 중 1개만
-# 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다. 그래서 build_
-# health_index.py의 defect_zone_rate(위험구간에 들어간 샷 비율)와 같은 방식 — "윈도우 안
-# 위험구간 진입 비율"이 평소(baseline_rate) 대비 이 배수 이상이면 "접근 중"으로 본다.
-C_DANGER_RATE_MULTIPLE = 2.0
+# (26.08.05 추가) Type C "접근" 판정은 "윈도우 안 위험구간 진입 샷 수"로 한다. rolling_mean
+# 기반 risk_margin_z는 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의
+# 위험 진입을 지워버린다(CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling
+# mean은 0.00%만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을
+# 쓰면 10개 중 1개만 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다.
+#
+# (26.08.08) 판정선을 "평소의 2.0배"에서 "우연히 나올 확률 < C_DANGER_ALPHA"로 바꿨다.
+# 고정 배수는 평소 진입률에 따라 엄격도가 8.7배까지 달라졌다 — 근거는 pipeline/common.py
+# binomial_alert_count 주석 참고. 필요 샷 수는 (장비, 컬럼)마다 baseline에서 계산한다.
 
 # (26.08.05 추가) A/B/E유형의 "지속적 편차" 판정을 CUSUM(누적합)으로 교체.
 # 기존 방식(WINDOW=10 rolling mean + PERSIST_WINDOW=5 연속조건)은 구조적으로 최소
@@ -323,37 +327,41 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 
 # ----------------------------------------------------------------------
 # 5-3. Type C "접근" 판정용 정상 danger_rate — **장비×컬럼별로** "평소엔 위험구간에 샷이
-#      얼마나 들어가는지"를 미리 재둔다(그 장비 안 Product×Recipe 그룹별 비율의 median,
-#      특정 그룹이 튀어도 안 흔들리게).
-#      build_health_index.py의 defect_zone_rate 기준(zone_base_rate)과 같은 방식.
+#      얼마나 들어가는지". 그 장비 안 Product×Recipe 그룹별 비율의 median을 쓴다(특정
+#      그룹이 튀어도 안 흔들리게).
 #
-#      (26.08.06) 원래는 4대 장비를 풀링해서 컬럼당 하나로 잡았는데, CLN_Flow처럼 위험구간
-#      진입이 특정 장비(DP04)만의 일인 컬럼에선 "항상 0%"인 나머지 3대가 평소 비율을
-#      인위적으로 짓눌렀다(DP04 자신은 1.72%인데 풀링하면 0.44%). "평소"는 그 장비 자신의
-#      이력이어야 맞다 — build_health_index.py에서 같은 이유로 고친 것과 동일한 수정이다.
-#      (이번 데이터에선 WINDOW=10이라 danger_rate가 10% 단위로만 움직여서 판정 결과가
-#      실제로 바뀌지는 않았지만, 기준이 틀린 채로 두면 장비별 편차가 큰 컬럼이 새로 들어올
-#      때 그대로 오판이 된다.)
+#      (26.08.08) 이 값을 여기서 직접 계산하지 않고 step0 산출물을 읽는다. 예전엔
+#      trend_analysis.py(경보)와 build_health_index.py(화면)가 각자 계산했는데 정의가
+#      달랐다 — 여기는 그룹별 median, 저기는 일별 median. 같은 "평소 X%"가 화면과 경보에서
+#      다른 수를 가리켰다. 더 중요한 건 둘 다 **89일 전체 × 전체 샷**으로 쟀다는 점인데,
+#      불량 샷과 열화 기간이 baseline에 섞여 들어가 기준이 밀렸다(김시우님 지적).
+#      step0의 compute_c_entry_rate_baseline이 안정 구간 × OK샷으로 다시 재서
+#      00_baseline_C_entry_rate.csv에 저장한다 — 근거는 config.py의
+#      C_BASELINE_MIN_STABLE_DAYS 주석 참고.
 # ----------------------------------------------------------------------
 def compute_c_type_baseline_rate(df, column_type, c_map):
-    baseline_rate = {}
-    c_columns = [col for col, t in column_type.items() if t == "C" and col in df.columns]
-    for col in c_columns:
-        for machine_id, mdf in df.groupby("Machine_ID"):
-            group_rates = []
-            for (product_id, recipe_id), g in mdf.groupby(["Product_ID", "Recipe_ID"]):
-                info = c_map.get((col, f"{product_id}|{recipe_id}"))
-                if info is None:
-                    continue
-                values = g[col].to_numpy(dtype=float)
-                if info["risky_direction"] == "low_is_risky":
-                    risky = values < info["threshold"]
-                else:
-                    risky = values > info["threshold"]
-                group_rates.append(risky.mean())
-            if group_rates:
-                baseline_rate[(machine_id, col)] = float(np.median(group_rates))
-    return baseline_rate
+    """00_baseline_C_entry_rate.csv에서 (장비, 컬럼) -> 평소 진입률을 읽어온다.
+
+    인자 df/c_map은 더 이상 계산에 쓰지 않지만(호출부 시그니처 유지), column_type은
+    C유형만 남기는 필터로 계속 쓴다.
+    """
+    if not os.path.exists(BASELINE_C_ENTRY_RATE_CSV):
+        raise FileNotFoundError(
+            f"{BASELINE_C_ENTRY_RATE_CSV} 없음 — "
+            "먼저 `python -m pipeline.step0_preprocessing`을 실행하세요."
+        )
+    table = pd.read_csv(BASELINE_C_ENTRY_RATE_CSV)
+    c_columns = {col for col, t in column_type.items() if t == "C"}
+    table = table.loc[table["column"].isin(c_columns)]
+    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷)을 쓴다. median은 원래
+    # "한 그룹이 튀어도 안 흔들리게" 고른 것이었는데, 희귀 사건에서 0으로 붕괴한다 —
+    # DP04 CLN_Flow는 54개 그룹 중 49개가 진입 0건이라 median이 0.000%가 되고(실제
+    # 15,604샷 중 5건 = 0.032%), 그러면 "평소 대비 몇 배"가 정의 불가라 이진 판정으로
+    # 빠져 Health Index가 saturate했다. 나머지 11개 조합은 두 방식 차이가 0.8% 이내라
+    # 잃는 게 없다.
+    agg = table.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
+    rate = agg["n_in_zone"] / agg["n_ok_shots"]
+    return {(m, c): float(v) for (m, c), v in rate.items()}
 
 
 # ----------------------------------------------------------------------
@@ -511,7 +519,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             if ref_std_scalar is None or (isinstance(ref_std_scalar, float) and np.isnan(ref_std_scalar)) or ref_std_scalar == 0:
                 ref_std_scalar = fallback_std_map.get((product_id, recipe_id, col), np.nan)
             cusum_pos = cusum_neg = None
-            if col_type in ("A", "B", "E") and not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
+            # (26.08.08) 유형 제한을 풀었다 — 예전엔 A/B/E만 CUSUM을 받고 C는 threshold
+            # 판정만 받았는데, 그건 원리가 아니라 C 컬럼에 baseline을 안 만들어줬던 탓이다
+            # (실제로는 stratum_target_map에 Product×Recipe OK median이 이미 있다).
+            # 전 컬럼 측정 결과 no_trend 장비에서의 CUSUM 오경보율이 0.000~0.364%로
+            # 35개 전부 C_DANGER_ALPHA(1%) 미만이라, 붙여서 해로운 컬럼이 없다.
+            # 유형이 "어떤 경보를 받는지"를 정하지 않게 하는 것이 목적이다(김시우님 지적).
+            if not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
                 z_full = (values - baseline) / ref_std_scalar
                 s_pos_full, s_neg_full = compute_cusum(z_full)
                 cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
@@ -572,14 +586,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
                     # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
                     windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
-                    danger_rate = windows_risky.mean(axis=1)
-                    base_rate = c_baseline_rate.get((machine_id, col))
-                    if base_rate and base_rate > 0:
-                        rate_exceeded = danger_rate >= C_DANGER_RATE_MULTIPLE * base_rate
-                    else:
-                        # 이 장비는 평소 이 위험구간에 들어간 적이 없다 — "평소 대비 몇 배"가
-                        # 정의 안 되므로, 한 샷이라도 들어가면 그 자체가 이상이다.
-                        rate_exceeded = danger_rate > 0
+                    danger_count = windows_risky.sum(axis=1)
+                    danger_rate = danger_count / WINDOW
+                    base_rate = c_baseline_rate.get((machine_id, col)) or 0.0
+                    # 평소 진입률에서 WINDOW개 중 몇 개 이상이면 "우연이라 보기 어려운가".
+                    # base_rate=0이어도 이 식이 정의된다(k=1) — 예전의 별도 분기가 필요 없다.
+                    need = binomial_alert_count(base_rate, WINDOW, config.C_DANGER_ALPHA)
+                    rate_exceeded = danger_count >= need
                     approaching_raw = (
                         (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
                     )
@@ -595,15 +608,39 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                             f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
                         )
-                    base_txt = (f"이 장비 평소 {base_rate*100:.1f}%" if base_rate
+                    # 경보 근거를 문구에 그대로 싣는다 — "몇 배"가 아니라 "평소라면 이만큼
+                    # 나올 확률이 얼마나 낮은가"가 판정 근거이므로 그걸 읽히게 쓴다.
+                    base_txt = (f"이 장비 평소 {base_rate*100:.2f}%" if base_rate
                                 else "이 장비는 평소 진입 이력 없음")
                     for i in np.where(approaching)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
-                            f"최근 {WINDOW}개 샷 중 {danger_rate[i]*100:.0f}%가 위험 Threshold"
-                            f"({threshold_arr[i]:.4f}) 구간에 들어감({base_txt}) — "
+                            f"최근 {WINDOW}개 샷 중 {int(danger_count[i])}개가 위험 Threshold"
+                            f"({threshold_arr[i]:.4f}) 구간에 들어감"
+                            f"({base_txt} — 우연이라면 {need}개 이상 나올 확률이 "
+                            f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
                             f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                         )
+
+                # (26.08.08) C유형에도 CUSUM 경로를 추가한다 — threshold 판정을 대체하는
+                # 게 아니라 더한다. threshold는 "위험구간에 샷이 들어갔나"(꼬리)를 보고
+                # CUSUM은 "평균 수준이 밀렸나"를 보므로 서로 다른 이상을 잡는다.
+                # 실측: CLN_Flow DP04는 CUSUM이 threshold보다 6~9일 빨랐고(2/22 vs 2/28)
+                # 나머지 3대에서는 0건이었다. 방향은 A유형과 같이 위험한 쪽만 본다 —
+                # 반대쪽은 이 컬럼에서 경보와 무관하다.
+                if cusum_pos is not None and risky_direction is not None:
+                    ew_c = ((cusum_neg < -CUSUM_H) if risky_direction == "low_is_risky"
+                            else (cusum_pos > CUSUM_H))
+                    early_warning |= ew_c
+                    trend_direction[ew_c] = "down" if risky_direction == "low_is_risky" else "up"
+                    side = "낮은" if risky_direction == "low_is_risky" else "높은"
+                    for i in np.where(ew_c)[0]:
+                        if not messages[i]:
+                            messages[i] = (
+                                f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                                f"정상 Baseline 대비 {side} 방향으로 지속적으로 벌어지는 "
+                                f"편차가 감지되었습니다."
+                            )
 
             elif col_type == "E":
                 if cusum_pos is not None:
