@@ -36,10 +36,44 @@ from pipeline import mentor
 from pipeline.mentor import SPEC
 from pipeline.common import (
     compute_stratum_baseline_stats,
+    load_defect_pairing_from_db,
     mann_kendall,
     save_table,
     zscore_transform,
 )
+
+_DEFECT_PAIRING_CACHE: dict[str, str] | None = None
+
+
+def resolve_defect_pairing() -> dict[str, str]:
+    """인자↔defect 짝짓기의 단일 출처 — Goal2 관계DB 우선, 실패하면 config 폴백.
+
+    (26.08.08) 예전엔 config.BASELINE_C_DEFECT_MAP 하드코딩이 유일한 출처였다.
+    관계DB(rel_30/rel_20)가 팀 공식 판정이고 rel_30은 아예 추세분석 앞으로 만들어진
+    인계 파일인데 파이프라인이 안 읽고 있었다 — 근거는 common.load_defect_pairing_from_db
+    주석 참고. 무엇이 왜 제외됐는지 매 실행마다 찍어서, 조용히 바뀌는 일이 없게 한다.
+    """
+    global _DEFECT_PAIRING_CACHE
+    if _DEFECT_PAIRING_CACHE is not None:
+        return _DEFECT_PAIRING_CACHE
+
+    fallback = dict(config.BASELINE_C_DEFECT_MAP)
+    loaded = load_defect_pairing_from_db()
+    if loaded is None:
+        print("[관계DB] rel_30/rel_20을 읽을 수 없어 config.BASELINE_C_DEFECT_MAP로 진행합니다.")
+        _DEFECT_PAIRING_CACHE = fallback
+        return _DEFECT_PAIRING_CACHE
+
+    pairing, detail = loaded
+    print(f"[관계DB] 짝짓기 {len(pairing)}건 채택 (alert_usable=True AND repro_state=통과)")
+    for row in detail.itertuples(index=False):
+        mark = "채택" if row.adopted else "제외"
+        print(f"   {mark} {row.factor} ↔ {row.defect}"
+              f"  (alert_usable={row.alert_usable}, repro_state={row.repro_state})")
+    if pairing != fallback:
+        print(f"   [주의] config 폴백값과 다릅니다 — config={fallback}")
+    _DEFECT_PAIRING_CACHE = pairing
+    return _DEFECT_PAIRING_CACHE
 
 CONTINUOUS_TREND_COLS = config.FDC_COLS + config.RESPONSES + ["Yield"]
 CONTINUOUS_BASELINE_COLS = CONTINUOUS_TREND_COLS + config.DOMAIN_FEATURES
@@ -752,7 +786,7 @@ def compute_baseline_type_c(df: pd.DataFrame) -> pd.DataFrame:
     """
     rows = []
     for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
-        for column, defect_col in config.BASELINE_C_DEFECT_MAP.items():
+        for column, defect_col in resolve_defect_pairing().items():
             result = _find_baseline_c_breakpoint(group[column], group[defect_col])
             if result is None:
                 continue
@@ -782,7 +816,7 @@ def scan_type_c_candidates(
 ) -> pd.DataFrame:
     """전 컬럼 x 전 defect에 결정트리 스텀프를 돌려 C유형 후보를 스캔한다(순열검정 포함).
 
-    (26.08.07 추가) 왜 필요한가 — 지금까지 C유형 배정은 config.BASELINE_C_DEFECT_MAP에
+    (26.08.07 추가) 왜 필요한가 — 지금까지 C유형 배정은 resolve_defect_pairing()(관계DB)에
     하드코딩돼 있고, compute_baseline_type_c는 **거기 이미 적힌 컬럼만** threshold를
     계산한다. 즉 파이프라인이 새 후보를 스스로 발견할 수도, 기존 배정이 여전히 유효한지
     확인할 수도 없었다. 실제로 근거 계산은 파이프라인 밖 일회성 코드로 돌리고 결과 수치는
@@ -847,7 +881,7 @@ def scan_type_c_candidates(
                 # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄인다(CLN_Time이 이래서 B유형).
                 "direction_consistency": round(float(counts.iloc[0] / len(directions)), 3),
                 "has_mentor_spec": col in SPEC,
-                "assigned_type_c": config.BASELINE_C_DEFECT_MAP.get(col) == defect,
+                "assigned_type_c": resolve_defect_pairing().get(col) == defect,
             })
     return pd.DataFrame(rows).sort_values(["defect", "separation_ratio_median"], ascending=[True, False])
 
@@ -877,7 +911,7 @@ def warn_type_c_mismatch(candidates: pd.DataFrame, min_direction_consistency: fl
         print(f"  {defect}: 천장 {ceiling}배 | 상위 {detail}")
 
     assigned = candidates[candidates["assigned_type_c"]]
-    missing_rows = set(config.BASELINE_C_DEFECT_MAP.items()) - set(zip(assigned["column"], assigned["defect"]))
+    missing_rows = set(resolve_defect_pairing().items()) - set(zip(assigned["column"], assigned["defect"]))
     weak = assigned[(assigned["signal_over_noise"] <= 1.0)
                     | (assigned["direction_consistency"] < min_direction_consistency)]
     for r in weak.itertuples(index=False):

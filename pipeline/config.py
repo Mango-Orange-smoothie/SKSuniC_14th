@@ -15,6 +15,11 @@ INPUT_CSV_R1 = ROOT / "DP_HealthIndex_Dataset_r1.csv"
 OUTPUT_DIR = ROOT / "analysis_outputs"
 PREPROCESSING_DIR = OUTPUT_DIR / "preprocessing"
 
+# Goal2 통합 관계DB(JHdaimma) — 인자↔defect 짝짓기의 팀 공식 출처.
+# rel_30_trend_interface.csv는 trend_owner="김시우(추세분석)"로 명시된 인계 파일이고,
+# rel_20_tier_table.csv는 그 근거표(재현성 판정 repro_state 포함)다.
+RELATIONSHIP_DB_DIR = ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
+
 # 분석키: Lot_ID+Strip_ID만 유일. Strip_ID 단독은 다른 Lot에서 재사용되므로
 # 분석키·조인키로 절대 단독 사용 금지 (기존 analysis_step_by_step.py와 동일 규약).
 KEY = ["Lot_ID", "Strip_ID"]
@@ -256,8 +261,15 @@ C_DANGER_ALPHA = 0.01
 # 경계는 유지하되 "정상일 때 어디에 있어야 하는가"는 실측을 따르는 것. (26.08.05 확정)
 TARGET_RECOMPUTE_FROM_DATA = {"Kerf_Width_Profile", "Coating_Uniformity"}
 
-# C유형 컬럼 -> 매칭 Defect 플래그 컬럼. CLN_Time(방향 불일치 -> B로 재분류)과
-# Groove_Depth(매칭 defect인 Chipping 발생이 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
+# C유형 컬럼 -> 매칭 Defect 플래그 컬럼.
+#
+# (26.08.08) 이 값은 이제 **폴백**이다 — 정상 경로는 Goal2 관계DB에서 읽는다
+# (common.load_defect_pairing_from_db). 여기 손으로 적힌 3개가 DB의 판정과 우연히
+# 일치하는 상태였는데, 수동 사본이라 DB가 갱신되면 조용히 어긋난다. DB 파일이 없거나
+# 스키마가 바뀌면 이 값으로 되돌아간다(파이프라인이 안 멈추게).
+#
+# CLN_Time(방향 불일치 -> B로 재분류)과 Groove_Depth(매칭 defect인 Chipping 발생이
+# 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",
