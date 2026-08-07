@@ -104,6 +104,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
+from pipeline.common import binomial_alert_count
 from pipeline.mentor import SPEC
 
 OUT_DIR = Path(__file__).resolve().parent
@@ -392,11 +393,17 @@ def compute_daily_boundary_z(daily_series: pd.DataFrame, min_days: int = 30) -> 
     return boundary_z
 
 
-# C유형 health 스케일: "위험구간에 들어간 샷 비율"이 정상 기준의 몇 배가 되면 health 0(스펙아웃
-# 취급)으로 볼지. 2.0 = 평소의 2배로 늘면 최악. 임의로 정한 관례값이며 최적화된 값이 아니다 —
-# 다만 "절대 안 울리는" 기존 상태(일평균은 356일 내내 경계를 한 번도 안 넘음)보다는 낫다.
-# 실제 조치 기준으로 쓰기 전에 멘토/현장 확인 필요.
-DEFECT_ZONE_SPECOUT_MULTIPLE = 2.0
+# C유형 health 스케일: "위험구간에 들어간 샷 비율"이 어디까지 가면 margin 100%(=스펙아웃
+# 취급)로 볼지.
+#
+# (26.08.08 개정) 예전엔 "평소의 2.0배"라는 고정 배수였는데 두 가지가 문제였다:
+#   (1) 평소 비율이 낮은 컬럼일수록 쉽게 넘어서, 컬럼마다 엄격도가 달랐다.
+#   (2) 평소 비율이 0에 가까우면 비율 자체가 폭주했다 — DP04 CLN_Flow는 평소 0.032%
+#       (안정구간 15,604샷 중 5건)라 margin이 23,412%로 찍혔고, 안정구간 진입이 2건이었다면
+#       58,500%가 나왔을 값이다. 분모가 작아서 숫자가 불안정하다.
+# 이제 경계를 "그날 샷 수에서 이만큼 진입할 확률이 C_DANGER_ALPHA 미만이 되는 지점"으로
+# 잡는다. 분모가 작아도 안정적이고(위 사례에서 5건이든 2건이든 경계가 거의 같다),
+# 평소 비율이 0이어도 정의된다. trend_analysis.py의 경보 판정과 같은 기준이다.
 
 
 def load_daily_defect_zone_rate() -> pd.DataFrame:
@@ -593,6 +600,7 @@ def compute_level_and_trend(
 
     # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
+    zone_shots: dict[tuple[str, str], pd.Series] = {}  # 그날 샷 수 — 이항 경계 계산에 필요
     zone_base_rate: dict[tuple[str, str], float] = {}
     # (26.08.06) "평소"는 그 장비 자신의 이력 기준이어야 맞다 — 4대 풀링 median을 쓰던 때는
     # CLN_Flow처럼 위험구간 진입이 DP04만의 일인 컬럼에서 나머지 3대의 "항상 0%"가 평소
@@ -607,7 +615,9 @@ def compute_level_and_trend(
     # baseline과 달리 전 구간이 필요하다.
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
-            zone_lookup[(m, c)] = zg.set_index("date")["defect_zone_rate"].sort_index()
+            zg = zg.set_index("date").sort_index()
+            zone_lookup[(m, c)] = zg["defect_zone_rate"]
+            zone_shots[(m, c)] = zg["n_shots"]
     # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷) — 근거는
     # trend_analysis.py compute_c_type_baseline_rate 주석 참고(희귀 사건에서 median이
     # 0으로 붕괴해 DP04 CLN_Flow의 크기 정보가 사라졌다).
@@ -651,18 +661,30 @@ def compute_level_and_trend(
                 lsl_disp, usl_disp = baseline_disp, thr
 
             zr = zone_lookup[(machine, col)].reindex(g["date"].values)
-            base_rate = zone_base_rate.get((machine, col), 0.0)
-            if base_rate and base_rate > 0:
-                span = base_rate * (DEFECT_ZONE_SPECOUT_MULTIPLE - 1.0)
-                margin_pct = ((zr.values - base_rate) / span * 100).clip(min=0.0)
-            else:
-                # 이 장비는 이 위험구간에 들어간 적이 사실상 없다(평소 비율=0) — "평소 대비
-                # 몇 배"라는 비율 자체가 정의 안 됨. 조금이라도 들어간 날은 경계(100%)로,
-                # 안 들어간 날은 정상(0%)으로 본다. 데이터가 없는 날(NaN)은 np.where가
-                # NaN>0을 False로 처리해 "정상 0%"로 둔갑시키므로 NaN을 그대로 남긴다
-                # (아래 dropna가 걸러서 그 날은 최신값 후보에서 빠짐).
-                margin_pct = np.where(pd.isna(zr.values), np.nan, np.where(zr.values > 0, 100.0, 0.0))
-            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float)
+            n_shots = zone_shots[(machine, col)].reindex(g["date"].values)
+            base_rate = zone_base_rate.get((machine, col), 0.0) or 0.0
+            # margin 100% = "그날 샷 수에서 이만큼 진입할 확률이 alpha 미만" 지점.
+            # 그날 샷 수가 다르면 경계도 달라지므로 날짜별로 계산한다(같은 샷 수는 캐시).
+            need_by_n: dict[int, int] = {}
+            alert_rate = np.full(len(zr), np.nan)
+            for i, n in enumerate(n_shots.values):
+                if not np.isfinite(n) or n < 1:
+                    continue
+                n = int(n)
+                if n not in need_by_n:
+                    need_by_n[n] = binomial_alert_count(base_rate, n, config.C_DANGER_ALPHA)
+                k = need_by_n[n]
+                if k <= n:
+                    alert_rate[i] = k / n
+            span = alert_rate - base_rate
+            # 데이터가 없는 날(zr NaN)은 NaN을 그대로 남긴다 — 0.0으로 두면 "그날은 완벽히
+            # 정상"으로 둔갑해서 최신값 후보에 잘못 끼어든다(아래 dropna가 걸러야 함).
+            margin_pct = np.where(
+                pd.isna(zr.values) | ~np.isfinite(span) | (span <= 0),
+                np.nan,
+                (zr.values - base_rate) / np.where(span > 0, span, np.nan) * 100,
+            )
+            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float).clip(lower=0.0)
             zone_rate_now = zr.values
         else:
             b = boundary_z.get(col)

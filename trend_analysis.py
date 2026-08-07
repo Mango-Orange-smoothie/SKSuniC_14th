@@ -7,6 +7,8 @@ from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
+from pipeline import config
+from pipeline.common import binomial_alert_count
 from pipeline.mentor import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
 
 RAW_INPUT_FILES = [
@@ -40,14 +42,15 @@ PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "�
 # 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
 # 22,948건 중 21,426건이 진입 이벤트였음) 방지용. 1행짜리 순간 판정 대신 지속성 요구.
 
-# (26.08.05 추가) Type C "접근" 판정을 위한 danger_rate 배수. rolling_mean 기반 risk_margin_z는
-# 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의 위험 진입을 지워버린다
-# (CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling mean은 0.00%만 아래로
-# 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을 쓰면 10개 중 1개만
-# 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다. 그래서 build_
-# health_index.py의 defect_zone_rate(위험구간에 들어간 샷 비율)와 같은 방식 — "윈도우 안
-# 위험구간 진입 비율"이 평소(baseline_rate) 대비 이 배수 이상이면 "접근 중"으로 본다.
-C_DANGER_RATE_MULTIPLE = 2.0
+# (26.08.05 추가) Type C "접근" 판정은 "윈도우 안 위험구간 진입 샷 수"로 한다. rolling_mean
+# 기반 risk_margin_z는 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의
+# 위험 진입을 지워버린다(CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling
+# mean은 0.00%만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을
+# 쓰면 10개 중 1개만 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다.
+#
+# (26.08.08) 판정선을 "평소의 2.0배"에서 "우연히 나올 확률 < C_DANGER_ALPHA"로 바꿨다.
+# 고정 배수는 평소 진입률에 따라 엄격도가 8.7배까지 달라졌다 — 근거는 pipeline/common.py
+# binomial_alert_count 주석 참고. 필요 샷 수는 (장비, 컬럼)마다 baseline에서 계산한다.
 
 # (26.08.05 추가) A/B/E유형의 "지속적 편차" 판정을 CUSUM(누적합)으로 교체.
 # 기존 방식(WINDOW=10 rolling mean + PERSIST_WINDOW=5 연속조건)은 구조적으로 최소
@@ -577,14 +580,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
                     # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
                     windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
-                    danger_rate = windows_risky.mean(axis=1)
-                    base_rate = c_baseline_rate.get((machine_id, col))
-                    if base_rate and base_rate > 0:
-                        rate_exceeded = danger_rate >= C_DANGER_RATE_MULTIPLE * base_rate
-                    else:
-                        # 이 장비는 평소 이 위험구간에 들어간 적이 없다 — "평소 대비 몇 배"가
-                        # 정의 안 되므로, 한 샷이라도 들어가면 그 자체가 이상이다.
-                        rate_exceeded = danger_rate > 0
+                    danger_count = windows_risky.sum(axis=1)
+                    danger_rate = danger_count / WINDOW
+                    base_rate = c_baseline_rate.get((machine_id, col)) or 0.0
+                    # 평소 진입률에서 WINDOW개 중 몇 개 이상이면 "우연이라 보기 어려운가".
+                    # base_rate=0이어도 이 식이 정의된다(k=1) — 예전의 별도 분기가 필요 없다.
+                    need = binomial_alert_count(base_rate, WINDOW, config.C_DANGER_ALPHA)
+                    rate_exceeded = danger_count >= need
                     approaching_raw = (
                         (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
                     )
@@ -600,13 +602,17 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                             f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
                         )
-                    base_txt = (f"이 장비 평소 {base_rate*100:.1f}%" if base_rate
+                    # 경보 근거를 문구에 그대로 싣는다 — "몇 배"가 아니라 "평소라면 이만큼
+                    # 나올 확률이 얼마나 낮은가"가 판정 근거이므로 그걸 읽히게 쓴다.
+                    base_txt = (f"이 장비 평소 {base_rate*100:.2f}%" if base_rate
                                 else "이 장비는 평소 진입 이력 없음")
                     for i in np.where(approaching)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
-                            f"최근 {WINDOW}개 샷 중 {danger_rate[i]*100:.0f}%가 위험 Threshold"
-                            f"({threshold_arr[i]:.4f}) 구간에 들어감({base_txt}) — "
+                            f"최근 {WINDOW}개 샷 중 {int(danger_count[i])}개가 위험 Threshold"
+                            f"({threshold_arr[i]:.4f}) 구간에 들어감"
+                            f"({base_txt} — 우연이라면 {need}개 이상 나올 확률이 "
+                            f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
                             f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                         )
 

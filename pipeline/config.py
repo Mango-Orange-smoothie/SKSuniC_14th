@@ -237,6 +237,14 @@ BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 
 # 로 수렴한다(동일 사양 장비니 이게 맞는 그림). 89일 전체로는 22~56%로 벌어진다.
 C_BASELINE_MIN_STABLE_DAYS = 14  # Phase I 구간이 이보다 짧으면 추정을 포기(표본 부족)
 
+# (26.08.08) C유형 "위험구간 진입이 평소보다 많다"의 판정 기준. 예전엔 평소 비율의
+# 2.0배(trend_analysis.C_DANGER_RATE_MULTIPLE / build_health_index.DEFECT_ZONE_SPECOUT_
+# MULTIPLE)라는 고정 배수였는데, 그러면 평소 비율이 낮은 컬럼은 노이즈에도 뜨고 높은
+# 컬럼은 진짜 열화에도 안 뜬다(근거 수치는 common.binomial_alert_count 주석 참고).
+# 배수 대신 **오탐 확률**을 고정한다 — 어느 컬럼이든 "평소 상태에서 이만큼 나올 확률이
+# 1% 미만"일 때 경보. 스펙 위반 연속 판정(SPEC_RUN_EXPECTED_MAX)이 이미 쓰는 방식과 같다.
+C_DANGER_ALPHA = 0.01
+
 # (26.08.05 추가) 멘토 스펙이 있는 컬럼 중 실측 평균이 TARGET에서 스펙 폭(USL-LSL)의 10%
 # 이상 벗어난 건 Kerf_Width_Profile(12.0%)과 Coating_Uniformity(13.3%) 둘뿐이었다(나머지
 # 8개는 0.0~1.8%로 거의 정확히 일치 — 멘토 스펙 자체의 신뢰도가 높다는 근거). 이 중

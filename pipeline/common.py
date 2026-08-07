@@ -120,6 +120,31 @@ def zscore_transform(
     return result
 
 
+def binomial_alert_count(base_rate: float, n_trials: int, alpha: float) -> int:
+    """평소 비율 base_rate에서 n_trials 중 k개 이상이 우연히 나올 확률이 alpha 미만이
+    되는 최소 k를 돌려준다. 도달 불가능하면 n_trials + 1(= 절대 경보 안 뜸).
+
+    (26.08.08 신설) 왜 "평소의 몇 배" 대신 이걸 쓰는가 — 고정 배수는 평소 비율에 따라
+    엄격도가 제멋대로 달라진다. 10샷 창 기준 실측(2.0배일 때 평소에도 우연히 통과할 확률):
+        CLN_Flow      평소  0.5% -> 10샷 중 1개면 통과 ->  4.7%
+        CLN_Pressure  평소  6.4% -> 10샷 중 2개면 통과 -> 13.0%
+        Surface_Rough 평소 32.0% -> 10샷 중 7개면 통과 ->  1.5%
+    같은 "2배"가 컬럼마다 8.7배 차이 나는 기준이 된다(김시우님 지적). 배수를 고정하지
+    말고 **오탐 확률을 고정**해야 컬럼 간에 비교 가능한 기준이 된다.
+
+    base_rate=0이어도 정의된다(k=1) — 예전엔 "비율이 정의 안 됨"이라 별도 분기로
+    빠졌는데, 이 식은 같은 공식이 자연히 그 답을 준다.
+    """
+    if not np.isfinite(base_rate) or base_rate < 0 or n_trials < 1:
+        return n_trials + 1
+    p = min(max(float(base_rate), 0.0), 1.0)
+    for k in range(1, n_trials + 1):
+        # sf(k-1) = P(X >= k)
+        if scipy_stats.binom.sf(k - 1, n_trials, p) < alpha:
+            return k
+    return n_trials + 1
+
+
 # ---------------------------------------------------------------------------
 # [제공 도구] 강제 적용 안 함 — 필요할 때 갖다 쓰는 용도. 호출부가 없는 게 정상이며
 # 미사용이라고 지우면 안 된다(pipeline/README.md "추가 피처 엔지니어링 도구" 참고).
