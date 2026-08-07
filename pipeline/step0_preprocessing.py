@@ -14,6 +14,11 @@ Goal 1~6(장비/제품 비교, 유효인자 발굴, 상호작용, 이상탐지, 
   00_baseline_C.csv                   C(편측 위험 threshold형) 컬럼 위험 경계값 (Jun 이식)
   00_baseline_E.csv                   E(대칭성/정렬형) 컬럼 이론 상수 Baseline (Jun 이식)
   00_preprocessing_summary.json       요약 통계 + assert 결과 + 다운스트림 기본 컬럼 목록
+  00_baseline_C_candidates.csv        C유형 후보 전수 스캔 + 순열검정 노이즈 천장
+
+산출물 (analysis_outputs/ 루트 — 소비자 경로를 안 깨뜨리려고 여기 저장):
+  05_machine_daily_trend.csv          장비x날짜 defect 발생률 + 공정변수 7일 이동평균
+                                      (build_health_index/agent.py가 읽음)
 """
 
 from __future__ import annotations
@@ -41,6 +46,10 @@ CONTINUOUS_BASELINE_COLS = CONTINUOUS_TREND_COLS + config.DOMAIN_FEATURES
 # flatline(고착) 탐지는 센서성 연속값에만 의미가 있다. Yield는 정상 공정에서
 # 정의상 100이 매우 자주 반복되므로(공정이 잘 돌아간다는 뜻) 여기서 제외한다.
 SENSOR_FLATLINE_CHECK_COLS = config.FDC_COLS + config.RESPONSES
+
+# 05_machine_daily_trend.csv의 defect rate 대상. 멘토가 제외 확정한 Edge_Burn은 빼고,
+# Laser_Paim은 Health Index/Agent가 안 보는 defect라 기존 trend_table과 동일하게 4개만 쓴다.
+DEFECT_RATE_SOURCE_COLS = ["Particle", "Remain_Coat", "Micro_Crack", "Chipping"]
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +217,44 @@ def compute_machine_daily_series(df: pd.DataFrame, opcond_baseline: pd.DataFrame
             })
             rows.append(frame)
     return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
+
+
+DAILY_TREND_MA_COLS = ["Head_Temp", "Coating_Uniformity", "Surface_Roughness", "Yield"]
+DAILY_TREND_WINDOW = 7      # 일평균도 하루하루 튀어서 눈으로 추세를 보려면 매끄럽게 해야 함
+DAILY_TREND_MIN_PERIODS = 3  # 시작 시점에 7일이 안 모여도 3일치면 계산(안 그러면 첫 6일이 전부 NaN)
+
+
+def compute_machine_daily_trend(df: pd.DataFrame) -> pd.DataFrame:
+    """장비×날짜별 defect 발생률 + 주요 공정변수 일평균(+7일 이동평균).
+
+    (26.08.07 이관) 원래 analysis_step_by_step.py의 trend_table()이 만들던 표인데, 그
+    스크립트는 8/1 이후 정지된 초기 탐색용이고 이 산출물만 파이프라인 핵심으로 남아 있었다
+    — build_health_index(최근 7일 실제 불량 발생 판정)와 agent.py("언제 불량 났었어?" 조회)가
+    둘 다 이걸 읽는다. 그런데 실행 순서 안내 어디에도 그 스크립트가 없어서, 원본 데이터가
+    바뀌면 이 파일만 낡은 채 남아 Health Index가 옛날 데이터로 "최근 7일"을 판정할 위험이
+    있었다. step0로 옮겨서 항상 같이 갱신되게 한다.
+
+    defect rate를 mean()으로 구하는 게 핵심 — defect 컬럼이 0/1이라 평균이 곧 발생 비율이다
+    (그날 270샷 중 27개가 1이면 mean=0.1=10%). 별도 나눗셈이 필요 없다.
+
+    이동평균은 장비별로 따로 굴린다(groupby.transform) — 안 그러면 DP01 마지막 날과 DP02
+    첫날이 같은 창에 섞인다.
+    """
+    defect_cols = {f"{d}_rate": (d, "mean") for d in DEFECT_RATE_SOURCE_COLS}
+    trend = (
+        df.assign(date=df["DateTime"].dt.date)
+        .groupby(["Machine_ID", "date"], as_index=False)
+        .agg(
+            **{c: (c, "mean") for c in DAILY_TREND_MA_COLS},
+            **defect_cols,
+            samples=("Yield", "size"),
+        )
+    )
+    for col in DAILY_TREND_MA_COLS:
+        trend[f"{col}_{DAILY_TREND_WINDOW}d_ma"] = trend.groupby("Machine_ID")[col].transform(
+            lambda x: x.rolling(DAILY_TREND_WINDOW, min_periods=DAILY_TREND_MIN_PERIODS).mean()
+        )
+    return trend
 
 
 def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -> pd.DataFrame:
@@ -806,6 +853,10 @@ def main() -> None:
 
     machine_trend = compute_machine_column_trend(daily_series)
     save_table(machine_trend, "00_machine_column_trend.csv", subdir="preprocessing")
+
+    # 장비×날짜 defect 발생률 — build_health_index/agent가 읽는다(analysis_outputs 루트).
+    # 경로/파일명은 기존 소비자를 안 깨뜨리려고 그대로 둔다.
+    save_table(compute_machine_daily_trend(df), "05_machine_daily_trend.csv")
     trend_summary = summarize_column_trend(machine_trend)
 
     fault_flags = detect_missing_sensor_faults(df)

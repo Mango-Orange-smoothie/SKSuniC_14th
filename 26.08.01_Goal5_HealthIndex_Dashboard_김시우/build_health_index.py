@@ -838,7 +838,13 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
 
 
 def load_defect_occurrence() -> pd.DataFrame:
-    """05_machine_daily_trend.csv(analysis_step_by_step.py 산출물)로 최근 실제 발생 여부 판정."""
+    """05_machine_daily_trend.csv(Step0 산출물)로 최근 실제 발생 여부 판정.
+
+    (26.08.07) 이 파일은 원래 analysis_step_by_step.py가 만들었는데, 그 스크립트는 8/1
+    이후 정지된 초기 탐색용이라 실행 순서 안내에 없었다 — 원본이 바뀌면 이 파일만 낡은
+    채 남아 "최근 7일"을 옛날 데이터로 판정할 위험이 있어서 step0로 옮겼다. 이제
+    step0_preprocessing만 돌리면 같이 갱신된다.
+    """
     trend = pd.read_csv(REPO_ROOT / "analysis_outputs" / "05_machine_daily_trend.csv")
     trend["date"] = pd.to_datetime(trend["date"])
     cutoff = trend["date"].max() - pd.Timedelta(days=RECENT_DEFECT_WINDOW_DAYS)
