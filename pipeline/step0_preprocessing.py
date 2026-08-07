@@ -306,6 +306,95 @@ def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -
     return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
 
 
+def find_stable_baseline_days(daily_rate: pd.Series) -> int:
+    """일별 진입률 계열에서 "아직 상승 추세가 없는" 초기 구간(Phase I)의 길이를 돌려준다.
+
+    최소 길이부터 하루씩 늘려가며 Mann-Kendall을 다시 검정하고, 상승 추세가 유의해지는
+    순간 직전에서 끊는다. 진입률은 "위험구간에 들어간 비율"이라 올라가는 것만 나빠지는
+    방향이므로 tau > 0 쪽만 본다(low/high_is_risky는 in_zone 계산에서 이미 흡수됨).
+
+    구간을 늘려가며 반복 검정하므로 유의수준이 명목값보다 느슨해지지만, 그 방향의 오류는
+    "안정 구간을 실제보다 짧게 잡는" 쪽 = baseline을 보수적으로 낮게 잡는 쪽이라 경보를
+    놓치지 않는다. 반대로 길게 잡으면 열화가 baseline에 섞여 경보가 죽는다(config.py
+    C_BASELINE_MIN_STABLE_DAYS 주석 참고).
+    """
+    s = daily_rate.dropna()
+    if len(s) < config.C_BASELINE_MIN_STABLE_DAYS:
+        return len(s)
+    for end in range(config.C_BASELINE_MIN_STABLE_DAYS, len(s) + 1):
+        window = s.iloc[:end]
+        tau, p_value = mann_kendall(pd.Series(np.arange(len(window))), window)
+        if pd.notna(p_value) and p_value < config.TREND_ALPHA and tau > 0:
+            return end - 1
+    return len(s)
+
+
+def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) -> pd.DataFrame:
+    """C유형 컬럼의 "평소 위험구간 진입률"을 안정 구간 x OK샷 기준으로 산출한다.
+
+    (26.08.08 신설) 왜 여기서 한 번에 만드는가 — 예전엔 이 값을 소비자가 각자 계산했고,
+    정의가 셋으로 갈려 있었다: trend_analysis.py는 그룹별 진입률의 median(전체 샷),
+    build_health_index.py는 일별 진입률의 median(전체 샷). 같은 이름으로 화면에 찍히는
+    값과 경보를 내는 값이 달랐다. 단일 출처로 합친다.
+
+    안정 구간은 (장비 x 컬럼) 단위로 정한다 — Product x Recipe 그룹까지 쪼개면 그룹당
+    하루 5샷 수준이라 일별 계열 자체가 성립하지 않는다. 반면 진입률 자체는 그룹별로
+    내는데(같은 안정 구간 안에서), threshold가 그룹마다 다르고 실측 그룹간 편차도
+    작지 않기 때문이다(CLN_Pressure 1.2~9.0%, Surface_Roughness 13~33%).
+
+    반환 컬럼: Machine_ID / column / group_key / stable_days / n_ok_shots / n_in_zone /
+    baseline_rate. 장비 단위 대표값이 필요한 소비자는 group_key 축으로 median을 잡는다
+    (기존 trend_analysis.py와 같은 방식).
+    """
+    thr_map = {
+        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        for r in baseline_c.itertuples(index=False)
+    }
+    columns = sorted({c for c, _ in thr_map})
+
+    work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime", "NG_Code"] + columns].copy()
+    work["date"] = work["DateTime"].dt.date
+    work["group_key"] = work["Product_ID"] + "|" + work["Recipe_ID"]
+    # baseline은 OK 샷만 — 불량 샷은 정의상 위험구간 쪽에 몰려 있어 섞으면 기준이 밀린다.
+    work = work.loc[work["NG_Code"] == "OK"]
+
+    rows = []
+    for col in columns:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+        in_zone = np.where(
+            direction == "low_is_risky", work[col] < thr,
+            np.where(direction == "high_is_risky", work[col] > thr, np.nan),
+        )
+        tmp = pd.DataFrame({
+            "Machine_ID": work["Machine_ID"],
+            "group_key": work["group_key"],
+            "date": work["date"],
+            "in_zone": pd.to_numeric(pd.Series(in_zone, index=work.index), errors="coerce"),
+        }).dropna(subset=["in_zone"])
+
+        for machine, mg in tmp.groupby("Machine_ID"):
+            daily = mg.groupby("date")["in_zone"].mean().sort_index()
+            stable_days = find_stable_baseline_days(daily)
+            stable_dates = set(daily.index[:stable_days])
+            phase1 = mg.loc[mg["date"].isin(stable_dates)]
+            for group_key, gg in phase1.groupby("group_key"):
+                n = len(gg)
+                if not n:
+                    continue
+                rows.append({
+                    "Machine_ID": machine,
+                    "column": col,
+                    "group_key": group_key,
+                    "stable_days": stable_days,
+                    "n_ok_shots": n,
+                    "n_in_zone": int(gg["in_zone"].sum()),
+                    "baseline_rate": float(gg["in_zone"].mean()),
+                })
+
+    return pd.DataFrame(rows).sort_values(["Machine_ID", "column", "group_key"])
+
+
 def compute_machine_column_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
     """compute_machine_daily_series 결과에 Mann-Kendall(=kendalltau)+OLS 기울기 검정.
 
@@ -901,6 +990,11 @@ def main() -> None:
     # (여기는 원본 df 그대로 — threshold는 R1에서 배웠지만, 적용/감시 대상은 원본이다.)
     defect_zone_rate = compute_daily_defect_zone_rate(df, baseline_c)
     save_table(defect_zone_rate, "00_machine_daily_defect_zone_rate.csv", subdir="preprocessing")
+
+    # "평소 진입률"의 단일 출처 — trend_analysis.py(경보)와 build_health_index.py(화면)가
+    # 각자 다르게 계산하던 값을 여기서 한 번만 만든다. 안정 구간 x OK샷 기준.
+    c_entry_baseline = compute_c_entry_rate_baseline(df, baseline_c)
+    save_table(c_entry_baseline, "00_baseline_C_entry_rate.csv", subdir="preprocessing")
 
     baseline_e = compute_baseline_type_e(ok_ng_code)
     save_table(baseline_e, "00_baseline_E.csv", subdir="preprocessing")

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-07T23:00:50.714396",
+  "generated_at": "2026-08-08T00:52:06.921454",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -236,17 +236,17 @@
   },
   "machines": {
     "DP01": {
-      "health_index": 72.3,
+      "health_index": 61.6,
       "worst_defects": [
+        {
+          "defect": "Remain_Coat",
+          "health_index": 61.6,
+          "worst_factor": "CLN_Pressure"
+        },
         {
           "defect": "Chipping",
           "health_index": 72.3,
           "worst_factor": "Cooling_Flow"
-        },
-        {
-          "defect": "Remain_Coat",
-          "health_index": 84.4,
-          "worst_factor": "CLN_Pressure"
         },
         {
           "defect": "Particle",
@@ -295,11 +295,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 84.4,
+          "health_index": 61.6,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 84.4,
+              "health_index": 61.6,
               "spec_status": "OK"
             },
             {
@@ -342,10 +342,10 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 84.4,
+              "health_index": 61.6,
               "defect_zone_rate_pct": 7.41,
-              "defect_zone_baseline_pct": 6.32,
-              "margin_trend_pct_per_day": -0.989,
+              "defect_zone_baseline_pct": 5.19,
+              "margin_trend_pct_per_day": -2.174,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -689,7 +689,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 97.8,
+          "health_index": 79.5,
           "worst_factor": "CLN_Pressure"
         },
         {
@@ -739,11 +739,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 97.8,
+          "health_index": 79.5,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 97.8,
+              "health_index": 79.5,
               "spec_status": "OK"
             },
             {
@@ -786,14 +786,14 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 97.8,
+              "health_index": 79.5,
               "defect_zone_rate_pct": 6.29,
-              "defect_zone_baseline_pct": 6.3,
-              "margin_trend_pct_per_day": -1.028,
+              "defect_zone_baseline_pct": 5.21,
+              "margin_trend_pct_per_day": -0.95,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP02 / PKG_A / RCP_3의 CLN_Pressure은(는) 최근 10개 샷 중 20%가 위험 Threshold(296.8980) 구간에 들어감(이 장비 평소 6.4%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "trend_message": "DP02 / PKG_A / RCP_3의 CLN_Pressure은(는) 최근 10개 샷 중 20%가 위험 Threshold(296.8980) 구간에 들어감(이 장비 평소 5.2%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.7,
               "recipe_hotspots": [
@@ -1336,17 +1336,17 @@
       ]
     },
     "DP03": {
-      "health_index": 80.4,
+      "health_index": 76.8,
       "worst_defects": [
+        {
+          "defect": "Remain_Coat",
+          "health_index": 76.8,
+          "worst_factor": "CLN_Pressure"
+        },
         {
           "defect": "Chipping",
           "health_index": 80.4,
           "worst_factor": "Cooling_Flow"
-        },
-        {
-          "defect": "Remain_Coat",
-          "health_index": 99.0,
-          "worst_factor": "CLN_Pressure"
         },
         {
           "defect": "Particle",
@@ -1395,11 +1395,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 99.0,
+          "health_index": 76.8,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 99.0,
+              "health_index": 76.8,
               "spec_status": "OK"
             },
             {
@@ -1442,11 +1442,11 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 99.0,
+              "health_index": 76.8,
               "defect_zone_rate_pct": 6.45,
-              "defect_zone_baseline_pct": 6.41,
-              "margin_trend_pct_per_day": 0.981,
-              "estimated_days_to_spec_out": 101.2,
+              "defect_zone_baseline_pct": 5.14,
+              "margin_trend_pct_per_day": 2.992,
+              "estimated_days_to_spec_out": 24.9,
               "trend_direction": "up",
               "early_warning_active": true,
               "trend_message": "DP03 / PKG_E / RCP_9의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -1894,16 +1894,16 @@
       ]
     },
     "DP04": {
-      "health_index": 3.4,
+      "health_index": 0.0,
       "worst_defects": [
         {
           "defect": "Particle",
-          "health_index": 3.4,
+          "health_index": 0.0,
           "worst_factor": "CLN_Flow"
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 3.4,
+          "health_index": 0.0,
           "worst_factor": "CLN_Flow"
         },
         {
@@ -1915,11 +1915,11 @@
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 3.4,
+          "health_index": 0.0,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
-              "health_index": 3.4,
+              "health_index": 0.0,
               "spec_status": "SPEC_OUT"
             }
           ],
@@ -1933,14 +1933,14 @@
               "usl": 9.992,
               "spec_source": "defect_zone_rate",
               "spec_status": "SPEC_OUT",
-              "health_index": 3.4,
+              "health_index": 0.0,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 1.93,
-              "margin_trend_pct_per_day": 10.521,
+              "defect_zone_baseline_pct": 0.03,
+              "margin_trend_pct_per_day": 632.271,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 1.7%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 0.0%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.4,
               "recipe_hotspots": [
@@ -1969,16 +1969,16 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 3.4,
+          "health_index": 0.0,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
-              "health_index": 3.4,
+              "health_index": 0.0,
               "spec_status": "SPEC_OUT"
             },
             {
               "factor": "CLN_Pressure",
-              "health_index": 80.0,
+              "health_index": 54.8,
               "spec_status": "OK"
             }
           ],
@@ -1992,14 +1992,14 @@
               "usl": 9.992,
               "spec_source": "defect_zone_rate",
               "spec_status": "SPEC_OUT",
-              "health_index": 3.4,
+              "health_index": 0.0,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 1.93,
-              "margin_trend_pct_per_day": 10.521,
+              "defect_zone_baseline_pct": 0.03,
+              "margin_trend_pct_per_day": 632.271,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 1.7%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
+              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 10%가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 0.0%) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.4,
               "recipe_hotspots": [
@@ -2032,11 +2032,11 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 80.0,
+              "health_index": 54.8,
               "defect_zone_rate_pct": 7.53,
-              "defect_zone_baseline_pct": 6.48,
-              "margin_trend_pct_per_day": 1.33,
-              "estimated_days_to_spec_out": 63.0,
+              "defect_zone_baseline_pct": 5.15,
+              "margin_trend_pct_per_day": 1.832,
+              "estimated_days_to_spec_out": 29.3,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",

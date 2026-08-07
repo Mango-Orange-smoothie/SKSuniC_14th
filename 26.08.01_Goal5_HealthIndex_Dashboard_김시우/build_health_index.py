@@ -594,23 +594,29 @@ def compute_level_and_trend(
     # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
     zone_base_rate: dict[tuple[str, str], float] = {}
-    # (26.08.06 개정) 원래는 "정상 기준"을 4대 장비 풀링 median으로 잡았다 — 특정 장비가
-    # 일시적으로 나빠진 구간이 있어도 기준 자체가 끌려가지 않게 하려는 의도였다. 그런데
-    # CLN_Flow처럼 애초에 "이 위험구간에 들어가는 게 특정 장비(DP04)만의 일"인 컬럼에선
-    # 이 가정이 틀렸다 — DP01~03을 풀링에 같이 넣으면 걔들의 "항상 0%"가 평소 비율을
-    # 인위적으로 짓눌러서(0.48%), DP04가 원래도 가끔 겪는 정상적 편차(7.53%)조차 비율로
-    # 따지면 1469%짜리 폭주로 보이게 만들었다(김시우님 지적). "평소"는 그 장비 자신의
-    # 이력 기준이어야 맞다 — 다른 장비를 섞을 이유가 없다. 그래서 이제 장비별로 따로
-    # 잡는다. (CLN_Pressure/Surface_Roughness는 애초에 4대가 서로 비슷한 비율이라
-    # 이 변경으로 값이 거의 안 바뀐다 — 확인됨.)
+    # (26.08.06) "평소"는 그 장비 자신의 이력 기준이어야 맞다 — 4대 풀링 median을 쓰던 때는
+    # CLN_Flow처럼 위험구간 진입이 DP04만의 일인 컬럼에서 나머지 3대의 "항상 0%"가 평소
+    # 비율을 짓눌러(0.48%) DP04의 정상적 편차(7.53%)조차 1469%짜리 폭주로 보이게 만들었다.
+    #
+    # (26.08.08) 여기서 직접 median을 잡지 않고 step0 산출물을 읽는다. 예전엔 이 파일이
+    # 일별 진입률의 median을, trend_analysis.py는 그룹별 진입률의 median을 썼다 — 같은
+    # "평소 X%"가 화면과 경보에서 다른 수였다. 게다가 둘 다 89일 전체 × 전체 샷이라
+    # 불량 샷과 열화 기간이 baseline에 섞였다(김시우님 지적). 이제 안정 구간 × OK샷으로
+    # 잰 단일 출처를 양쪽이 같이 읽는다(config.py C_BASELINE_MIN_STABLE_DAYS 주석 참고).
+    # zone_lookup(날짜별 실제 진입률)은 계속 일별 집계 파일에서 온다 — 이건 "지금 값"이라
+    # baseline과 달리 전 구간이 필요하다.
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
-            series = zg.set_index("date")["defect_zone_rate"].sort_index()
-            zone_lookup[(m, c)] = series
-            base = series.median()
-            if not base:
-                base = series.mean()  # median도 0이면(절반 넘는 날이 0%) mean으로 대체
-            zone_base_rate[(m, c)] = float(base) if base else 0.0
+            zone_lookup[(m, c)] = zg.set_index("date")["defect_zone_rate"].sort_index()
+    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷) — 근거는
+    # trend_analysis.py compute_c_type_baseline_rate 주석 참고(희귀 사건에서 median이
+    # 0으로 붕괴해 DP04 CLN_Flow의 크기 정보가 사라졌다).
+    entry_path = config.PREPROCESSING_DIR / "00_baseline_C_entry_rate.csv"
+    if entry_path.exists():
+        entry = pd.read_csv(entry_path)
+        agg = entry.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
+        for (m, c), v in (agg["n_in_zone"] / agg["n_ok_shots"]).items():
+            zone_base_rate[(m, c)] = float(v)
 
     rows = []
     for (machine, col), g in daily_series.groupby(["Machine_ID", "column"]):

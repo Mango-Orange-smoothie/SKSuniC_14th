@@ -23,6 +23,7 @@ MACHINE_TREND_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", 
 BASELINE_AB_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_AB.csv")
 BASELINE_C_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C.csv")
 BASELINE_E_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_E.csv")
+BASELINE_C_ENTRY_RATE_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C_entry_rate.csv")
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "trend_analysis_results.csv")
@@ -323,37 +324,41 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 
 # ----------------------------------------------------------------------
 # 5-3. Type C "접근" 판정용 정상 danger_rate — **장비×컬럼별로** "평소엔 위험구간에 샷이
-#      얼마나 들어가는지"를 미리 재둔다(그 장비 안 Product×Recipe 그룹별 비율의 median,
-#      특정 그룹이 튀어도 안 흔들리게).
-#      build_health_index.py의 defect_zone_rate 기준(zone_base_rate)과 같은 방식.
+#      얼마나 들어가는지". 그 장비 안 Product×Recipe 그룹별 비율의 median을 쓴다(특정
+#      그룹이 튀어도 안 흔들리게).
 #
-#      (26.08.06) 원래는 4대 장비를 풀링해서 컬럼당 하나로 잡았는데, CLN_Flow처럼 위험구간
-#      진입이 특정 장비(DP04)만의 일인 컬럼에선 "항상 0%"인 나머지 3대가 평소 비율을
-#      인위적으로 짓눌렀다(DP04 자신은 1.72%인데 풀링하면 0.44%). "평소"는 그 장비 자신의
-#      이력이어야 맞다 — build_health_index.py에서 같은 이유로 고친 것과 동일한 수정이다.
-#      (이번 데이터에선 WINDOW=10이라 danger_rate가 10% 단위로만 움직여서 판정 결과가
-#      실제로 바뀌지는 않았지만, 기준이 틀린 채로 두면 장비별 편차가 큰 컬럼이 새로 들어올
-#      때 그대로 오판이 된다.)
+#      (26.08.08) 이 값을 여기서 직접 계산하지 않고 step0 산출물을 읽는다. 예전엔
+#      trend_analysis.py(경보)와 build_health_index.py(화면)가 각자 계산했는데 정의가
+#      달랐다 — 여기는 그룹별 median, 저기는 일별 median. 같은 "평소 X%"가 화면과 경보에서
+#      다른 수를 가리켰다. 더 중요한 건 둘 다 **89일 전체 × 전체 샷**으로 쟀다는 점인데,
+#      불량 샷과 열화 기간이 baseline에 섞여 들어가 기준이 밀렸다(김시우님 지적).
+#      step0의 compute_c_entry_rate_baseline이 안정 구간 × OK샷으로 다시 재서
+#      00_baseline_C_entry_rate.csv에 저장한다 — 근거는 config.py의
+#      C_BASELINE_MIN_STABLE_DAYS 주석 참고.
 # ----------------------------------------------------------------------
 def compute_c_type_baseline_rate(df, column_type, c_map):
-    baseline_rate = {}
-    c_columns = [col for col, t in column_type.items() if t == "C" and col in df.columns]
-    for col in c_columns:
-        for machine_id, mdf in df.groupby("Machine_ID"):
-            group_rates = []
-            for (product_id, recipe_id), g in mdf.groupby(["Product_ID", "Recipe_ID"]):
-                info = c_map.get((col, f"{product_id}|{recipe_id}"))
-                if info is None:
-                    continue
-                values = g[col].to_numpy(dtype=float)
-                if info["risky_direction"] == "low_is_risky":
-                    risky = values < info["threshold"]
-                else:
-                    risky = values > info["threshold"]
-                group_rates.append(risky.mean())
-            if group_rates:
-                baseline_rate[(machine_id, col)] = float(np.median(group_rates))
-    return baseline_rate
+    """00_baseline_C_entry_rate.csv에서 (장비, 컬럼) -> 평소 진입률을 읽어온다.
+
+    인자 df/c_map은 더 이상 계산에 쓰지 않지만(호출부 시그니처 유지), column_type은
+    C유형만 남기는 필터로 계속 쓴다.
+    """
+    if not os.path.exists(BASELINE_C_ENTRY_RATE_CSV):
+        raise FileNotFoundError(
+            f"{BASELINE_C_ENTRY_RATE_CSV} 없음 — "
+            "먼저 `python -m pipeline.step0_preprocessing`을 실행하세요."
+        )
+    table = pd.read_csv(BASELINE_C_ENTRY_RATE_CSV)
+    c_columns = {col for col, t in column_type.items() if t == "C"}
+    table = table.loc[table["column"].isin(c_columns)]
+    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷)을 쓴다. median은 원래
+    # "한 그룹이 튀어도 안 흔들리게" 고른 것이었는데, 희귀 사건에서 0으로 붕괴한다 —
+    # DP04 CLN_Flow는 54개 그룹 중 49개가 진입 0건이라 median이 0.000%가 되고(실제
+    # 15,604샷 중 5건 = 0.032%), 그러면 "평소 대비 몇 배"가 정의 불가라 이진 판정으로
+    # 빠져 Health Index가 saturate했다. 나머지 11개 조합은 두 방식 차이가 0.8% 이내라
+    # 잃는 게 없다.
+    agg = table.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
+    rate = agg["n_in_zone"] / agg["n_ok_shots"]
+    return {(m, c): float(v) for (m, c), v in rate.items()}
 
 
 # ----------------------------------------------------------------------
