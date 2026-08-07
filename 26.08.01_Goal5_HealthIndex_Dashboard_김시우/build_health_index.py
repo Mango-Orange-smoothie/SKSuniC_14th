@@ -473,6 +473,70 @@ def load_defect_threshold_map() -> dict[str, dict]:
     return result
 
 
+def load_cusum_alert_lines() -> dict[str, dict[str, float | None]]:
+    """A/B/E유형 컬럼의 "CUSUM 경보선"(무시선)을 원래 단위로 환산해서 컬럼별로 돌려준다.
+
+    (26.08.06 추가) 왜 필요한가 — 지금 차트가 그리는 기준선은 LSL/USL/baseline 셋인데,
+    **그중 실제로 경보를 결정하는 선은 하나도 없다.** 멘토 스펙 LSL/USL은 이 공정의 자연
+    변동폭보다 훨씬 넓어서(9개 컬럼 중 7개가 89일 내내 위반 0건) 데이터에서 수십 시그마
+    떨어져 있고, 정작 경보를 내는 건 trend_analysis.py의 CUSUM이다. 그래서 화면에서는
+    실제 등락이 직선처럼 뭉개져 보이고(DP02 Laser_Power 30일치가 세로 220px 중 2.3px),
+    "왜 경보가 떴는지"를 그래프로 설명할 수가 없었다(김시우님 지적).
+
+    CUSUM은 매 샷 (z - K)를 누적하므로, 공정 평균이 baseline에서 K시그마 이내에 머무는
+    한 누적합이 안 쌓여 **아무리 오래 있어도 경보가 안 뜬다**. 반대로 K시그마를 넘어선
+    수준으로 지속되면 결국 경보가 뜬다. 즉 baseline ± CUSUM_K x std가 "이 선을 넘은
+    상태가 지속되면 경보"라는 실질적 판정 경계다.
+
+    주의: 이건 **지속되는 평균 수준**에 대한 선이지 샷/일평균 하나가 넘었다고 즉시
+    경보가 뜨는 선이 아니다. 얼마나 빨리 뜨는지는 넘어선 폭에 달렸다(CUSUM_H / (편차 - K)
+    샷 — 0.8시그마면 45샷, 2시그마면 3샷). 화면에 쓸 땐 "이 아래로 계속 있으면 경보"로
+    읽어야 한다.
+
+    trend_analysis.py와 같은 입력(00_baseline_AB/E + OPCOND별 std)과 같은 상수(CUSUM_K)를
+    쓴다 — 상수를 여기 다시 적으면 튜닝값이 어긋날 수 있어서 직접 import한다. Product x
+    Recipe 그룹별로 조금씩 다르므로 컬럼 대표값은 median을 쓴다(lsl/usl 표시값이 이미
+    같은 방식). C유형은 CUSUM으로 판정하지 않으므로 제외한다.
+    """
+    from trend_analysis import CUSUM_K  # 튜닝된 K를 단일 출처로 공유(중복 정의 방지)
+
+    ab_path = config.PREPROCESSING_DIR / "00_baseline_AB.csv"
+    e_path = config.PREPROCESSING_DIR / "00_baseline_E.csv"
+    std_path = config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv"
+    if not ab_path.exists() or not std_path.exists():
+        return {}
+    strat = pd.read_csv(std_path, usecols=["column", "std"])
+    std_map = strat.groupby("column")["std"].median().to_dict()
+
+    result: dict[str, dict[str, float | None]] = {}
+
+    def _add(col: str, baseline: float, bad_direction: str | None):
+        std = std_map.get(col)
+        if not std or not np.isfinite(std) or std <= 0 or not np.isfinite(baseline):
+            return
+        lower = baseline - CUSUM_K * std
+        upper = baseline + CUSUM_K * std
+        # A유형은 나쁜 방향이 하나뿐이라 반대쪽 선은 경보와 무관 — 그리면 오해를 부른다.
+        result[col] = {
+            "lower": round(float(lower), 4) if bad_direction in (None, "down") else None,
+            "upper": round(float(upper), 4) if bad_direction in (None, "up") else None,
+        }
+
+    ab = pd.read_csv(ab_path)
+    for col, g in ab.groupby("column"):
+        col_type = str(g["type"].iloc[0])
+        bad_dir = g["bad_direction"].iloc[0] if "bad_direction" in g else None
+        bad_dir = str(bad_dir) if col_type == "A" and pd.notna(bad_dir) else None
+        _add(str(col), float(g["baseline_value"].median()), bad_dir)
+
+    if e_path.exists():
+        e = pd.read_csv(e_path)
+        for col, g in e.groupby("column"):
+            _add(str(col), float(g["baseline_value"].median()), None)  # E유형은 양방향
+
+    return result
+
+
 def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, target: float, usl: float) -> pd.Series:
     """멘토 실측 스펙(pipeline/spec.py) 기준 margin_used_pct. 0=TARGET, 100=USL/LSL 도달.
 
@@ -499,6 +563,7 @@ def compute_level_and_trend(
     defect_threshold_map: dict[str, dict] | None = None,
     zone_rate_df: pd.DataFrame | None = None,
     target_override_map: dict[str, float] | None = None,
+    cusum_lines: dict[str, dict[str, float | None]] | None = None,
 ) -> pd.DataFrame:
     """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
@@ -524,6 +589,7 @@ def compute_level_and_trend(
     trend_status = trend_status or {}
     defect_threshold_map = defect_threshold_map or {}
     target_override_map = target_override_map or {}
+    cusum_lines = cusum_lines or {}
 
     # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
@@ -686,6 +752,10 @@ def compute_level_and_trend(
             "usl": round(usl_disp, 4),
             "spec_source": spec_source,
             "spec_status": "SPEC_OUT" if spec_out else "OK",
+            # 실제로 경보를 결정하는 선(있으면). lsl/usl과 달리 데이터 바로 근처에 있어서
+            # 그래프에 그리면 "왜 경보가 떴는지"가 눈에 보인다 — load_cusum_alert_lines 참고.
+            "cusum_alert_lower": (cusum_lines.get(col) or {}).get("lower"),
+            "cusum_alert_upper": (cusum_lines.get(col) or {}).get("upper"),
             # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
             # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
             # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
@@ -895,10 +965,11 @@ def main() -> None:
     defect_threshold_map = load_defect_threshold_map()
     zone_rate_df = load_daily_defect_zone_rate()
     target_override_map = load_target_override_map()
+    cusum_lines = load_cusum_alert_lines()
 
     level_trend = compute_level_and_trend(
         daily_series_raw, boundary_z, spec_values, trend_status, defect_threshold_map, zone_rate_df,
-        target_override_map,
+        target_override_map, cusum_lines,
     )
     level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 

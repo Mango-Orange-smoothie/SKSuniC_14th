@@ -293,6 +293,13 @@ def get_trend_chart_data(
         "baseline_median": float(spec["baseline_median"]),
         "lsl": float(spec["lsl"]),
         "usl": float(spec["usl"]),
+        # (26.08.06 추가) 실제로 경보를 결정하는 선. lsl/usl은 이 공정의 자연 변동폭보다
+        # 훨씬 넓어서 데이터에서 수십 시그마 떨어져 있고(멘토 스펙 9개 중 7개가 89일 내내
+        # 위반 0건), 경보를 내는 건 CUSUM이다. 화면에서 y축을 lsl~usl에 맞추면 실제 등락이
+        # 직선으로 뭉개지므로, 데이터 근처에 있는 이 선을 대신 기준으로 쓸 것.
+        # 값이 없을 수도 있다(C유형/방향이 한쪽뿐인 A유형의 반대쪽).
+        "cusum_alert_lower": float(spec["cusum_alert_lower"]) if pd.notna(spec["cusum_alert_lower"]) else None,
+        "cusum_alert_upper": float(spec["cusum_alert_upper"]) if pd.notna(spec["cusum_alert_upper"]) else None,
         "spec_source": spec["spec_source"],
         "spec_status": spec["spec_status"],
         "trend_direction": spec["trend_direction"] if pd.notna(spec["trend_direction"]) else None,
