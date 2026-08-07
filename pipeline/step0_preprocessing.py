@@ -622,6 +622,132 @@ def compute_baseline_type_c(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _stump_separation(values: pd.Series, defect_flags: pd.Series) -> dict | None:
+    """_find_baseline_c_breakpoint에 "분리배수"(경계 아래위 불량률 비)를 덧붙인다."""
+    result = _find_baseline_c_breakpoint(values, defect_flags)
+    if result is None:
+        return None
+    lo, hi = result["NG_rate_below"], result["NG_rate_above"]
+    if min(lo, hi) <= 0:
+        return None  # 한쪽이 0이면 배수가 무한대 — 표본 부족 신호로 보고 제외
+    result["separation_ratio"] = max(lo, hi) / min(lo, hi)
+    return result
+
+
+def scan_type_c_candidates(
+    df: pd.DataFrame, columns: list[str], defect_cols: list[str], n_permutations: int = 3, seed: int = 0
+) -> pd.DataFrame:
+    """전 컬럼 x 전 defect에 결정트리 스텀프를 돌려 C유형 후보를 스캔한다(순열검정 포함).
+
+    (26.08.07 추가) 왜 필요한가 — 지금까지 C유형 배정은 config.BASELINE_C_DEFECT_MAP에
+    하드코딩돼 있고, compute_baseline_type_c는 **거기 이미 적힌 컬럼만** threshold를
+    계산한다. 즉 파이프라인이 새 후보를 스스로 발견할 수도, 기존 배정이 여전히 유효한지
+    확인할 수도 없었다. 실제로 근거 계산은 파이프라인 밖 일회성 코드로 돌리고 결과 수치는
+    config.py 주석에만 남겼는데, 그 주석이 이미 현실과 어긋난 게 확인됐다(CLN_Pressure를
+    "20.8배"로 적어놨지만 R1 기준 재계산 결과는 4.5배).
+
+    핵심 문제는 **결정트리는 아무 컬럼에나 돌려도 threshold를 반드시 만들어낸다**는 것이다
+    (표본 안에서 가장 잘 갈리는 지점을 고르는 알고리즘이므로 순수 노이즈에도 분리가 생김).
+    그래서 "분리가 되는가"가 아니라 "우연히 생길 수준을 넘는가"로 판단해야 한다.
+
+    노이즈 천장은 **순열검정**으로 구한다 — 같은 데이터에서 defect 라벨만 무작위로 섞어
+    같은 스캔을 돌리면, 그때 나오는 분리배수가 "인과가 전혀 없을 때 이 방법이 만들어내는
+    분리"의 분포다. 그 분포의 p95를 천장으로 쓴다. 예전처럼 "무관해 보이는 컬럼들의 값"을
+    천장으로 삼으면 어느 컬럼이 무관한지를 미리 알아야 해서 순환논리가 된다.
+
+    관측 통계량이 "그룹별 배수의 median"이므로 순열 통계량도 같은 수준에서 만든다
+    (순열 1회 x 컬럼 1개 = 천장 표본 1개). 유형 배정 자체를 자동화하지는 않는다 — 방향
+    (A유형 bad_direction)이나 이론 상수(E유형)는 데이터가 아니라 물리 지식에서 나오기
+    때문이다. 이 표는 사람이 내린 배정이 데이터와 어긋날 때 드러나게 하는 용도다
+    (main의 불일치 경고 참고).
+    """
+    rng = np.random.default_rng(seed)
+    groups = [(g[columns + defect_cols]) for _, g in df.groupby(["Product_ID", "Recipe_ID"])]
+
+    rows = []
+    for defect in defect_cols:
+        null_ratios = []
+        for _ in range(n_permutations):
+            for col in columns:
+                per_group = []
+                for g in groups:
+                    shuffled = pd.Series(rng.permutation(g[defect].to_numpy()), index=g.index)
+                    s = _stump_separation(g[col], shuffled)
+                    if s is not None:
+                        per_group.append(s["separation_ratio"])
+                if per_group:
+                    null_ratios.append(float(np.median(per_group)))
+        noise_ceiling = float(np.percentile(null_ratios, 95)) if null_ratios else np.nan
+
+        for col in columns:
+            ratios, thresholds, directions = [], [], []
+            for g in groups:
+                s = _stump_separation(g[col], g[defect])
+                if s is None:
+                    continue
+                ratios.append(s["separation_ratio"])
+                thresholds.append(s["threshold"])
+                directions.append(s["risky_direction"])
+            if not ratios:
+                continue
+            counts = pd.Series(directions).value_counts()
+            rows.append({
+                "defect": defect,
+                "column": col,
+                "n_groups_fitted": len(ratios),
+                "separation_ratio_median": round(float(np.median(ratios)), 3),
+                "noise_ceiling_p95": round(noise_ceiling, 3),
+                # 천장 대비 몇 배인가 — 1.0 이하면 순수 노이즈와 구분 불가.
+                "signal_over_noise": round(float(np.median(ratios)) / noise_ceiling, 2) if noise_ceiling else np.nan,
+                "threshold_median": round(float(np.median(thresholds)), 5),
+                "dominant_direction": str(counts.index[0]),
+                # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄인다(CLN_Time이 이래서 B유형).
+                "direction_consistency": round(float(counts.iloc[0] / len(directions)), 3),
+                "has_mentor_spec": col in SPEC,
+                "assigned_type_c": config.BASELINE_C_DEFECT_MAP.get(col) == defect,
+            })
+    return pd.DataFrame(rows).sort_values(["defect", "separation_ratio_median"], ascending=[True, False])
+
+
+def warn_type_c_mismatch(candidates: pd.DataFrame, min_direction_consistency: float = 0.8) -> None:
+    """스캔 결과를 요약하고, **이미 배정된 C유형이 근거를 잃으면** 경고한다.
+
+    경고를 "기준 통과했는데 config에 없음"까지 확장하지 않는 이유: 스텀프 분리력이 세다는
+    건 "이 변수가 그 불량을 예측한다"는 뜻이지 "C유형이어야 한다"는 뜻이 아니다. C유형은
+    **정상 target을 정의할 수 없고 편측 위험선만 그을 수 있는** 변수를 위한 것인데, 분리력
+    숫자만으로는 그 구분이 안 된다 — 예컨대 Top/Bottom_Kerf는 Chipping을 37~43배로 가르지만
+    (멘토 시나리오 "Kerf 증가 -> Chipping 증가"가 실제로 데이터에 있음) 커프 폭은 목표값이
+    분명한 양측 변수라 B유형이 맞다. 그래서 "후보 목록"은 표로 제공하되 승격 판단은 사람이
+    한다.
+
+    반대로 **이미 C유형으로 배정된 컬럼이 노이즈 천장 아래로 내려가는 것**은 명확한 이상
+    신호다 — 이건 반드시 경고한다(26.08.07에 config.py 주석의 근거 수치가 이미 현실과
+    어긋나 있던 게 이 방식으로 발견됐다).
+    """
+    if candidates.empty:
+        return
+    print("\n[C유형 스캔] 순열검정 노이즈 천장 대비 신호 강도 (상세: 00_baseline_C_candidates.csv)")
+    for defect, g in candidates.groupby("defect"):
+        ceiling = g["noise_ceiling_p95"].iloc[0]
+        top = g[~g["has_mentor_spec"]].head(3)
+        detail = ", ".join(f"{r.column} {r.signal_over_noise}x" for r in top.itertuples(index=False))
+        print(f"  {defect}: 천장 {ceiling}배 | 상위 {detail}")
+
+    assigned = candidates[candidates["assigned_type_c"]]
+    missing_rows = set(config.BASELINE_C_DEFECT_MAP.items()) - set(zip(assigned["column"], assigned["defect"]))
+    weak = assigned[(assigned["signal_over_noise"] <= 1.0)
+                    | (assigned["direction_consistency"] < min_direction_consistency)]
+    for r in weak.itertuples(index=False):
+        print(f"  [경고] {r.column}->{r.defect}는 C유형으로 배정돼 있으나 이번 스캔에서 기준 미달"
+              f"(신호 {r.signal_over_noise}x, 방향일관성 {r.direction_consistency}) — 재검토 필요.")
+    for col, defect in sorted(missing_rows):
+        print(f"  [경고] {col}->{defect}는 C유형으로 배정돼 있으나 스캔에서 threshold 학습 자체가 안 됨"
+              f"(표본 부족 등) — 재검토 필요.")
+    if weak.empty and not missing_rows:
+        print(f"  배정된 C유형 {len(assigned)}건 모두 노이즈 천장을 넘음"
+              f"(최저 {assigned['signal_over_noise'].min()}x).")
+
+
 def compute_baseline_type_e(ok_df: pd.DataFrame) -> pd.DataFrame:
     """E유형(대칭성/정렬형): 그룹핑 없는 이론 상수 + 참고용 실측 OK mean/std."""
     rows = []
@@ -700,7 +826,22 @@ def main() -> None:
     # 집계, 이후 trend_analysis.py 감시)은 계속 원본 df로 — R1은 원본과 합치지 않는다
     # (load_r1_for_threshold_training docstring 참고).
     r1_df = load_r1_for_threshold_training()
-    baseline_c = compute_baseline_type_c(r1_df if r1_df is not None else df)
+    threshold_source = r1_df if r1_df is not None else df
+
+    # (26.08.07) C유형 배정이 여전히 데이터와 맞는지 매 실행마다 확인한다. compute_baseline_
+    # type_c는 config에 이미 적힌 컬럼만 계산하므로 자기 배정을 검증할 수 없다 —
+    # scan_type_c_candidates는 반대로 전 컬럼을 돌려서 사람 판단과 대조한다.
+    # Yield는 제외한다 — 정의상 불량률의 반대편(Fail_Die vs 100-Yield Spearman 1.000)이라
+    # 어떤 defect든 완벽히 가른다(누수). "원인"이 아니라 "결과"라 후보가 될 수 없다.
+    scan_cols = [c for c in CONTINUOUS_TREND_COLS
+                 if c in threshold_source.columns and c != "Yield"]
+    scan_defects = [d for d in config.DEFECTS_BINARY
+                    if d in threshold_source.columns and d not in config.MENTOR_EXCLUDED_DEFECTS]
+    c_candidates = scan_type_c_candidates(threshold_source, scan_cols, scan_defects)
+    save_table(c_candidates, "00_baseline_C_candidates.csv", subdir="preprocessing")
+    warn_type_c_mismatch(c_candidates)
+
+    baseline_c = compute_baseline_type_c(threshold_source)
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
 
     # C유형 threshold는 샷 단위 경계라 일평균과 직접 비교하면 안 된다(위 함수 docstring 참고).
