@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T01:47:36.394954",
+  "generated_at": "2026-08-08T03:12:40.495356",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -372,16 +372,16 @@
                 },
                 {
                   "product_id": "PKG_B",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 8
+                  "recipe_id": "RCP_6",
+                  "warning_count": 10
                 },
                 {
-                  "product_id": "PKG_D",
-                  "recipe_id": "RCP_2",
-                  "warning_count": 6
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 8
                 }
               ],
-              "n_product_recipe_combos_affected": 28.0,
+              "n_product_recipe_combos_affected": 31.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
@@ -601,15 +601,15 @@
             {
               "product_id": "PKG_F",
               "recipe_id": "RCP_4",
-              "warning_count": 11
+              "warning_count": 12
             },
             {
               "product_id": "PKG_C",
               "recipe_id": "RCP_7",
-              "warning_count": 9
+              "warning_count": 11
             }
           ],
-          "n_product_recipe_combos_affected": 39.0,
+          "n_product_recipe_combos_affected": 40.0,
           "recipe_hotspot_concentrated": true,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
@@ -739,7 +739,7 @@
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 83.4,
+          "health_index": 83.1,
           "worst_factor": "CLN_Pressure"
         },
         {
@@ -800,11 +800,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 83.4,
+          "health_index": 83.1,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 83.4,
+              "health_index": 83.1,
               "spec_status": "OK"
             },
             {
@@ -858,21 +858,21 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 83.4,
+              "health_index": 83.1,
               "defect_zone_rate_pct": 6.29,
               "defect_zone_baseline_pct": 5.62,
               "margin_trend_pct_per_day": -2.495,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
-              "early_warning_active": false,
-              "trend_message": "DP02 / PKG_D / RCP_6의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_D / RCP_3의 CLN_Pressure에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "alert_since": "2026-03-30",
+              "alert_active_days": 0.1,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
                   "recipe_id": "RCP_8",
-                  "warning_count": 17
+                  "warning_count": 18
                 },
                 {
                   "product_id": "PKG_F",
@@ -880,12 +880,12 @@
                   "warning_count": 13
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_8",
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_1",
                   "warning_count": 10
                 }
               ],
-              "n_product_recipe_combos_affected": 35.0,
+              "n_product_recipe_combos_affected": 37.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
@@ -1098,19 +1098,19 @@
           "alert_active_days": 0.2,
           "recipe_hotspots": [
             {
+              "product_id": "PKG_B",
+              "recipe_id": "RCP_6",
+              "warning_count": 18
+            },
+            {
+              "product_id": "PKG_E",
+              "recipe_id": "RCP_5",
+              "warning_count": 17
+            },
+            {
               "product_id": "PKG_C",
               "recipe_id": "RCP_6",
               "warning_count": 14
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_2",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_4",
-              "warning_count": 7
             }
           ],
           "n_product_recipe_combos_affected": 49.0,
@@ -1581,17 +1581,17 @@
                   "warning_count": 14
                 },
                 {
-                  "product_id": "PKG_D",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 8
+                  "product_id": "PKG_E",
+                  "recipe_id": "RCP_6",
+                  "warning_count": 9
                 },
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_2",
-                  "warning_count": 6
+                  "warning_count": 8
                 }
               ],
-              "n_product_recipe_combos_affected": 23.0,
+              "n_product_recipe_combos_affected": 28.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
@@ -1804,22 +1804,22 @@
           "alert_active_days": 0.1,
           "recipe_hotspots": [
             {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_8",
-              "warning_count": 12
+              "product_id": "PKG_A",
+              "recipe_id": "RCP_5",
+              "warning_count": 39
             },
             {
-              "product_id": "PKG_E",
+              "product_id": "PKG_B",
+              "recipe_id": "RCP_1",
+              "warning_count": 28
+            },
+            {
+              "product_id": "PKG_A",
               "recipe_id": "RCP_9",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_2",
-              "warning_count": 9
+              "warning_count": 25
             }
           ],
-          "n_product_recipe_combos_affected": 51.0,
+          "n_product_recipe_combos_affected": 53.0,
           "recipe_hotspot_concentrated": true,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
@@ -2100,28 +2100,28 @@
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 1개가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 0.01% — 우연이라면 1개 이상 나올 확률이 1% 미만) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.4,
+              "trend_message": "DP04 / PKG_D / RCP_1의 CLN_Flow에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "alert_since": "2026-02-22",
+              "alert_active_days": 36.2,
               "recipe_hotspots": [
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 12
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 221
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_3",
-                  "warning_count": 12
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 221
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 10
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_1",
+                  "warning_count": 220
                 }
               ],
-              "n_product_recipe_combos_affected": 39.0,
-              "recipe_hotspot_concentrated": true,
+              "n_product_recipe_combos_affected": 54.0,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
@@ -2159,28 +2159,28 @@
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP04 / PKG_C / RCP_7의 CLN_Flow은(는) 최근 10개 샷 중 1개가 위험 Threshold(9.6935) 구간에 들어감(이 장비 평소 0.01% — 우연이라면 1개 이상 나올 확률이 1% 미만) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-              "alert_since": "2026-03-30",
-              "alert_active_days": 0.4,
+              "trend_message": "DP04 / PKG_D / RCP_1의 CLN_Flow에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "alert_since": "2026-02-22",
+              "alert_active_days": 36.2,
               "recipe_hotspots": [
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 12
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 221
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_3",
-                  "warning_count": 12
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 221
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 10
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_1",
+                  "warning_count": 220
                 }
               ],
-              "n_product_recipe_combos_affected": 39.0,
-              "recipe_hotspot_concentrated": true,
+              "n_product_recipe_combos_affected": 54.0,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma"
@@ -2206,20 +2206,20 @@
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
+                  "warning_count": 13
+                },
+                {
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_1",
                   "warning_count": 12
                 },
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_2",
                   "warning_count": 11
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_4",
-                  "warning_count": 8
                 }
               ],
-              "n_product_recipe_combos_affected": 28.0,
+              "n_product_recipe_combos_affected": 31.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
@@ -2432,6 +2432,11 @@
           "alert_active_days": null,
           "recipe_hotspots": [
             {
+              "product_id": "PKG_A",
+              "recipe_id": "RCP_8",
+              "warning_count": 12
+            },
+            {
               "product_id": "PKG_B",
               "recipe_id": "RCP_9",
               "warning_count": 11
@@ -2440,11 +2445,6 @@
               "product_id": "PKG_D",
               "recipe_id": "RCP_9",
               "warning_count": 11
-            },
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_2",
-              "warning_count": 9
             }
           ],
           "n_product_recipe_combos_affected": 50.0,

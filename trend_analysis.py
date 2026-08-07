@@ -519,7 +519,13 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             if ref_std_scalar is None or (isinstance(ref_std_scalar, float) and np.isnan(ref_std_scalar)) or ref_std_scalar == 0:
                 ref_std_scalar = fallback_std_map.get((product_id, recipe_id, col), np.nan)
             cusum_pos = cusum_neg = None
-            if col_type in ("A", "B", "E") and not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
+            # (26.08.08) 유형 제한을 풀었다 — 예전엔 A/B/E만 CUSUM을 받고 C는 threshold
+            # 판정만 받았는데, 그건 원리가 아니라 C 컬럼에 baseline을 안 만들어줬던 탓이다
+            # (실제로는 stratum_target_map에 Product×Recipe OK median이 이미 있다).
+            # 전 컬럼 측정 결과 no_trend 장비에서의 CUSUM 오경보율이 0.000~0.364%로
+            # 35개 전부 C_DANGER_ALPHA(1%) 미만이라, 붙여서 해로운 컬럼이 없다.
+            # 유형이 "어떤 경보를 받는지"를 정하지 않게 하는 것이 목적이다(김시우님 지적).
+            if not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
                 z_full = (values - baseline) / ref_std_scalar
                 s_pos_full, s_neg_full = compute_cusum(z_full)
                 cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
@@ -615,6 +621,26 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                             f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
                             f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                         )
+
+                # (26.08.08) C유형에도 CUSUM 경로를 추가한다 — threshold 판정을 대체하는
+                # 게 아니라 더한다. threshold는 "위험구간에 샷이 들어갔나"(꼬리)를 보고
+                # CUSUM은 "평균 수준이 밀렸나"를 보므로 서로 다른 이상을 잡는다.
+                # 실측: CLN_Flow DP04는 CUSUM이 threshold보다 6~9일 빨랐고(2/22 vs 2/28)
+                # 나머지 3대에서는 0건이었다. 방향은 A유형과 같이 위험한 쪽만 본다 —
+                # 반대쪽은 이 컬럼에서 경보와 무관하다.
+                if cusum_pos is not None and risky_direction is not None:
+                    ew_c = ((cusum_neg < -CUSUM_H) if risky_direction == "low_is_risky"
+                            else (cusum_pos > CUSUM_H))
+                    early_warning |= ew_c
+                    trend_direction[ew_c] = "down" if risky_direction == "low_is_risky" else "up"
+                    side = "낮은" if risky_direction == "low_is_risky" else "높은"
+                    for i in np.where(ew_c)[0]:
+                        if not messages[i]:
+                            messages[i] = (
+                                f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                                f"정상 Baseline 대비 {side} 방향으로 지속적으로 벌어지는 "
+                                f"편차가 감지되었습니다."
+                            )
 
             elif col_type == "E":
                 if cusum_pos is not None:
