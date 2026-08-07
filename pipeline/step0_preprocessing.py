@@ -27,7 +27,8 @@ import statsmodels.api as sm
 from sklearn.tree import DecisionTreeClassifier
 
 from pipeline import config
-from pipeline.spec import SPEC
+from pipeline import mentor
+from pipeline.mentor import SPEC
 from pipeline.common import (
     compute_stratum_baseline_stats,
     mann_kendall,
@@ -388,13 +389,13 @@ def _analysis_role_of(col: str) -> str:
         return "datetime"
     if col in config.EXCLUDED_IDENTIFIERS:
         return "identifier_excluded"
-    if col in config.MENTOR_EXCLUDED_VARS:
+    if col in mentor.MENTOR_EXCLUDED_VARS:
         return "mentor_excluded"
     if col in ("Machine_ID", "Product_ID", "Recipe_ID"):
         return "context_stratum"
     if col in ("Yield", "NG_Code"):
         return "target_outcome"
-    if col in config.MENTOR_EXCLUDED_DEFECTS:
+    if col in mentor.MENTOR_EXCLUDED_DEFECTS:
         return "mentor_excluded_defect"
     if col in config.DEFECTS_BINARY or col in config.DEFECTS_COUNT:
         return "target_defect"
@@ -437,9 +438,9 @@ def build_column_classification(
             if role == "identifier_excluded":
                 decision_note = "멘토 피드백: 로트 추적/작업자 식별용, 분석 피처로 부적합 — 원본엔 보존, 피처셋에서 제외."
             elif role == "mentor_excluded":
-                decision_note = config.MENTOR_EXCLUDED_VARS_NOTE
+                decision_note = mentor.MENTOR_EXCLUDED_VARS_NOTE
             elif role == "mentor_excluded_defect":
-                decision_note = config.MENTOR_EXCLUDED_DEFECTS_NOTE
+                decision_note = mentor.MENTOR_EXCLUDED_DEFECTS_NOTE
             elif role == "context_stratum":
                 decision_note = "장비/제품/레시피 층 정의 및 범주형 통제변수로 사용."
             elif role == "target_outcome":
@@ -447,11 +448,11 @@ def build_column_classification(
             elif role == "target_defect":
                 decision_note = "defect 타깃 — Goal2/4의 예측 대상."
 
-        mentor_note = config.MENTOR_DOMAIN_NOTES.get(col)
+        mentor_note = mentor.MENTOR_DOMAIN_NOTES.get(col)
         if mentor_note:
             decision_note = f"{decision_note} {mentor_note}".strip() if decision_note else mentor_note
 
-        pending_note = config.MENTOR_PENDING_REVIEW.get(col)
+        pending_note = mentor.MENTOR_PENDING_REVIEW.get(col)
         if pending_note:
             decision_note = f"{decision_note} {pending_note}".strip() if decision_note else pending_note
 
@@ -475,9 +476,9 @@ def build_column_classification(
                 "flatline_fault_rate": float(f["flatline_flagged_rate"]) if f is not None else np.nan,
                 "is_operation_condition_key": col in config.OPCOND,
                 "is_excluded_identifier": col in config.EXCLUDED_IDENTIFIERS,
-                "is_mentor_excluded": col in config.MENTOR_EXCLUDED_VARS,
-                "is_mentor_excluded_defect": col in config.MENTOR_EXCLUDED_DEFECTS,
-                "mentor_pending_review": col in config.MENTOR_PENDING_REVIEW,
+                "is_mentor_excluded": col in mentor.MENTOR_EXCLUDED_VARS,
+                "is_mentor_excluded_defect": col in mentor.MENTOR_EXCLUDED_DEFECTS,
+                "mentor_pending_review": col in mentor.MENTOR_PENDING_REVIEW,
                 "include_in_downstream_default": include_default,
                 "decision_note": decision_note,
             }
@@ -512,7 +513,7 @@ def _ok_median_baseline(ok_df: pd.DataFrame, columns: list[str]) -> dict[tuple[s
 def compute_baseline_type_a(ok_df: pd.DataFrame) -> pd.DataFrame:
     """A유형(방향성 있는 단조 drift형): 그룹별 baseline + 확정된 악화 방향.
 
-    (26.08.05) SPEC(pipeline/spec.py, 멘토 실측)에 있는 컬럼은 OK median 대신
+    (26.08.05) SPEC(pipeline/mentor.py, 멘토 실측)에 있는 컬럼은 OK median 대신
     멘토의 TARGET을 baseline으로 쓴다 — "실측 중앙값"보다 "멘토가 맞다고 한 값"이
     더 권위 있는 기준이라서다. SPEC에 없는 컬럼은 기존처럼 OK median.
     """
@@ -768,7 +769,7 @@ def compute_baseline_type_e(ok_df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def _apply_mentor_target_override(baseline_df: pd.DataFrame) -> pd.DataFrame:
-    """SPEC(pipeline/spec.py)에 있는 컬럼은 median을 멘토 TARGET으로 덮어쓴다.
+    """SPEC(pipeline/mentor.py)에 있는 컬럼은 median을 멘토 TARGET으로 덮어쓴다.
 
     z-score 중심이 "실제 그동안 어땠는지"(median)가 아니라 "원래 어때야 하는지"(TARGET)여야
     맞다 — 실측이 TARGET에서 미세하게 벗어나 있으면 median 기준으론 그 편차 자체가
@@ -836,7 +837,7 @@ def main() -> None:
     scan_cols = [c for c in CONTINUOUS_TREND_COLS
                  if c in threshold_source.columns and c != "Yield"]
     scan_defects = [d for d in config.DEFECTS_BINARY
-                    if d in threshold_source.columns and d not in config.MENTOR_EXCLUDED_DEFECTS]
+                    if d in threshold_source.columns and d not in mentor.MENTOR_EXCLUDED_DEFECTS]
     c_candidates = scan_type_c_candidates(threshold_source, scan_cols, scan_defects)
     save_table(c_candidates, "00_baseline_C_candidates.csv", subdir="preprocessing")
     warn_type_c_mismatch(c_candidates)
@@ -871,9 +872,9 @@ def main() -> None:
         "subsystem_column_counts": {
             name: len(cols) for name, cols in config.SUBSYSTEMS.items()
         },
-        "mentor_excluded_columns": config.MENTOR_EXCLUDED_VARS,
-        "mentor_excluded_defects": config.MENTOR_EXCLUDED_DEFECTS,
-        "mentor_pending_review_columns": config.MENTOR_PENDING_REVIEW,
+        "mentor_excluded_columns": mentor.MENTOR_EXCLUDED_VARS,
+        "mentor_excluded_defects": mentor.MENTOR_EXCLUDED_DEFECTS,
+        "mentor_pending_review_columns": mentor.MENTOR_PENDING_REVIEW,
         "notes": [
             "die 단위 x,y 좌표 없음 — 공간(DBSCAN) 클러스터링은 이번 범위 제외.",
             "결측/불가능0/flatline은 flag_only 정책 — 자동 보간 없음.",

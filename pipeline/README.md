@@ -5,6 +5,21 @@
 원본 `DP_HealthIndex_Dataset.csv`나 기존 `analysis_step_by_step.py` /
 `full_correlation_analysis.py`는 건드리지 않는다 — 이 파이프라인은 그 위에 추가되는 것이다.
 
+## 파일 구성 (26.08.07 정리)
+
+| 파일 | 성격 | 바꿔도 되나 |
+|---|---|---|
+| `mentor.py` | **멘토가 준 입력** — SPEC(LSL/TARGET/USL), 제외 지정 변수/defect, 도메인 노트, 재확인 대기 항목 | ❌ 멘토 확인 필요 |
+| `config.py` | **팀이 정한 값** — 층 정의, 컬럼 분류, 임계값, baseline 유형 배정 | ⭕ 근거를 남기고 |
+| `common.py` | 여러 스크립트가 공유하는 함수. `[파이프라인 연결]` / `[제공 도구]` 두 구역으로 나뉨 | 연결부는 호출부 확인 후 |
+| `step0_preprocessing.py` | 6단계 전처리 로직 본체 | — |
+
+`mentor.py`를 `config.py`에서 분리한 이유: 섞여 있으면 "이건 우리가 정한 거니까 바꿔도 되나?"를
+매번 헷갈린다. 실제로 `BASELINE_C_DEFECT_MAP`의 근거 주석이 낡은 채 방치되는 일이 있었다
+(→ 지금은 `00_baseline_C_candidates.csv`로 매 실행마다 재계산됨).
+`common.py`의 구역 표시도 같은 이유 — `[제공 도구]`는 호출부가 없는 게 정상이라
+"미사용 = 죽은 코드"로 오진되는 걸 막는다.
+
 ## 환경 설정
 
 저장소 루트(`suni c 14조/`)에서 실행:

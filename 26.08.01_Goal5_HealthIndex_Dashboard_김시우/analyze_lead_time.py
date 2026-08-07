@@ -10,7 +10,7 @@
   3. 같은 장비(Machine_ID)의 시간순 데이터에서, 그 defect 발생 시점까지 최근
      LOOKBACK_ROWS(3000)행을 가져온다.
   4. 원인변수의 "margin"(0~100+, 100=스펙/임시경계 도달)을 매 행 계산한다.
-       - 멘토 실측 스펙 있는 변수(pipeline/spec.py): TARGET 대비 LSL/USL까지 거리 비율
+       - 멘토 실측 스펙 있는 변수(pipeline/mentor.py): TARGET 대비 LSL/USL까지 거리 비율
        - 없는 변수: OPCOND z-score를 boundary_z(정상군 p0.5~p99.5 기반 임시경계)로 나눈 값
      둘 다 direction(up/down/either)에 따라 위험한 쪽만 카운트(안전한 쪽은 margin=0).
   5. margin >= RISK_MARGIN_THRESHOLD(50)를 "위험 상태"로 정의.
@@ -52,7 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pipeline import config
 from pipeline.common import load_dataset, zscore_transform, compute_stratum_baseline_stats
-from pipeline.spec import SPEC
+from pipeline.mentor import SPEC
 import build_health_index as bhi
 
 OUT_DIR = Path(__file__).resolve().parent
