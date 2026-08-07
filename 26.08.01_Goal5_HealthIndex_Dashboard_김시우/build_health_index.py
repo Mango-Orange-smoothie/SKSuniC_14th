@@ -739,11 +739,24 @@ def compute_level_and_trend(
         valid = margin_pct.dropna()
         if valid.empty:
             continue
-        current_margin_pct = float(valid.iloc[-1])
         latest_idx = valid.index[-1]
         latest_pos = g.index.get_loc(latest_idx)  # zone_rate_now(위치 기반 배열) 조회용
         latest_date = g.loc[latest_idx, "date"]
-        current_value = float(g.loc[latest_idx, "daily_mean"])
+        # (26.08.08) "현재 상태"를 마지막 하루가 아니라 최근 RECENT_DEFECT_WINDOW_DAYS일의
+        # 중앙값으로 잡는다. 예전엔 valid.iloc[-1](하루치)을 썼는데, 이 신호의 일별 변동이
+        # 그 자체로 크다 — CLN_Pressure 진입률은 4대 모두 89일 평균 6.76~7.11%에 표준편차
+        # 1.30~1.67%p로, 하루 사이 4%p씩 튄다. 그래서 3/30 하루의 1.1%p 차이(DP01 7.41%
+        # vs DP02 6.29%, 표준편차보다도 작은 노이즈)만으로 Remain_Coat 건강도가 57.9 대
+        # 83.1로 25점 갈렸고, 추세 페널티를 0으로 놔도 드리프트 17개인 DP02가 4개인
+        # DP01보다 좋게 나왔다(김시우님 지적). 7일 중앙값으로 재면 DP01 6.59% /
+        # DP02 6.57%로 차이가 사라지고 89일 평균과도 맞는다.
+        # 창 길이는 이미 "최근"의 의미로 쓰는 RECENT_DEFECT_WINDOW_DAYS를 재사용한다.
+        # median을 쓰는 것도 이 파이프라인이 baseline/threshold에서 쓰는 방식과 같다.
+        window = valid.iloc[-RECENT_DEFECT_WINDOW_DAYS:]
+        current_margin_pct = float(window.median())
+        value_window = g.loc[window.index, "daily_mean"].dropna()
+        current_value = float(value_window.median()) if len(value_window) else float(
+            g.loc[latest_idx, "daily_mean"])
         # 예전엔 margin_used_pct를 100%에서 clip해서, 경계를 살짝 넘은 것(margin 105%)과
         # 몇 배로 폭주한 것(margin 291%)이 똑같이 "HI 0.0"으로 뭉개졌다 — worst_factors/
         # worst_defects/장비 순위에서 뭐가 더 급한지 구분이 안 됐다(김시우님 피드백).
@@ -795,9 +808,14 @@ def compute_level_and_trend(
             # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
             # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
             # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
+            # margin과 같은 창(최근 RECENT_DEFECT_WINDOW_DAYS일 중앙값)으로 낸다 —
+            # 화면에 보이는 진입률과 점수의 근거가 어긋나면 안 된다.
             "defect_zone_rate_pct": (
-                round(float(zone_rate_now[latest_pos]) * 100, 2)
-                if zone_rate_now is not None and not pd.isna(zone_rate_now[latest_pos]) else None
+                round(float(np.nanmedian(zone_rate_now[
+                    [g.index.get_loc(i) for i in window.index]])) * 100, 2)
+                if zone_rate_now is not None
+                and np.isfinite(np.nanmedian(zone_rate_now[
+                    [g.index.get_loc(i) for i in window.index]])) else None
             ),
             "defect_zone_baseline_pct": (
                 round(zone_base_rate.get((machine, col), 0.0) * 100, 2) if spec_source == "defect_zone_rate" else None
