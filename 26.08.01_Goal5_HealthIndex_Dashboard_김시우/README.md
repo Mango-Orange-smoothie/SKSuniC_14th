@@ -75,21 +75,59 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 그대로 줍니다. 스펙아웃이면 `spec_status: "SPEC_OUT"`만 표시하고(퍼센트 안 보여줌),
 아직 스펙 안이고 나빠지는 중이면 `estimated_days_to_spec_out`(예상 며칠 뒤)을 줍니다.
 
-## 데이터 출처 — 각자 확정한 유효인자를 그대로 가져옴
+## 데이터 출처 — 원인 인자는 Goal2 관계DB에서 읽음
 
-- Particle → `Vibration` (daeho, `26.07.31_2058_Goal2_PARTICLE_후속검증/` — 선행신호 검증까지 완료된 것)
-- Remain_Coat → `CLN_Pressure` (전성재, `26.07.31_Goal2_REM_COAT_유효인자_분석_전성재/` — Machine 통제 다변량 v2)
-- Chipping → `Laser_Power`/`Power_Efficiency`/`Head_Temp`/`Laser_Centering_Position`/`Kerf_Width_Profile`/`Top_Kerf`/`Bottom_Kerf`/`Groove_Depth`
-  (JHdaimma `26.08.01_Goal2_CHIP_CRACK_유효인자_분석_JHdaimma/` 3방법 합의 + Jun confirmed 교차확인)
-- Micro_Crack → `Vibration`/`Cooling_Flow` (JHdaimma, Chipping과 공유 원인)
+원인 판정은 `26.08.05_Goal2_통합_Relationship_DB_JHdaimma/agent_cause_factors.json`
+하나에서 온다(agent.py도 같은 파일을 쓴다). 1세대 개별 산출물(daeho/전성재/JHdaimma의
+defect별 분석)은 이 통합 DB로 흡수됐다.
+
+**(26.08.08) `per_defect[defect].alert_usable`를 존중한다.** 관계DB는 인자 레벨
+`alert_usable`과 defect별 플래그를 따로 들고 있고 둘이 다를 수 있다. 예전엔 인자 레벨
+`defects` 목록만 읽어서, DB가 "이 짝으로는 경보를 걸면 안 됨"이라고 적어둔 연결까지
+썼다 — 자세한 경위는 아래 "알려진 한계" 참고.
+
+현재 감시되는 defect (실행할 때마다 콘솔에 출력됨):
+
+| defect | 쓸 수 있는 원인 인자 |
+|---|---|
+| Remain_Coat | `CLN_Pressure`, `CLN_Flow` |
+| Chipping | `Power_Efficiency`, `Laser_Power`, `Head_Temp`, `Cooling_Flow` |
+| **Particle** | **없음** — 유일한 후보 `CLN_Flow`가 `alert_usable=False`(risk_ratio 0.80) |
+| **Micro_Crack** | **없음** — 관계DB의 원인(FDC) 목록에 연결된 인자가 없음 |
+
 - 전처리/baseline/일별 집계 → `pipeline/`(김시우 Step0)
 - 추세판정/조기경보(early_warning) → `trend_analysis.py`(이승연 원안, 김시우가 지속성
   필터 추가 + 경로/입력 수정, 저장소 루트) — Health Index가 이 결과를 그대로 읽어 씀
 
 ## 알려진 한계
 
+- **(26.08.08 현재) Particle과 Micro_Crack을 감시하지 못합니다.** Particle은 감시
+  데이터에서 가장 흔한 불량인데(6,455건, 6.46%) 쓸 수 있는 원인 인자가 없습니다.
+  경위: 유일한 후보였던 `CLN_Flow`는 관계DB `per_defect["Particle"].alert_usable=False`
+  (risk_ratio 0.80 — 위험구간 불량률이 정상구간보다 **낮다**는 뜻)입니다. 예전엔 이 플래그를
+  안 읽어서 Particle 건강도가 CLN_Flow 건강도의 복사본이었고, DP03의 Particle이
+  6.8%→10.2%로 늘어나는 동안 건강도는 100.0을 유지했습니다. 지금은 그 연결을 끊고
+  **"감시 수단 없음"을 실행 시 경고로 출력**합니다 — 가짜 100점보다 정직합니다.
+  실제로 가장 강한 관계는 `Surface_Roughness`↔Particle(risk_ratio 378.38, DB 전체 최강)인데
+  `role = 감시지표(Response)`라 원인(FDC) 목록에 없습니다. **Health Index에 결과 지표를
+  넣을지는 Goal2 담당자와 협의 필요.**
 - **boundary_z/USL/LSL은 컬럼당 대표값 하나(장비 4대 풀링)**입니다 — 장비/레시피마다
   실제 스펙 여유가 다를 수 있는 걸 다 못 담습니다.
+- **(26.08.08 발견 및 수정) "현재 상태"를 마지막 하루로 읽던 문제.** 이 신호는 일별 변동이
+  그 자체로 큽니다 — CLN_Pressure 진입률은 4대 모두 89일 평균 6.76~7.11%에 표준편차
+  1.30~1.67%p로, 하루 사이 4%p씩 튑니다. 그런데 마지막 하루의 1.1%p 차이(표준편차보다도
+  작은 노이즈)만으로 Remain_Coat 건강도가 57.9 대 83.1로 25점 갈렸고, 그 결과 드리프트
+  17개인 DP02가 4개인 DP01보다 좋게 나왔습니다. **수정: `current_margin_pct` /
+  `current_value` / `defect_zone_rate_pct`를 최근 `RECENT_DEFECT_WINDOW_DAYS`(7)일
+  중앙값으로.** 수정 후 장비 순위가 드리프트 수·경보 지속일과 일치합니다
+  (DP01 78.8 / DP03 53.6 / DP02 51.1 / DP04 0.4).
+- **(26.08.08 발견 및 수정) 경보 지속 상태가 계속 리셋되던 문제.** `alert_since`를
+  "최신 행이 속한 episode(같은 Product×Recipe 안에서 끊기지 않은 구간)의 시작"으로
+  잡았는데, 경보는 Product×Recipe별로 판정되고 서로 다른 그룹의 샷이 시간축에서 뒤섞이므로
+  한 그룹의 경보는 자연히 끊깁니다. 128개 (장비,컬럼) 조합 중 54개가 "1일 미만"으로
+  표시됐는데 전부 실제로는 30일 넘게 경보 상태였습니다(DP03 Surface_Roughness는 224개
+  episode로 쪼개져 "0.1일째"). **수정: (장비, 컬럼) 단위로 경보 간격이
+  `TREND_WARNING_ACTIVE_WITHIN_DAYS` 이내면 같은 상태로 이어붙임.** "1일 미만" 54→28건.
 - **(26.08.05 발견 및 수정) margin_used_pct가 "일별 평균 z"를 "개별 샷 기준 p0.5~p99.5"랑
   비교하던 버그가 있었습니다.** 하루 평균은 개별 샷보다 훨씬 덜 극단적으로 나오는데
   (여러 샷을 평균내면 노이즈가 상쇄됨), 경계선은 개별 샷 노이즈 분포로 그어놔서
