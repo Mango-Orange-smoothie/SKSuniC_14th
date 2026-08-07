@@ -104,7 +104,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import config
-from pipeline.spec import SPEC
+from pipeline.mentor import SPEC
 
 OUT_DIR = Path(__file__).resolve().parent
 
@@ -433,7 +433,7 @@ def load_target_override_map() -> dict[str, float]:
 def load_defect_threshold_map() -> dict[str, dict]:
     """C유형(CLN_Pressure/Surface_Roughness)의 "불량률이 급변하는 경계값"을 컬럼별 대표값으로 로드.
 
-    (26.08.05 추가) 이 두 컬럼은 멘토 SPEC(pipeline/spec.py)에 없어서 그동안
+    (26.08.05 추가) 이 두 컬럼은 멘토 SPEC(pipeline/mentor.py)에 없어서 그동안
     provisional_percentile(정상군 일평균 p0.5~p99.5)로 경계를 대체하고 있었는데, 그 값이
     실제 불량 발생 지점과 크게 어긋난다는 걸 확인했다 — CLN_Pressure의 임시 LSL은
     target에서 0.16σ(= 하루 ~270샷 평균의 표준오차 폭 그 자체, 즉 "일평균이 평소 얼마나
@@ -538,7 +538,7 @@ def load_cusum_alert_lines() -> dict[str, dict[str, float | None]]:
 
 
 def _real_spec_margin_pct(raw_values: pd.Series, direction: str, lsl: float, target: float, usl: float) -> pd.Series:
-    """멘토 실측 스펙(pipeline/spec.py) 기준 margin_used_pct. 0=TARGET, 100=USL/LSL 도달.
+    """멘토 실측 스펙(pipeline/mentor.py) 기준 margin_used_pct. 0=TARGET, 100=USL/LSL 도달.
 
     OPCOND 층별 정규화를 안 거치고 raw 값을 그대로 스펙과 비교한다 — 멘토가 준 스펙은
     Product/Recipe에 상관없는 절대 물리적 기준이라, 상대적 z-score가 아니라 실측값
@@ -568,7 +568,7 @@ def compute_level_and_trend(
     """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
     두 가지 기준 소스를 컬럼별로 섞어 쓴다:
-      - SPEC(pipeline/spec.py)에 있는 10개 컬럼: 멘토가 준 진짜 LSL/TARGET/USL을 raw 값과
+      - SPEC(pipeline/mentor.py)에 있는 10개 컬럼: 멘토가 준 진짜 LSL/TARGET/USL을 raw 값과
         직접 비교(spec_source="mentor_spec") — 신뢰도 높음.
       - 나머지 컬럼: daily_mean_z(OPCOND baseline 대비 일별 정규화 잔차)와 boundary_z(여기
         쓰는 boundary_z는 daily_mean_z 자기 자신의 분포로 잰 경계 — compute_daily_boundary_z.

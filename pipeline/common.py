@@ -2,6 +2,15 @@
 
 기존 analysis_step_by_step.py의 save_table 규약(utf-8-sig CSV, analysis_outputs/ 하위)을
 그대로 따르되, 서브폴더 저장을 지원하도록 확장한다.
+
+(26.08.07) 이 파일의 함수는 성격이 두 가지인데 섞여 있으면 오해를 부른다 — 실제로
+"아무도 안 쓰니 죽은 코드"로 잘못 진단된 적이 있다. 아래 두 구역으로 나눠서 표시한다.
+
+  [파이프라인 연결] step0/Goal 스크립트가 실제로 호출하는 함수. 시그니처를 바꾸면
+      호출부가 깨진다.
+  [제공 도구] 강제 적용하지 않고 "Goal 담당자가 필요할 때 갖다 쓰라"고 만들어 둔 것
+      (pipeline/README.md "추가 피처 엔지니어링 도구" 참고). 지금 호출부가 없는 건
+      정상이며, 미사용이라고 지우면 안 된다 — 동작 검증까지 마치고 문서화해 둔 팀 자산이다.
 """
 
 from __future__ import annotations
@@ -45,18 +54,9 @@ def spearman(x: pd.Series, y: pd.Series) -> float:
     return float(r)
 
 
-def robust_stats(series: pd.Series) -> dict:
-    """단일 시리즈의 median/MAD 기반 강건 통계."""
-    values = series.dropna()
-    if len(values) == 0:
-        return {"median": np.nan, "mad": np.nan, "mean": np.nan, "std": np.nan, "cv": np.nan}
-    median = values.median()
-    mad = (values - median).abs().median()
-    mean = values.mean()
-    std = values.std()
-    cv = std / mean if mean not in (0,) and abs(mean) > 1e-9 else np.nan
-    return {"median": median, "mad": mad, "mean": mean, "std": std, "cv": cv}
-
+# ---------------------------------------------------------------------------
+# [파이프라인 연결] step0/Goal 스크립트가 실제로 호출하는 함수
+# ---------------------------------------------------------------------------
 
 def mann_kendall(time_index: pd.Series, values: pd.Series) -> tuple[float, float]:
     """Mann-Kendall 단조추세 검정과 수학적으로 동일한 결과를 주는 Kendall's tau.
@@ -119,6 +119,11 @@ def zscore_transform(
         result = result.drop(columns=["__median", "__scale"])
     return result
 
+
+# ---------------------------------------------------------------------------
+# [제공 도구] 강제 적용 안 함 — 필요할 때 갖다 쓰는 용도. 호출부가 없는 게 정상이며
+# 미사용이라고 지우면 안 된다(pipeline/README.md "추가 피처 엔지니어링 도구" 참고).
+# ---------------------------------------------------------------------------
 
 def add_spec_deviation_features(
     df: pd.DataFrame, baseline_long: pd.DataFrame, stratum_keys: list[str], columns: list[str]

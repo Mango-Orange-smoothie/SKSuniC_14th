@@ -7,7 +7,7 @@ from scipy import stats
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
-from pipeline.spec import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
+from pipeline.mentor import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
 
 RAW_INPUT_FILES = [
     ("DP_HealthIndex_Dataset.csv", os.path.join(BASE_DIR, "data", "raw", "DP_HealthIndex_Dataset.csv")),
@@ -78,7 +78,7 @@ CUSUM_H = 4.5   # 경보 임계값(시그마 단위) — 누적합이 이걸 넘
 #     이동폭을 이 정도로 잡는 대신 오탐 증가를 감수해야 한다.
 
 
-# (26.08.06 추가) 멘토 실측 스펙(pipeline/spec.py) LSL/USL 위반 검사.
+# (26.08.06 추가) 멘토 실측 스펙(pipeline/mentor.py) LSL/USL 위반 검사.
 #
 # 왜 CUSUM/threshold와 별개로 필요한가: 기존 판정은 전부 "정상군 baseline 대비 얼마나
 # 벗어났나"(상대 기준)다. 멘토 스펙은 유일한 절대 기준이라, 같은 CUSUM 경보라도 "스펙
@@ -110,7 +110,7 @@ def compute_spec_violation_rules(df, usable_columns):
     """컬럼별 (lsl, usl, 평소 위반율, 경보에 필요한 연속 위반 샷 수)를 미리 계산.
 
     SPEC은 10개지만 실제 검사 대상은 9개다 — Focus는 멘토가 "분석에 활용하지 않아도
-    된다"고 명시적으로 제외한 변수라(config.MENTOR_EXCLUDED_VARS) 분석 대상 컬럼
+    된다"고 명시적으로 제외한 변수라(mentor.MENTOR_EXCLUDED_VARS) 분석 대상 컬럼
     목록에서 이미 빠져 있다.
     """
     rules = {}
