@@ -710,8 +710,14 @@ def _find_baseline_c_breakpoint(values: pd.Series, defect_flags: pd.Series) -> d
     x = values.to_numpy().reshape(-1, 1)
     y = defect_flags.to_numpy()
 
+    # (26.08.08) class_weight="balanced" 추가 — Goal2 관계DB(rel_20_tier_table.csv)의
+    # threshold_method 컬럼이 "DecisionTree stump(max_depth=1, class_weight=balanced)"로
+    # 명시돼 있는데 여기만 빠져 있었다. 불량률이 2~8%인 불균형 데이터라 가중치 없이는
+    # 다수 클래스(정상)를 맞히는 쪽으로 분할점이 끌린다. 같은 방법이라고 문서에 적힌
+    # 두 구현이 다른 값을 내면 안 되므로 DB 쪽에 맞춘다(김시우님 지적).
     tree = DecisionTreeClassifier(
-        max_depth=1, min_samples_leaf=config.BASELINE_C_MIN_SAMPLES_LEAF, random_state=0
+        max_depth=1, min_samples_leaf=config.BASELINE_C_MIN_SAMPLES_LEAF,
+        class_weight="balanced", random_state=0,
     )
     tree.fit(x, y)
 
