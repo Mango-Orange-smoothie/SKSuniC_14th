@@ -240,32 +240,22 @@ def provisional_control_limits(df: pd.DataFrame) -> None:
 
 
 def trend_table(df: pd.DataFrame) -> pd.DataFrame:
-    """6단계: 설비별 일 단위 추세와 defect/Yield 결과를 연결한다.
+    """6단계: 설비별 일 단위 추세와 defect/Yield 결과.
 
-    defect rate 컬럼은 PROCESS가 다루는 4개(Particle/Remain_Coat/Micro_Crack/Chipping)로
-    맞춘다 — Edge_Burn_rate는 제외됨(멘토 확인, defect 분석 대상 아님).
+    (26.08.07) 계산 자체는 pipeline/step0_preprocessing.py의 compute_machine_daily_trend로
+    옮겼다 — 이 스크립트는 8/1 이후 정지된 초기 탐색용인데 이 산출물만 파이프라인 핵심으로
+    남아 있었기 때문이다(build_health_index의 "최근 7일 실제 불량 발생" 판정과 agent.py의
+    "언제 불량 났었어?" 조회가 둘 다 읽는다). 실행 순서 안내 어디에도 이 스크립트가 없어서,
+    원본이 바뀌면 이 파일만 낡은 채 남을 위험이 있었다.
+
+    여기서는 step0가 만든 결과를 읽어 쓰기만 한다 — 같은 계산을 두 벌 두면 갈라진다.
     """
-    trend = (
-        df.assign(date=df["DateTime"].dt.date)
-        .groupby(["Machine_ID", "date"], as_index=False)
-        .agg(
-            Head_Temp=("Head_Temp", "mean"),
-            Coating_Uniformity=("Coating_Uniformity", "mean"),
-            Surface_Roughness=("Surface_Roughness", "mean"),
-            Yield=("Yield", "mean"),
-            Particle_rate=("Particle", "mean"),
-            Remain_Coat_rate=("Remain_Coat", "mean"),
-            Micro_Crack_rate=("Micro_Crack", "mean"),
-            Chipping_rate=("Chipping", "mean"),
-            samples=("Yield", "size"),
+    path = OUTPUT_DIR / "05_machine_daily_trend.csv"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} 없음 — 먼저 `python -m pipeline.step0_preprocessing`을 실행하세요."
         )
-    )
-    for col in ["Head_Temp", "Coating_Uniformity", "Surface_Roughness", "Yield"]:
-        trend[f"{col}_7d_ma"] = trend.groupby("Machine_ID")[col].transform(
-            lambda x: x.rolling(7, min_periods=3).mean()
-        )
-    save_table(trend, "05_machine_daily_trend.csv")
-    return trend
+    return pd.read_csv(path)
 
 
 def create_visual_data(df: pd.DataFrame, trend: pd.DataFrame) -> None:
