@@ -1,5 +1,5 @@
 ﻿Machine_ID,health_index,worst_defect,worst_defects
 DP01,57.9,Remain_Coat,"[{'defect': 'Remain_Coat', 'health_index': 57.9, 'worst_factor': 'CLN_Pressure'}, {'defect': 'Chipping', 'health_index': 72.3, 'worst_factor': 'Cooling_Flow'}, {'defect': 'Particle', 'health_index': 100.0, 'worst_factor': 'CLN_Flow'}]"
 DP02,51.2,Chipping,"[{'defect': 'Chipping', 'health_index': 51.2, 'worst_factor': 'Laser_Power'}, {'defect': 'Remain_Coat', 'health_index': 83.1, 'worst_factor': 'CLN_Pressure'}, {'defect': 'Particle', 'health_index': 100.0, 'worst_factor': 'CLN_Flow'}]"
-DP03,67.3,Remain_Coat,"[{'defect': 'Remain_Coat', 'health_index': 67.3, 'worst_factor': 'CLN_Pressure'}, {'defect': 'Chipping', 'health_index': 80.4, 'worst_factor': 'Cooling_Flow'}, {'defect': 'Particle', 'health_index': 100.0, 'worst_factor': 'CLN_Flow'}]"
-DP04,0.4,Particle,"[{'defect': 'Particle', 'health_index': 0.4, 'worst_factor': 'CLN_Flow'}, {'defect': 'Remain_Coat', 'health_index': 0.4, 'worst_factor': 'CLN_Flow'}, {'defect': 'Chipping', 'health_index': 97.6, 'worst_factor': 'Head_Temp'}]"
+DP03,53.3,Chipping,"[{'defect': 'Chipping', 'health_index': 53.3, 'worst_factor': 'Head_Temp'}, {'defect': 'Remain_Coat', 'health_index': 67.3, 'worst_factor': 'CLN_Pressure'}, {'defect': 'Particle', 'health_index': 100.0, 'worst_factor': 'CLN_Flow'}]"
+DP04,0.4,Particle,"[{'defect': 'Particle', 'health_index': 0.4, 'worst_factor': 'CLN_Flow'}, {'defect': 'Remain_Coat', 'health_index': 0.4, 'worst_factor': 'CLN_Flow'}, {'defect': 'Chipping', 'health_index': 96.3, 'worst_factor': 'Power_Efficiency'}]"

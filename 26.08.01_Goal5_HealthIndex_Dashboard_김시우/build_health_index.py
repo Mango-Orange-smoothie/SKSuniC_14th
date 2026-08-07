@@ -266,18 +266,26 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
         latest_row = g.loc[g["DateTime"].idxmax()]
         days_since = (dataset_latest - latest_row["DateTime"]) / pd.Timedelta(days=1)
 
-        # (26.08.06 추가) "언제부터 이 이상이 시작됐는지"는 가장 최근 경고 행이 속한
-        # episode(같은 Product×Recipe 안에서 early_warning이 끊기지 않고 이어진 구간)의
-        # 첫 행 시각이다. 여기서 알림을 매 행(=매일)마다 새로 보내면 40일 넘게 지속되는
-        # 문제도 40번 알림이 나가버리므로(엔지니어 알림 피로), n8n 등 실제 알림 트리거는
-        # early_warning 행 자체가 아니라 이 episode 시작 시점(alert_since)이 바뀔 때만
-        # 새 알림으로 취급해야 한다.
-        same_episode = g[
-            (g["Product_ID"] == latest_row["Product_ID"])
-            & (g["Recipe_ID"] == latest_row["Recipe_ID"])
-            & (g["episode_id"] == latest_row["episode_id"])
-        ]
-        alert_since = same_episode["DateTime"].min()
+        # (26.08.06) "언제부터 이 이상이 시작됐는지". 알림을 매 행마다 새로 보내면 40일
+        # 지속되는 문제도 40번 나가므로(엔지니어 알림 피로), n8n 등 실제 알림 트리거는
+        # early_warning 행이 아니라 이 alert_since가 바뀔 때만 새 알림으로 취급해야 한다.
+        #
+        # (26.08.08 개정) 예전엔 "가장 최근 행이 속한 episode"(같은 Product×Recipe 안에서
+        # 끊기지 않은 구간)의 시작을 썼는데, 그러면 상태가 유지되지 않고 계속 리셋됐다 —
+        # 경보는 Product×Recipe 그룹별로 판정되는데 서로 다른 그룹의 샷이 시간축에서
+        # 뒤섞이므로 한 그룹의 경보는 자연히 끊긴다. 실측: 128개 (장비,컬럼) 조합 중
+        # 54개가 "1일 미만"으로 표시됐는데 전부 실제로는 30일 넘게 경보 상태였다
+        # (DP03 Surface_Roughness는 224개 episode로 쪼개져 "0.1일째"). 엔지니어가 보는
+        # 건 "이 장비의 이 변수가 언제부터 이상한가"이지 레시피별 조각이 아니다(김시우님 지적).
+        #
+        # 그래서 (장비, 컬럼) 단위로, 경보 간격이 TREND_WARNING_ACTIVE_WITHIN_DAYS 이내면
+        # 같은 상태가 이어진 것으로 보고 이어붙인다. 이 상수는 바로 위 early_warning_active
+        # 판정이 이미 "마지막 경보가 이만큼 이내면 지금도 켜져 있다"는 뜻으로 쓰는 값이라
+        # 새 튜닝값을 만들지 않는다.
+        times = g["DateTime"].sort_values()
+        gap_breaks = times.diff() > pd.Timedelta(days=TREND_WARNING_ACTIVE_WITHIN_DAYS)
+        run_id = gap_breaks.cumsum()
+        alert_since = times[run_id == run_id.iloc[-1]].min()
         alert_active_days = (dataset_latest - alert_since) / pd.Timedelta(days=1)
 
         combo_counts = g.groupby(["Product_ID", "Recipe_ID"]).size().sort_values(ascending=False)
