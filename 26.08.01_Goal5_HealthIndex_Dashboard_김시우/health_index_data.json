@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T03:28:45.563617",
+  "generated_at": "2026-08-08T03:37:19.617693",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -247,59 +247,10 @@
           "defect": "Chipping",
           "health_index": 96.1,
           "worst_factor": "Head_Temp"
-        },
-        {
-          "defect": "Particle",
-          "health_index": 100.0,
-          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
-        "Particle": {
-          "health_index": 100.0,
-          "worst_factors": [
-            {
-              "factor": "CLN_Flow",
-              "health_index": 100.0,
-              "spec_status": "OK"
-            }
-          ],
-          "actual_occurred_recent_7d": true,
-          "occurred_days_recent_7d": 7,
-          "causes": {
-            "CLN_Flow": {
-              "current_value": 10.0001,
-              "baseline_median": 9.992,
-              "lsl": 9.694,
-              "usl": 9.992,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "OK",
-              "health_index": 100.0,
-              "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.0,
-              "margin_trend_pct_per_day": null,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": false,
-              "trend_message": "DP01 / PKG_C / RCP_5의 CLN_Flow은(는) 최근 10개 샷 중 1개가 위험 Threshold(9.8600) 구간에 들어감(이 장비 평소 0.00% — 우연이라면 1개 이상 나올 확률이 1% 미만) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 1
-                }
-              ],
-              "n_product_recipe_combos_affected": 1.0,
-              "recipe_hotspot_concentrated": false,
-              "direction": "down",
-              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
-            }
-          }
-        },
         "Remain_Coat": {
           "health_index": 78.8,
           "worst_factors": [
@@ -627,64 +578,10 @@
           "defect": "Remain_Coat",
           "health_index": 76.6,
           "worst_factor": "CLN_Pressure"
-        },
-        {
-          "defect": "Particle",
-          "health_index": 100.0,
-          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
-        "Particle": {
-          "health_index": 100.0,
-          "worst_factors": [
-            {
-              "factor": "CLN_Flow",
-              "health_index": 100.0,
-              "spec_status": "OK"
-            }
-          ],
-          "actual_occurred_recent_7d": true,
-          "occurred_days_recent_7d": 7,
-          "causes": {
-            "CLN_Flow": {
-              "current_value": 9.9972,
-              "baseline_median": 9.992,
-              "lsl": 9.694,
-              "usl": 9.992,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "OK",
-              "health_index": 100.0,
-              "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.02,
-              "margin_trend_pct_per_day": -0.958,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": false,
-              "trend_message": "DP02 / PKG_C / RCP_5의 CLN_Flow은(는) 최근 10개 샷 중 1개가 위험 Threshold(9.8600) 구간에 들어감(이 장비 평소 0.02% — 우연이라면 1개 이상 나올 확률이 1% 미만) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_3",
-                  "warning_count": 2
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 1
-                }
-              ],
-              "n_product_recipe_combos_affected": 2.0,
-              "recipe_hotspot_concentrated": false,
-              "direction": "down",
-              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
-            }
-          }
-        },
         "Remain_Coat": {
           "health_index": 76.6,
           "worst_factors": [
@@ -1229,59 +1126,10 @@
           "defect": "Remain_Coat",
           "health_index": 66.3,
           "worst_factor": "CLN_Pressure"
-        },
-        {
-          "defect": "Particle",
-          "health_index": 100.0,
-          "worst_factor": "CLN_Flow"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
-        "Particle": {
-          "health_index": 100.0,
-          "worst_factors": [
-            {
-              "factor": "CLN_Flow",
-              "health_index": 100.0,
-              "spec_status": "OK"
-            }
-          ],
-          "actual_occurred_recent_7d": true,
-          "occurred_days_recent_7d": 7,
-          "causes": {
-            "CLN_Flow": {
-              "current_value": 9.9996,
-              "baseline_median": 9.992,
-              "lsl": 9.694,
-              "usl": 9.992,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "OK",
-              "health_index": 100.0,
-              "defect_zone_rate_pct": 0.0,
-              "defect_zone_baseline_pct": 0.01,
-              "margin_trend_pct_per_day": null,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": false,
-              "trend_message": "DP03 / PKG_C / RCP_5의 CLN_Flow은(는) 최근 10개 샷 중 1개가 위험 Threshold(9.8600) 구간에 들어감(이 장비 평소 0.01% — 우연이라면 1개 이상 나올 확률이 1% 미만) — 위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다.",
-              "alert_since": null,
-              "alert_active_days": null,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_5",
-                  "warning_count": 3
-                }
-              ],
-              "n_product_recipe_combos_affected": 1.0,
-              "recipe_hotspot_concentrated": false,
-              "direction": "down",
-              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
-            }
-          }
-        },
         "Remain_Coat": {
           "health_index": 66.3,
           "worst_factors": [
@@ -1753,11 +1601,6 @@
       "health_index": 0.4,
       "worst_defects": [
         {
-          "defect": "Particle",
-          "health_index": 0.4,
-          "worst_factor": "CLN_Flow"
-        },
-        {
           "defect": "Remain_Coat",
           "health_index": 0.4,
           "worst_factor": "CLN_Flow"
@@ -1770,60 +1613,6 @@
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
-        "Particle": {
-          "health_index": 0.4,
-          "worst_factors": [
-            {
-              "factor": "CLN_Flow",
-              "health_index": 0.4,
-              "spec_status": "SPEC_OUT"
-            }
-          ],
-          "actual_occurred_recent_7d": true,
-          "occurred_days_recent_7d": 7,
-          "causes": {
-            "CLN_Flow": {
-              "current_value": 9.7691,
-              "baseline_median": 9.992,
-              "lsl": 9.694,
-              "usl": 9.992,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "SPEC_OUT",
-              "health_index": 0.4,
-              "defect_zone_rate_pct": 16.05,
-              "defect_zone_baseline_pct": 0.01,
-              "margin_trend_pct_per_day": 42.86,
-              "estimated_days_to_spec_out": null,
-              "trend_direction": "down",
-              "early_warning_active": true,
-              "trend_message": "DP04 / PKG_D / RCP_1의 CLN_Flow에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
-              "alert_since": "2026-02-19",
-              "alert_active_days": 39.2,
-              "recipe_hotspots": [
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 221
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 221
-                },
-                {
-                  "product_id": "PKG_D",
-                  "recipe_id": "RCP_1",
-                  "warning_count": 220
-                }
-              ],
-              "n_product_recipe_combos_affected": 54.0,
-              "recipe_hotspot_concentrated": false,
-              "direction": "down",
-              "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
-            }
-          }
-        },
         "Remain_Coat": {
           "health_index": 0.4,
           "worst_factors": [

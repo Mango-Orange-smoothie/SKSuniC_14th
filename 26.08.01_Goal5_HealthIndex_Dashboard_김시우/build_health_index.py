@@ -128,6 +128,34 @@ with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
     CAUSE_FACTORS = json.load(f)["cause_factors"]
 CAUSE_COLS = set(CAUSE_FACTORS.keys())
 
+
+def _usable_defects(meta: dict) -> list[str]:
+    """한 인자가 "경보에 쓸 수 있는" defect 목록.
+
+    (26.08.08) 예전엔 meta["defects"]를 그대로 썼는데, 관계DB는 인자 레벨
+    alert_usable 말고 per_defect[defect].alert_usable을 따로 들고 있고 둘이 다를 수
+    있다. 실제로 CLN_Flow는 인자 레벨 True인데 per_defect["Particle"]는 False다
+    (risk_ratio 0.80 — 위험구간 불량률이 정상구간보다 오히려 낮다는 뜻이라 DB가
+    "이 경계값으로 경보를 걸면 안 됨"이라고 적어놨다). 그걸 무시한 결과 Particle
+    건강도가 CLN_Flow 건강도의 복사본이 돼서, DP03의 Particle이 6.8%->10.2%로
+    늘어나는 동안 건강도는 100.0을 유지했다(김시우님 지적).
+    """
+    per = meta.get("per_defect") or {}
+    return [d for d in meta.get("defects", [])
+            if per.get(d, {}).get("alert_usable", meta.get("alert_usable", True))]
+
+
+_dropped = [(f, d) for f, meta in CAUSE_FACTORS.items()
+            for d in meta.get("defects", []) if d not in _usable_defects(meta)]
+if _dropped:
+    print("[관계DB] per_defect.alert_usable=False 라 Health Index 원인에서 제외: "
+          + ", ".join(f"{f}↔{d}" for f, d in _dropped))
+_orphans = [d for d in ("Particle", "Remain_Coat", "Micro_Crack", "Chipping")
+            if not any(d in _usable_defects(m) for m in CAUSE_FACTORS.values())]
+if _orphans:
+    print(f"[관계DB] 경고: 쓸 수 있는 원인 인자가 하나도 없는 defect {_orphans} — "
+          "이 defect는 Health Index가 감시하지 못한다(가짜 100점을 내지 않도록 제외됨).")
+
 DEFECT_RATE_COLS = {
     "Particle": "Particle_rate",
     "Remain_Coat": "Remain_Coat_rate",
@@ -855,7 +883,7 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
     for (machine, defect), _ in [
         ((m, d), None) for m in cause_rows["Machine_ID"].unique() for d in DEFECT_RATE_COLS
     ]:
-        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
         sub = cause_rows[(cause_rows["Machine_ID"] == machine) & (cause_rows["column"].isin(factor_names))]
         if sub.empty:
             continue
@@ -937,7 +965,7 @@ def build_machine_snapshot(
         # defect별로 원인변수 묶기
         defect_signals: dict[str, dict] = {}
         for defect in DEFECT_RATE_COLS:
-            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in meta["defects"]]
+            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
             factor_rows = cause_rows[cause_rows["column"].isin(factor_names)]
             if factor_rows.empty:
                 continue
