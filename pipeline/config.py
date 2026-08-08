@@ -350,6 +350,31 @@ ALARM_ONLY_C_COLUMNS = {
     "Coating_Thickness": "Remain_Coat",
 }
 
+# ---------------------------------------------------------------------------
+# (26.08.08) repro_state=판정불가인데 **감시 데이터 이항검정은 통과한** 짝.
+# ---------------------------------------------------------------------------
+# 관계DB의 repro_state=판정불가는 "재현이 실패했다"가 아니라 "표본이 없어 못 쟀다"는
+# 뜻이다(JHdaimma님 회신 ③). 그런데 못 잰 이유가 방법의 한계일 수 있다 — 전처리 6-1
+# 스캔은 그룹당 min_samples_leaf(10)를 요구해서 Chipping(감시 데이터 4건)에는 아예
+# 안 돌지만, **"그 4건이 좁은 위험구간 안에 들어가는가"는 이항검정으로 셀 수 있다.**
+#
+# Laser_Power -> Chipping (26.08.08 추가)
+#   위험구간(<=18.380)이 전체의 9.87%인데 Chipping 4건이 전부 그 안에 있다
+#   (18.306 / 18.280 / 18.292 / 18.281, 4대에서 하나씩). 무관하다면 확률
+#   0.0987^4 = 0.0095% -> **p = 9.5e-05**. 관계DB도 T1 / alert_usable=True /
+#   domain_evidence=멘토 확정이고, 멘토 시나리오("Laser Aging -> Power_Efficiency 감소
+#   -> Kerf 증가 -> Chipping 증가")의 마지막 화살표에 해당한다.
+#   threshold는 R1에서 배운다(감시 데이터 4건은 그룹별 학습 불가) — R1 기준 54/54가
+#   low_is_risky로 일관되고 경계 18.364로 rel_30의 18.380과 거의 같다.
+#
+# 같은 defect의 나머지 3쌍은 **넣지 않는다.** 반박된 게 아니라 정보가 없어서다:
+#   Power_Efficiency 구간 6.29% / 0건 (무관해도 4건 모두 밖일 확률 77.1%)
+#   Head_Temp        구간 2.11% / 0건 (91.8%)  <- 관계DB known_limitations 3번과 같은 지적
+#   Cooling_Flow     구간 25.96% / 0건 (30.1%) <- 위험구간이 정상 생산의 1/4이라 부적합
+DOMAIN_C_PAIRS_VERIFIED_BY_BINOMIAL = {
+    "Laser_Power": "Chipping",
+}
+
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",

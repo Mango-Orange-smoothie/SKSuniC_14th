@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T20:57:11.676304",
+  "generated_at": "2026-08-08T21:07:17.986593",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -535,13 +535,13 @@
               "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 93.5,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
+              "defect_zone_rate_pct": 5.32,
+              "defect_zone_baseline_pct": 4.49,
               "margin_trend_pct_per_day": -0.123,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP01 / PKG_E / RCP_6의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "trend_message": "DP01 / PKG_E / RCP_6의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.2,
               "recipe_hotspots": [
@@ -561,7 +561,7 @@
                   "warning_count": 4
                 }
               ],
-              "n_product_recipe_combos_affected": 15.0,
+              "n_product_recipe_combos_affected": 12.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
@@ -911,13 +911,13 @@
               "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 9.7,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
+              "defect_zone_rate_pct": 17.36,
+              "defect_zone_baseline_pct": 5.01,
               "margin_trend_pct_per_day": 0.79,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP02 / PKG_F / RCP_6의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "trend_message": "DP02 / PKG_F / RCP_6의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-02-02",
               "alert_active_days": 56.0,
               "recipe_hotspots": [
@@ -1445,13 +1445,13 @@
               "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 53.3,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
+              "defect_zone_rate_pct": 8.24,
+              "defect_zone_baseline_pct": 5.08,
               "margin_trend_pct_per_day": 0.415,
               "estimated_days_to_spec_out": 138.0,
               "trend_direction": "down",
               "early_warning_active": true,
-              "trend_message": "DP03 / PKG_C / RCP_2의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+              "trend_message": "DP03 / PKG_C / RCP_2의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-03-25",
               "alert_active_days": 5.0,
               "recipe_hotspots": [
@@ -1471,7 +1471,7 @@
                   "warning_count": 10
                 }
               ],
-              "n_product_recipe_combos_affected": 33.0,
+              "n_product_recipe_combos_affected": 32.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
@@ -1925,8 +1925,8 @@
               "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 92.9,
-              "defect_zone_rate_pct": null,
-              "defect_zone_baseline_pct": null,
+              "defect_zone_rate_pct": 4.73,
+              "defect_zone_baseline_pct": 4.78,
               "margin_trend_pct_per_day": 0.151,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
@@ -1947,11 +1947,11 @@
                 },
                 {
                   "product_id": "PKG_B",
-                  "recipe_id": "RCP_8",
+                  "recipe_id": "RCP_4",
                   "warning_count": 5
                 }
               ],
-              "n_product_recipe_combos_affected": 20.0,
+              "n_product_recipe_combos_affected": 16.0,
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",

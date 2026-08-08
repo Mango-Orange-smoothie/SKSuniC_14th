@@ -79,6 +79,15 @@ def resolve_defect_pairing() -> dict[str, str]:
     # 우리가 감시 데이터에서 직접 검정할 수 있다. 근거·검정 방법은 config 주석 참고.
     # 이 컬럼들은 관계DB의 cause_factors에 없으므로 is_cause_factor=False가 되어
     # defect 건강도에는 안 들어가고 "미확인 이상"으로만 나간다 — 원인 지목이 안 된다.
+    # 관계DB가 repro_state=판정불가로 남긴 짝 중 감시 데이터 이항검정을 통과한 것.
+    # 이건 "경보 전용"이 아니라 진짜 원인 짝이다(관계DB T1, 멘토 확정) — 표본이 없어
+    # DB의 재현 검증만 못 한 것이므로 원인 지목도 한다. 근거는 config 주석 참고.
+    for col, defect in config.DOMAIN_C_PAIRS_VERIFIED_BY_BINOMIAL.items():
+        if col in pairing:
+            continue
+        pairing[col] = defect
+        print(f"   이항검정통과 {col} ↔ {defect}  (repro_state=판정불가지만 감시 데이터에서 검정 통과)")
+
     for col, defect in config.ALARM_ONLY_C_COLUMNS.items():
         if col in pairing:
             print(f"   [경보전용] {col}은 이미 관계DB 짝이 있어 건너뜁니다({pairing[col]}).")
