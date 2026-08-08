@@ -686,6 +686,17 @@ def compute_level_and_trend(
         defect_thr = defect_threshold_map.get(col)
         zone_rate_now = None
 
+        # (26.08.08) 예전엔 이 셋이 배타 분기(if/elif/else)였다 — 멘토 스펙이 있으면 C유형
+        # threshold를 아예 안 봤다. 지금 C유형 3개(CLN_Flow/CLN_Pressure/Surface_Roughness)가
+        # 전부 멘토 스펙이 없어서 문제가 안 드러났을 뿐, 스펙이 있는 컬럼이 C로 오는 순간
+        # threshold가 통째로 무시된다(Coating_Thickness 승격 대기 중 — 이 컬럼은 위험구간의
+        # 98%가 스펙 안이라, 스펙 margin만 보면 C로 올린 이유 자체가 사라진다).
+        #
+        # trend_analysis.py는 이미 이렇게 안 한다 — 스펙 위반 판정이 A/B/C/E와 무관하게
+        # 공통 적용되고(line 493), C유형은 target(층별 OK median) + threshold + 편측 CUSUM을
+        # 전부 갖는다. 두 스크립트가 어긋나 있었다. 여기서 맞춘다: **둘 다 계산해서 나쁜
+        # 쪽(margin이 큰 쪽)을 쓴다.** 표시용 LSL/USL은 진짜 스펙을 우선한다.
+        margin_parts = []
         if real_spec is not None:
             spec_source = "mentor_spec" if col not in target_override_map else "mentor_spec_recomputed_target"
             lsl_disp, usl_disp = real_spec["LSL"], real_spec["USL"]
@@ -694,21 +705,28 @@ def compute_level_and_trend(
             # — load_target_override_map docstring 참고(멘토 TARGET과 스펙폭의 12% 어긋남,
             # 89일 내내 안 줄어드는 정적 오프셋이라 반복 오탐의 원인이었음).
             baseline_disp = target_override_map.get(col, real_spec["TARGET"])
-            margin_pct = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
-            margin_pct.index = g.index
-        elif defect_thr is not None and spec_values.get(col) and (machine, col) in zone_lookup:
+            m = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
+            m.index = g.index
+            margin_parts.append(m)
+        if defect_thr is not None and spec_values.get(col) and (machine, col) in zone_lookup:
             # C유형: 임시 percentile도, 일평균 대 threshold 비교도 아니고,
             # "그날 샷 중 몇 %가 불량 위험구간에 들어갔나"로 잰다.
             # (일평균은 356일 내내 threshold를 한 번도 안 넘어서 경보 자체가 불가능했음 —
             #  compute_daily_defect_zone_rate docstring 참고.)
-            spec_source = "defect_zone_rate"
-            baseline_disp = spec_values[col]["baseline_median"]
             thr = defect_thr["threshold"]
             risky_direction = defect_thr["risky_direction"]
-            if risky_direction == "low_is_risky":
-                lsl_disp, usl_disp = thr, baseline_disp
+            if real_spec is None:
+                spec_source = "defect_zone_rate"
+                baseline_disp = spec_values[col]["baseline_median"]
+                if risky_direction == "low_is_risky":
+                    lsl_disp, usl_disp = thr, baseline_disp
+                else:
+                    lsl_disp, usl_disp = baseline_disp, thr
             else:
-                lsl_disp, usl_disp = baseline_disp, thr
+                # 스펙과 threshold를 둘 다 가진 컬럼 — 표시는 진짜 스펙으로 하되, 근거가
+                # 둘이라는 걸 spec_source에 남긴다(어느 쪽이 점수를 결정했는지는
+                # margin_used_pct와 defect_zone_rate_pct를 같이 보면 읽힌다).
+                spec_source = f"{spec_source}+defect_zone_rate"
 
             zr = zone_lookup[(machine, col)].reindex(g["date"].values)
             n_shots = zone_shots[(machine, col)].reindex(g["date"].values)
@@ -734,8 +752,13 @@ def compute_level_and_trend(
                 np.nan,
                 (zr.values - base_rate) / np.where(span > 0, span, np.nan) * 100,
             )
-            margin_pct = pd.Series(margin_pct, index=g.index, dtype=float).clip(lower=0.0)
+            margin_parts.append(pd.Series(margin_pct, index=g.index, dtype=float).clip(lower=0.0))
             zone_rate_now = zr.values
+
+        if margin_parts:
+            # 둘 다 있으면 나쁜 쪽(margin이 큰 쪽)이 그날의 상태다. 한쪽만 NaN인 날은
+            # 있는 쪽을 그대로 쓴다(skipna) — 둘 다 없는 날만 NaN으로 남는다.
+            margin_pct = pd.concat(margin_parts, axis=1).max(axis=1, skipna=True)
         else:
             b = boundary_z.get(col)
             spec = spec_values.get(col)
@@ -828,9 +851,28 @@ def compute_level_and_trend(
         #    곱하면 스펙 안인 변수가 스펙아웃 전용 구간(0~10) 안으로 내려가 "10점 미만 =
         #    이미 스펙아웃"이라는 읽는 법이 깨진다.
         if ta_status.get("early_warning_active") and not spec_out:
+            # (26.08.08) 예전엔 성숙도(경보 지속일)만 썼다. 그러면 "방금 뜬 급한 경보"가
+            # 거의 안 깎여서 순위가 뒤집힌다 — DP03에서 CLN_Pressure(17.8일 뒤 스펙아웃,
+            # 경보 0.1일째)가 66.3점으로, Head_Temp(41.8일째지만 기울기 -0.02로 오히려
+            # 개선 중, margin 3.2%)의 53.6점보다 건강하게 나왔다.
+            #
+            # 그렇다고 기울기로 **대체**하면 반대쪽을 잃는다 — 실측상 지속일과 기울기의
+            # 순위상관은 0.077로 사실상 무관하고, 활성 경보 75건 중 30건(40%)은 기울기가
+            # 음수다. DP02 Laser_Power(56일 지속, 기울기 0.066)처럼 확정된 느린 열화는
+            # 기울기로는 안 잡힌다.
+            #
+            # 두 축은 각각 독립적으로 "이건 문제다"라고 말할 수 있다:
+            #   성숙도 = 증거가 쌓였나   (14일이면 완성)
+            #   긴급도 = 곧 터지나       (14일 안에 스펙아웃이면 최대)
+            # 그래서 둘 중 큰 쪽을 쓴다 — 둘 다 약할 때만 안 깎는다. 두 축 모두 기준을
+            # RECENT_WINDOW_DAYS 하나로 쓰므로 새로 고른 상수가 없다. est_days는 이미
+            # 계산해서 화면에 보여주던 값이고(remaining/slope), 기울기가 0 이하면 None이라
+            # "개선 중"이 자동으로 긴급도 0이 된다.
             maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
+            urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
             excess = health_index_var - SPEC_OUT_BAND
-            health_index_var = SPEC_OUT_BAND + excess * (1 - TREND_PENALTY_MAX_CUT * maturity)
+            health_index_var = SPEC_OUT_BAND + excess * (
+                1 - TREND_PENALTY_MAX_CUT * max(maturity, urgency))
 
         rows.append({
             "Machine_ID": machine,
@@ -860,7 +902,9 @@ def compute_level_and_trend(
                     [g.index.get_loc(i) for i in window.index]])) else None
             ),
             "defect_zone_baseline_pct": (
-                round(zone_base_rate.get((machine, col), 0.0) * 100, 2) if spec_source == "defect_zone_rate" else None
+                # spec_source 문자열이 아니라 "이 컬럼에 zone 근거가 실제로 있었는가"로 판정.
+                # 스펙+zone을 둘 다 가진 컬럼이 생기면서 문자열 비교로는 안 걸린다.
+                round(zone_base_rate.get((machine, col), 0.0) * 100, 2) if zone_rate_now is not None else None
             ),
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),

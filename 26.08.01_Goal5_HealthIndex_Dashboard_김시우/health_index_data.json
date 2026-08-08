@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T14:06:18.634585",
+  "generated_at": "2026-08-08T14:49:11.606338",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -1192,14 +1192,14 @@
           "worst_factor": "Surface_Roughness"
         },
         {
+          "defect": "Remain_Coat",
+          "health_index": 44.3,
+          "worst_factor": "CLN_Pressure"
+        },
+        {
           "defect": "Chipping",
           "health_index": 53.6,
           "worst_factor": "Head_Temp"
-        },
-        {
-          "defect": "Remain_Coat",
-          "health_index": 66.3,
-          "worst_factor": "CLN_Pressure"
         }
       ],
       "latest_date": "2026-03-30",
@@ -1261,11 +1261,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 66.3,
+          "health_index": 44.3,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 66.3,
+              "health_index": 44.3,
               "spec_status": "OK"
             },
             {
@@ -1316,7 +1316,7 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 66.3,
+              "health_index": 44.3,
               "defect_zone_rate_pct": 7.17,
               "defect_zone_baseline_pct": 5.75,
               "margin_trend_pct_per_day": 3.526,
@@ -1788,7 +1788,7 @@
             },
             {
               "factor": "CLN_Pressure",
-              "health_index": 35.5,
+              "health_index": 26.4,
               "spec_status": "OK"
             }
           ],
@@ -1844,7 +1844,7 @@
               "usl": 300.0362,
               "spec_source": "defect_zone_rate",
               "spec_status": "OK",
-              "health_index": 35.5,
+              "health_index": 26.4,
               "defect_zone_rate_pct": 8.13,
               "defect_zone_baseline_pct": 5.66,
               "margin_trend_pct_per_day": 3.317,
