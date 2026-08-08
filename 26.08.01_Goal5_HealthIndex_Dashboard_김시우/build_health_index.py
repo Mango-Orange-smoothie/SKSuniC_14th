@@ -160,31 +160,43 @@ def _usable_defects(meta: dict) -> list[str]:
 
 
 def _load_verified_pairs() -> set[tuple[str, str]] | None:
-    """감시 데이터(원본)에서 인과가 **재현 검증된** (인자, 불량) 짝.
+    """장비 대표 점수에 넣을 수 있는 (인자, 불량) 짝 — **인과가 반박되지 않은** 것.
 
-    (26.08.08) 왜 필요한가 — 장비 대표 점수에 "이 데이터로 검증된 적이 없는 인과"가
-    들어가고 있었다. Chipping은 감시 데이터에 4건뿐이라 그 원인 인자(Laser_Power/
-    Head_Temp/Power_Efficiency/Cooling_Flow)와의 관계를 여기서 검정할 방법이 없다 —
-    전처리 6-1 스캔에도 Chipping 행이 아예 안 생기고, 관계DB도 repro_state를
-    "판정불가(원본 표본부족)"로 적어놨으며, 경계값 자체가 threshold_source_dataset=
-    "r1 주도(원본 기여 미미)"라 주입 데이터에서 학습된 것이다.
+    (26.08.08 개정) 처음엔 `repro_state == "통과"`만 채택했는데 **너무 좁았다.**
+    멘토님이 확정 시나리오를 주셔서 확인됐다:
 
-    그런데도 DP02의 장비 점수가 Chipping 9.7(Laser_Power 경보선 초과)로 잡혀서,
-    매일 실제로 나는 Particle(8.68%)을 제치고 대표가 됐다. 즉 **r1에서만 성립하는
-    인과로 장비 순위를 매기고 있었다** — 오늘 유형 판정을 R1에서 원본으로 되돌린 것과
-    같은 문제다.
+        DP02 = Laser Aging   -> Power_Efficiency 감소 -> Kerf 증가 -> Chipping 증가
+        DP03 = Cooling Failure -> Head_Temp 증가 -> Micro_Crack / Chipping 증가
+        DP04 = Cleaning Failure -> CLN_Flow 감소 -> Remain_Coat / Particle 증가
 
-    기준: **감시 데이터에서 인과가 검증된 짝만 대표 점수에 넣고, 검증 안 된 짝은
-    점수가 아니라 경보로 낸다.** 새 규칙이 아니라 이 프로젝트가 이미 도처에서 쓰는
-    규칙이다(C유형 채택 = 원본 순열검정, alert_usable=False 존중, Micro_Crack 제외).
+    관계DB의 domain_direction이 이 문장과 글자 그대로 같고 전부 domain_evidence=
+    "멘토 확정"이다. 즉 Chipping 짝은 "검증 안 된 관계"가 아니라 **확정된 관계인데
+    이 데이터셋에 라벨이 안 실린 것**이다(감시 데이터 Chipping 4건, Laser_Paim 0건 —
+    원인 드리프트만 심고 불량 라벨은 R1에 몰아넣은 것으로 보인다).
 
-    중요한 건 "최근에 터졌는가"가 아니라 "인과가 검증됐는가"다. 검증된 짝이라면 7일
-    무발생이어도 대표로 올려야 맞다 — 그게 예측이다. 반대로 아무리 자주 터져도 원인이
-    검증 안 됐으면(Micro_Crack) 점수로 확신을 가장하면 안 된다.
+    그래서 repro_state를 3값으로 갈라 쓴다 — JHdaimma님이 두 값을 구분한 이유가 이거다:
+
+        "통과"                     -> 채택 (감시 데이터에서 재현됨)
+        "판정불가(원본 표본부족)"    -> **채택** (표본이 없어 못 잰 것이지 반박된 게 아님)
+        "실패(데이터셋간 방향 불일치)" -> 제외 (데이터가 반대 방향을 가리킴)
+
+    표본이 없어서 못 잰 것을 실패로 처리하면 강한 인자가 부당하게 강등된다. 반대로
+    방향이 뒤집힌 것(Micro_Crack 짝 2개)은 도메인이 멘토 확정이어도 이 경계값으로는
+    경보를 걸 수 없다.
+    "최근에 터졌는가"는 기준이 아니다. 관계가 확정된 짝이라면 7일 무발생이어도 대표로
+    올려야 맞다 — 그게 예측이다. 반대로 아무리 자주 터져도 방향이 반박됐으면 점수로
+    확신을 가장하면 안 된다.
+
+    (아래는 이 함수를 처음 만들 때의 기록 — 기준이 왜 한 번 좁았다가 넓어졌는지)
+    장비 대표 점수에 Chipping 9.7(Laser_Power 경보선 초과)이 잡혀서, 매일 실제로 나는
+    Particle(8.68%)을 제치고 DP02의 대표가 됐다. 감시 데이터로는 그 인과를 검정할
+    방법이 없어서(Chipping 4건, 6-1 스캔에 행조차 안 생김) 일단 제외했는데, 멘토님
+    시나리오를 받고 보니 **관계가 없는 게 아니라 이 데이터셋에 라벨이 안 실린 것**
+    이었다. "검증 불가"와 "반박됨"을 구분해야 한다.
 
     판정은 우리가 다시 하지 않고 관계DB의 repro_state를 그대로 읽는다 — C유형 짝짓기
-    (common.load_defect_pairing_from_db)가 쓰는 조건과 같은 단일 출처다. 파일이 없거나
-    스키마가 바뀌면 None을 돌려주고, 호출부는 "전부 검증됨"으로 폴백한다(조용히 빠지는
+    (common.load_defect_pairing_from_db)가 쓰는 것과 같은 단일 출처다. 파일이 없거나
+    스키마가 바뀌면 None을 돌려주고, 호출부는 "전부 채택"으로 폴백한다(조용히 빠지는
     것보다 예전 동작이 낫다 — 대신 경고를 찍는다).
     """
     path = REL_DB / "rel_20_tier_table.csv"
@@ -194,14 +206,15 @@ def _load_verified_pairs() -> set[tuple[str, str]] | None:
         t = pd.read_csv(path, usecols=["factor", "defect", "repro_state"])
     except (ValueError, KeyError):
         return None
-    ok = t["repro_state"].astype(str).str.strip().eq("통과")
+    # "실패(...)"로 시작하는 것만 제외 — 통과/판정불가는 채택.
+    ok = ~t["repro_state"].astype(str).str.strip().str.startswith("실패")
     return set(zip(t.loc[ok, "factor"], t.loc[ok, "defect"]))
 
 
 VERIFIED_PAIRS = _load_verified_pairs()
 if VERIFIED_PAIRS is None:
-    print("[관계DB] 경고: rel_20_tier_table.csv를 못 읽어 재현 검증 여부를 확인할 수 없습니다 "
-          "— 모든 짝을 검증된 것으로 취급합니다(장비 점수가 과대평가될 수 있음).")
+    print("[관계DB] 경고: rel_20_tier_table.csv를 못 읽어 repro_state를 확인할 수 없습니다 "
+          "— 모든 짝을 채택합니다(장비 점수가 과대평가될 수 있음).")
 
 
 def _scored_defects(meta: dict, factor: str) -> list[str]:
@@ -990,7 +1003,7 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
             "defect": defect,
             "health_index": worst["health_index"],
             "worst_factor": worst["column"],
-            # 이 defect의 원인 중 감시 데이터에서 재현 검증된 게 하나라도 있는가 —
+            # 이 defect의 원인 중 방향이 반박되지 않은 게 하나라도 있는가 —
             # 없으면 건강도는 계속 내되 장비 대표 점수에서는 뺀다(_load_verified_pairs 참고).
             "scored": any(defect in _scored_defects(meta, f)
                           for f, meta in HEALTH_FACTORS.items()),
@@ -1003,7 +1016,7 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
 
     unscored = defect_index.loc[~defect_index["scored"], "defect"].unique()
     if len(unscored):
-        print(f"[관계DB] 장비 대표 점수에서 제외(감시 데이터 재현 검증 안 됨): {sorted(unscored)} "
+        print(f"[관계DB] 장비 대표 점수에서 제외(repro_state=실패, 방향 불일치): {sorted(unscored)} "
               "— 건강도는 계속 산출되고 경보로 나갑니다.")
 
     machine_rows = []
@@ -1116,8 +1129,8 @@ def build_machine_snapshot(
                 "health_index": float(d_idx["health_index"].iloc[0]) if len(d_idx) else None,
                 "counts_toward_machine_score": scored,
                 "not_scored_reason": None if scored else (
-                    "감시 데이터에서 원인 관계가 재현 검증되지 않음"
-                    "(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외"),
+                    "데이터가 도메인 기대와 반대 방향을 가리킴"
+                    "(관계DB repro_state=실패) — 경보로만 사용, 장비 점수 제외"),
                 "worst_factors": d_idx["worst_factors"].iloc[0] if len(d_idx) else [],
                 "actual_occurred_recent_7d": bool(occ["actual_occurred_recent_7d"].iloc[0]) if len(occ) else False,
                 "occurred_days_recent_7d": int(occ["occurred_days_recent_7d"].iloc[0]) if len(occ) else 0,
