@@ -267,6 +267,9 @@ ANOMALY_MARGIN_THRESHOLD_PCT = 50.0
 RECENT_WINDOW_DAYS = 14
 RECENT_DEFECT_WINDOW_DAYS = 7
 ANOMALY_SUSTAINED_ALERT_DAYS = RECENT_WINDOW_DAYS
+# margin 100%가 걸리는 선 — Shewhart 관리한계(3σ). 교과서 상수이고 σ만 있으면 전 컬럼에
+# 똑같이 적용된다. 근거는 compute_level_and_trend의 margin 계산부 주석 참고.
+CONTROL_LIMIT_SIGMA = 3.0
 
 TREND_ANALYSIS_CSV = REPO_ROOT / "analysis_outputs" / "trend_analysis_results.csv"
 # early_warning이 언제 마지막으로 켜졌는지가 최신 데이터로부터 이만큼(일) 이내면
@@ -801,7 +804,7 @@ def compute_level_and_trend(
         # 멘토 스펙과 진입률은 점수에서 빠지고 각각 spec_status / defect_zone_rate_pct
         # 로 **따로** 표시된다 — Shewhart 원칙대로 관리한계와 스펙을 한 축에 안 섞는다.
         # -------------------------------------------------------------------
-        spec_source = "cusum_alarm_line"
+        spec_source = "control_limit_3sigma"
         if real_spec is not None:
             # 표시용 LSL/USL은 진짜 스펙이 있으면 그걸 쓴다(사람이 읽는 절대 기준).
             lsl_disp, usl_disp = real_spec["LSL"], real_spec["USL"]
@@ -811,26 +814,43 @@ def compute_level_and_trend(
             # 반복 오탐의 원인이었음).
             baseline_disp = target_override_map.get(col, real_spec["TARGET"])
             spec_source = ("mentor_spec_recomputed_target" if col in target_override_map
-                           else "mentor_spec") + "+cusum_alarm_line"
+                           else "mentor_spec") + "+control_limit_3sigma"
         elif spec_values.get(col):
             baseline_disp = spec_values[col]["baseline_median"]
             lsl_disp = usl_disp = np.nan
         else:
             continue
 
-        # 이 컬럼의 CUSUM 경보선. load_cusum_alert_lines가 이미 계산해둔 값을 쓰고,
-        # 없으면(C유형 — 그 함수가 아직 A/B/E만 다룬다) 여기서 같은 식으로 만든다.
-        line_info = cusum_lines.get(col) or {}
-        alarm_lo, alarm_up = line_info.get("lower"), line_info.get("upper")
-        if alarm_lo is None and alarm_up is None:
-            sd = stratum_std_map.get(col)
-            if sd and np.isfinite(sd) and sd > 0 and np.isfinite(baseline_disp):
-                # 편측 컬럼(A유형 / C유형)은 위험한 쪽 선만 만든다 — 반대쪽으로의 이탈은
-                # 여유 소진이 아니다. direction_of가 관계DB의 방향을 이미 반영한다.
-                if direction != "down":
-                    alarm_up = baseline_disp + CUSUM_K * sd
-                if direction != "up":
-                    alarm_lo = baseline_disp - CUSUM_K * sd
+        # (26.08.08 개정 2) margin 100%를 **Shewhart 관리한계(목표값 ± 3σ)**에 건다.
+        #
+        # 직전 버전은 CUSUM 경보선(0.7σ)에 걸었는데, 0.7σ는 **탐지 문턱**이지 심각도가
+        # 아니다. 그래서 경보가 확정된 컬럼은 무엇이든 margin 100%를 넘어 10점 이하로
+        # 떨어졌다 — DP02 Laser_Power는 목표값에서 0.72σ, 멘토 스펙 여유는 8.6%밖에
+        # 안 썼는데 9.7점이었다(김시우님 지적). 이 데이터의 실제 열화가 0.5~2.7σ라
+        # 0.7σ 기준선으로는 전부 바닥을 친다.
+        #
+        # 이건 내가 이항 경보선을 두고 "탐지 문턱을 심각도 자로 쓰면 안 된다"고 지적한
+        # 것과 같은 잘못이었다 — 척도를 통일하면서 같은 성질을 전 컬럼에 옮겼다.
+        #
+        # 3σ를 쓰는 이유: Shewhart 관리한계가 SPC에서 "공정이 관리 이탈"의 표준선이고,
+        # 교과서 상수라 우리가 고른 값이 아니며, σ만 있으면 전 컬럼에 똑같이 적용된다.
+        # 그 결과 **"10점 미만 = 관리한계 초과"**로 읽는 법에 의미가 생긴다(예전엔
+        # "탐지됐다"일 뿐이었다).
+        #
+        # 역할 분담도 깔끔해진다 — margin은 "얼마나 벗어났나"(심각도), 추세 페널티는
+        # "확정된 이상인가, 얼마나 오래/급한가"(확신도). CUSUM 경보 정보는 페널티가
+        # 이미 나르고 있으므로 margin이 다시 나를 필요가 없다.
+        # cusum_alert_lower/upper는 화면에 계속 그린다 — "왜 경보가 떴는지"를 보여주는
+        # 선이라 점수 기준선과 별개로 쓸모가 있다.
+        sd = stratum_std_map.get(col)
+        alarm_lo = alarm_up = None
+        if sd and np.isfinite(sd) and sd > 0 and np.isfinite(baseline_disp):
+            # 편측 컬럼(A유형 / C유형)은 위험한 쪽 선만 만든다 — 반대쪽으로의 이탈은
+            # 여유 소진이 아니다. direction_of가 관계DB의 방향을 이미 반영한다.
+            if direction != "down":
+                alarm_up = baseline_disp + CONTROL_LIMIT_SIGMA * sd
+            if direction != "up":
+                alarm_lo = baseline_disp - CONTROL_LIMIT_SIGMA * sd
         if alarm_lo is None and alarm_up is None:
             continue
 
@@ -956,6 +976,13 @@ def compute_level_and_trend(
             # 그래프에 그리면 "왜 경보가 떴는지"가 눈에 보인다 — load_cusum_alert_lines 참고.
             "cusum_alert_lower": (cusum_lines.get(col) or {}).get("lower"),
             "cusum_alert_upper": (cusum_lines.get(col) or {}).get("upper"),
+            # (26.08.08) margin/health를 실제로 결정하는 선 = 관리한계(목표값 ± 3σ).
+            # lsl/usl은 멘토 스펙이 있으면 그걸 보여주는데(사람이 읽는 절대 기준),
+            # 그러면 화면의 한계값과 margin의 기준이 어긋난다 — 예: DP02 Laser_Power는
+            # 현재 18.44 / 스펙 하한 17.80이라 여유가 많아 보이는데 margin은 24%다
+            # (관리한계 18.25 기준). 두 선을 다 실어서 어느 쪽 기준인지 보이게 한다.
+            "control_lsl": round(alarm_lo, 4) if alarm_lo is not None else None,
+            "control_usl": round(alarm_up, 4) if alarm_up is not None else None,
             # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
             # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
             # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
