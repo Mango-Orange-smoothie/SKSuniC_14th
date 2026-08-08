@@ -243,14 +243,30 @@ DEFECT_RATE_COLS = {
     "Chipping": "Chipping_rate",
 }
 
-# 미확인 이상(안전망) 판정 임계값 — 스펙 경계까지 남은 여유를 이 % 이상 썼으면 표시.
+# 미확인 이상(안전망) 판정 임계값 — 경보선까지 남은 여유를 이 % 이상 썼으면 표시.
 # 확정 원인이 아니라서 보수적으로(절반 이상 썼을 때만) 잡는다. 최적화된 값은 아니다.
 ANOMALY_MARGIN_THRESHOLD_PCT = 50.0
+# (26.08.08) margin 하나로만 거르던 걸 "또는 성숙한 지속 경보"로 넓힌다.
+#
+# 왜 — 관계DB에 짝(어느 변수가 어느 불량의 원인인가)이 없는 변수는 defect 건강도에
+# 안 들어가므로 이 안전망이 유일한 출구인데, 조건이 margin뿐이라 **"값은 아직 여유
+# 있는데 추세가 확실히 이상한"** 것이 통째로 빠졌다. 추세 페널티를 만든 이유와 정확히
+# 같은 사각지대인데 안전망에는 그 논리가 없었다. 실측: 확정 원인이 아닌데 경보가 켜진
+# 컬럼 59건 중 **55건이 아무 데도 안 나왔다** — DP03 Kerf_Angle은 37일째 경보인데
+# margin 18.7%라 빠졌다.
+#
+# 짝짓기의 단일 출처는 관계DB지만, **짝을 몰라도 "이 변수 추세가 이상하다"는 말은 할 수
+# 있어야 한다.** 원인 지목(어느 불량인지)과 이상 보고(추세가 이상함)는 다른 주장이다.
+#
+# 기준일은 RECENT_WINDOW_DAYS(14일)를 그대로 쓴다 — 새로 고른 상수가 아니고, 추세
+# 페널티의 성숙도 기준이자 §4-4에서 정상 장비와 고장 장비를 완벽히 가른 선이다
+# (docs/판정근거_정리.md: DP01 0개 vs DP02 6 / DP03 4 / DP04 1).
 # 레벨/추세 계산에 쓰는 최근 구간 길이(일). 통계적 유의성을 새로 검정하는 게 아니라
 # "최근 방향/속도"를 서술하는 용도라서 짧아도 된다 — 다만 지난 검증(DP02 Laser_Power
 # 사례)에서 확인했듯 이 값 자체로 "유의미한 추세 확정"을 주장하지는 않는다.
 RECENT_WINDOW_DAYS = 14
 RECENT_DEFECT_WINDOW_DAYS = 7
+ANOMALY_SUSTAINED_ALERT_DAYS = RECENT_WINDOW_DAYS
 
 TREND_ANALYSIS_CSV = REPO_ROOT / "analysis_outputs" / "trend_analysis_results.csv"
 # early_warning이 언제 마지막으로 켜졌는지가 최신 데이터로부터 이만큼(일) 이내면
@@ -291,7 +307,7 @@ RECIPE_HOTSPOT_CONCENTRATION_RATIO = 2.0
 # (50점)까지는 끌어내릴 수 있게 했다. 실제 데이터(75건의 활성 경보)로 검증한 결과
 # 30점(n8n 위험장비 기준)을 새로 넘는 경우는 1건뿐이었다 — 대부분이 아직 신선한
 # 경보라 이 정도 상한으로는 위험장비 알림이 쏟아지지 않는다.
-TREND_PENALTY_MAX_CUT = 0.5
+TREND_PENALTY_MAX_CUT = 0.45
 
 # (26.08.06 개정 2) Health Index를 다시 0~100 안에 가두되, "이미 스펙아웃"끼리의 우선순위는
 # 살린다. 직전 버전은 margin_used_pct 상한 clip을 아예 없애서 health가 음수(-191 등)까지
@@ -1137,10 +1153,17 @@ def build_machine_snapshot(
                 "causes": causes,
             }
 
-        # 미확인 이상(안전망): 확정 원인 아닌 변수 중 스펙 여유를 많이 쓴 것만
+        # 미확인 이상(안전망): 확정 원인이 아닌 변수 중 (a) 경보선까지 여유를 많이 썼거나
+        # (b) 성숙한 지속 경보가 켜져 있는 것. (b)가 없으면 "값은 여유 있는데 추세가
+        # 확실히 이상한" 것이 통째로 빠진다 — ANOMALY_SUSTAINED_ALERT_DAYS 주석 참고.
         anomalies = []
-        flagged = other_rows[other_rows["margin_used_pct"] >= ANOMALY_MARGIN_THRESHOLD_PCT]
-        for _, row in flagged.sort_values("margin_used_pct", ascending=False).iterrows():
+        sustained = (other_rows["early_warning_active"].fillna(False).astype(bool)
+                     & (other_rows["alert_active_days"].fillna(0) >= ANOMALY_SUSTAINED_ALERT_DAYS))
+        flagged = other_rows[(other_rows["margin_used_pct"] >= ANOMALY_MARGIN_THRESHOLD_PCT) | sustained]
+        # margin이 큰 순이 아니라 "경보가 오래 지속된 순 -> margin 큰 순"으로 정렬한다.
+        # 지속일이 곧 증거의 강도라, 값만 크고 방금 뜬 것보다 먼저 봐야 한다.
+        for _, row in flagged.sort_values(
+                ["alert_active_days", "margin_used_pct"], ascending=False, na_position="last").iterrows():
             anomalies.append({
                 "column": row["column"],
                 "current_value": row["current_value"],
