@@ -22,7 +22,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
          0% = baseline 그대로, 100% = 스펙 경계 도달, 100% 넘으면 이미 스펙아웃.
        변수별 Health Index = margin_to_health(margin_used_pct) — 0~100 안에 들어오되
          아래쪽 10점은 "이미 스펙아웃" 전용 구간이라 스펙아웃끼리도 순위가 갈린다
-         (margin 0%→100점, 100%(경계)→10점, 그 위는 0점으로 점근. SPEC_OUT_BAND 참고).
+         (margin 0%→100점, 100%(경계)→10점, 그 위는 0점으로 점근. ALARM_BAND 참고).
        (26.08.05: 예전엔 boundary_z를 raw 샷 노이즈 분포로 재고 daily_mean_z와 비교해서
         granularity가 안 맞았다 — 일평균은 샷 평균이라 분산이 훨씬 작아 그 경계에 거의
         못 미쳤고, "스펙아웃이 원래 잘 안 생긴다"는 결론으로 이어졌었다. daily_mean_z
@@ -44,7 +44,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         지속적 이상을 확정한 변수가 점수만 보면 100점(완전 건강)으로 나오는 사각지대가
         생겼다(예: 막 CUSUM 경보가 뜬 DP01 Head_Temp). "Health Index는 장비 상태를
         보라고 만든 것"이라는 목적에 안 맞아서, early_warning_active가 true인 변수는
-        레벨 점수(중 SPEC_OUT_BAND 위 몫)에 (1 - TREND_PENALTY_MAX_CUT × maturity)
+        레벨 점수(중 ALARM_BAND 위 몫)에 (1 - TREND_PENALTY_MAX_CUT × maturity)
         배율을 곱한다 — maturity는
         alert_since부터 지속된 일수를 RECENT_WINDOW_DAYS로 나눈 값(0~1). 막 뜬 경보는
         거의 안 깎이고, RECENT_WINDOW_DAYS 이상 지속된 "성숙한" 경보라야 최대폭
@@ -231,9 +231,9 @@ TREND_PENALTY_MAX_CUT = 0.5
 # 살린다. 직전 버전은 margin_used_pct 상한 clip을 아예 없애서 health가 음수(-191 등)까지
 # 내려가게 했었다 — 우선순위는 살았지만 "점수"라고 부를 수 없는 값이 됐다.
 #
-# 대신 0~100 스케일의 **아래쪽 SPEC_OUT_BAND점을 "이미 스펙아웃" 전용 구간으로 예약**한다.
-#   margin 0~100%  -> health 100 -> SPEC_OUT_BAND  (선형, 스펙 안)
-#   margin 100%+   -> health SPEC_OUT_BAND * (100/margin)  (0으로 점근, 스펙 밖)
+# 대신 0~100 스케일의 **아래쪽 ALARM_BAND점을 "이미 스펙아웃" 전용 구간으로 예약**한다.
+#   margin 0~100%  -> health 100 -> ALARM_BAND  (선형, 스펙 안)
+#   margin 100%+   -> health ALARM_BAND * (100/margin)  (0으로 점근, 스펙 밖)
 # 경계(margin=100%)에서 두 식이 정확히 만나고, 전 구간에서 단조 감소한다. 즉
 # **"10점 미만 = 이미 스펙아웃, 0에 가까울수록 몇 배로 벗어난 것"**으로 읽으면 된다.
 #
@@ -245,15 +245,15 @@ TREND_PENALTY_MAX_CUT = 0.5
 # 30점의 의미도 거의 그대로 유지된다(margin 70% 초과 -> 77.8% 초과). 표시 스케일을
 # 어떻게 쪼갤지의 문제일 뿐이라 물리적 근거가 필요한 상수는 아니며, 왜곡을 최소화하는
 # 쪽으로 고른 값이다. 왜곡 없는 원본 수치가 필요하면 margin_used_pct를 그대로 쓸 것.
-SPEC_OUT_BAND = 10.0
+ALARM_BAND = 10.0
 
 
 def margin_to_health(margin_used_pct: float) -> float:
-    """margin_used_pct(0~무한대)를 0~100 Health Index로 단조 변환. 위 SPEC_OUT_BAND 주석 참고."""
+    """margin_used_pct(0~무한대)를 0~100 Health Index로 단조 변환. 위 ALARM_BAND 주석 참고."""
     m = max(margin_used_pct, 0.0)
     if m <= 100:
-        return SPEC_OUT_BAND + (100 - SPEC_OUT_BAND) * (1 - m / 100)
-    return SPEC_OUT_BAND * 100 / m
+        return ALARM_BAND + (100 - ALARM_BAND) * (1 - m / 100)
+    return ALARM_BAND * 100 / m
 
 
 def load_step0_outputs():
@@ -621,21 +621,22 @@ def compute_level_and_trend(
     zone_rate_df: pd.DataFrame | None = None,
     target_override_map: dict[str, float] | None = None,
     cusum_lines: dict[str, dict[str, float | None]] | None = None,
+    stratum_std_map: dict[str, float] | None = None,
 ) -> pd.DataFrame:
-    """장비×컬럼별로 "스펙 경계까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
+    """장비×컬럼별로 "경보선까지 남은 여유"(레벨)와 "그 여유가 줄어드는 속도"(추세)를 계산한다.
 
-    두 가지 기준 소스를 컬럼별로 섞어 쓴다:
-      - SPEC(pipeline/mentor.py)에 있는 10개 컬럼: 멘토가 준 진짜 LSL/TARGET/USL을 raw 값과
-        직접 비교(spec_source="mentor_spec") — 신뢰도 높음.
-      - 나머지 컬럼: daily_mean_z(OPCOND baseline 대비 일별 정규화 잔차)와 boundary_z(여기
-        쓰는 boundary_z는 daily_mean_z 자기 자신의 분포로 잰 경계 — compute_daily_boundary_z.
-        raw 샷 분포로 잰 경계를 쓰면 안 됨, 26.08.05 granularity mismatch 버그 참고)로
-        계산(spec_source="provisional_percentile") — 진짜 스펙이 아니라 정상군 분포로
-        대체한 임시값이니 참고용으로만 쓸 것.
+    (26.08.08 개정) 기준선을 **전 컬럼 하나로 통일**했다 — CUSUM 경보선
+    (target ± CUSUM_K x σ). 예전엔 컬럼마다 멘토 스펙(50~100σ) / 임시 백분위 경계 /
+    이항 경보선을 각각 100%로 삼았는데, 경계가 σ 단위로 1000배까지 흩어져 있어서
+    "경계까지 몇 %"끼리 비교가 안 됐다. 자세한 근거는 아래 margin 계산부 주석 참고.
+
+      margin 100% = "이 수준이 지속되면 CUSUM 경보가 뜬다"
+
+    멘토 스펙과 위험구간 진입률은 점수에서 빠지고 각각 spec_status / defect_zone_rate_pct
+    로 따로 실린다 — 관리한계(경보선)와 스펙은 다른 축이라 한 점수에 섞지 않는다(Shewhart).
     실제 원래 단위 값(current_value/lsl/usl)도 같이 붙여서 "29.3% 사용"이 아니라 실제
-    수치로 보여줄 수 있게 한다. provisional 컬럼의 lsl/usl 표시값은 margin 계산에 실제
-    쓰는 boundary_z와 같은 기준(baseline ± boundary_z*scale)으로 역산해서, 화면에 보이는
-    한계값과 margin_used_pct가 서로 어긋나지 않게 한다.
+    수치로 보여줄 수 있게 한다. 스펙이 있는 컬럼은 lsl/usl에 진짜 스펙을, 없는 컬럼은
+    점수를 내는 경보선을 그대로 실어서 화면과 점수의 근거가 어긋나지 않게 한다.
 
     추세는 두 가지를 같이 담는다: margin_used_pct의 최근 14일 기울기로 뽑은 정량적
     "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out)과,
@@ -647,6 +648,8 @@ def compute_level_and_trend(
     defect_threshold_map = defect_threshold_map or {}
     target_override_map = target_override_map or {}
     cusum_lines = cusum_lines or {}
+    stratum_std_map = stratum_std_map or {}
+    from trend_analysis import CUSUM_K  # 튜닝된 K를 단일 출처로 공유(중복 정의 방지)
 
     # (machine, column) -> date별 위험구간 비율 Series / (machine, column) -> 그 장비의 정상 기준 비율
     zone_lookup: dict[tuple[str, str], pd.Series] = {}
@@ -686,120 +689,99 @@ def compute_level_and_trend(
         defect_thr = defect_threshold_map.get(col)
         zone_rate_now = None
 
-        # (26.08.08) 예전엔 이 셋이 배타 분기(if/elif/else)였다 — 멘토 스펙이 있으면 C유형
-        # threshold를 아예 안 봤다. 지금 C유형 3개(CLN_Flow/CLN_Pressure/Surface_Roughness)가
-        # 전부 멘토 스펙이 없어서 문제가 안 드러났을 뿐, 스펙이 있는 컬럼이 C로 오는 순간
-        # threshold가 통째로 무시된다(Coating_Thickness 승격 대기 중 — 이 컬럼은 위험구간의
-        # 98%가 스펙 안이라, 스펙 margin만 보면 C로 올린 이유 자체가 사라진다).
+        # -------------------------------------------------------------------
+        # (26.08.08 개정) margin의 기준선을 **모든 컬럼에서 하나로 통일**한다.
         #
-        # trend_analysis.py는 이미 이렇게 안 한다 — 스펙 위반 판정이 A/B/C/E와 무관하게
-        # 공통 적용되고(line 493), C유형은 target(층별 OK median) + threshold + 편측 CUSUM을
-        # 전부 갖는다. 두 스크립트가 어긋나 있었다. 여기서 맞춘다: **둘 다 계산해서 나쁜
-        # 쪽(margin이 큰 쪽)을 쓴다.** 표시용 LSL/USL은 진짜 스펙을 우선한다.
-        margin_parts = []
+        # 예전엔 컬럼마다 다른 경계를 100%로 삼았는데, 그 경계들이 목표값에서 떨어진
+        # 거리가 σ 단위로 1000배까지 차이났다:
+        #
+        #   CUSUM 경보선   0.7σ        (전 컬럼)
+        #   이항 경보선    일별 진입률의 ~2.3σ — n이 커서 절대폭이 6.4%p까지 좁아짐
+        #   멘토 LSL/USL   50~100σ     (10개 컬럼)
+        #
+        # "경계까지 몇 %"는 경계가 0.7σ와 100σ에 흩어져 있으면 원리적으로 비교가
+        # 안 된다. 실측 결과가 정확히 그랬다 — 멘토 스펙 컬럼 40개는 margin이 최대
+        # 8.6%에 갇히고(스펙이 자연 변동폭의 50~100배라 아무리 나빠져도 한 자릿수),
+        # 진입률 컬럼 12개는 2426%까지 치솟아, min()으로 고르면 **장비 4대 전부
+        # 진입률 컬럼이 주범**으로 나왔다. DP02 Laser_Power는 56일째 CUSUM 경보에
+        # 경보선까지 넘긴 상태인데 margin 8.6%라 3순위였다.
+        #
+        # 진입률 분모가 특히 나쁜 이유: 여유폭(경보선 - 평소)이 6.4%p / 0.7%p다.
+        # 하루 280샷이라 비율이 정밀하게 측정되고, 정밀하면 작은 변화도 통계적으로
+        # 확실해져서 경보선이 평소값 바로 옆에 붙는다. 즉 **탐지가 쉬울수록 margin이
+        # 커진다** — 심각도 척도로 쓰면 안 되는 성질이다(정밀한 체온계로 재면
+        # 36.5->36.8도 "확실한 상승"이지만 265% 아픈 게 아니다).
+        #
+        # 그래서 기준선을 σ 하나로 통일한다: **CUSUM 경보선(target ± CUSUM_K x σ)**.
+        # 이미 전 컬럼에 CUSUM을 걸고 있으므로(커밋 1947b31) 이건 "실제로 경보를
+        # 내는 선"이고, 화면에도 이미 cusum_alert_lower/upper로 그리고 있다.
+        #   margin 100% = "이 수준이 지속되면 CUSUM 경보가 뜬다"
+        # 멘토 스펙과 진입률은 점수에서 빠지고 각각 spec_status / defect_zone_rate_pct
+        # 로 **따로** 표시된다 — Shewhart 원칙대로 관리한계와 스펙을 한 축에 안 섞는다.
+        # -------------------------------------------------------------------
+        spec_source = "cusum_alarm_line"
         if real_spec is not None:
-            spec_source = "mentor_spec" if col not in target_override_map else "mentor_spec_recomputed_target"
+            # 표시용 LSL/USL은 진짜 스펙이 있으면 그걸 쓴다(사람이 읽는 절대 기준).
             lsl_disp, usl_disp = real_spec["LSL"], real_spec["USL"]
-            # LSL/USL(위험 경계)은 멘토 값을 그대로 신뢰하되, TARGET_RECOMPUTE_FROM_DATA에
-            # 있는 컬럼(Kerf_Width_Profile)은 target(정상 기준값)만 실측 OK median으로 바꾼다
-            # — load_target_override_map docstring 참고(멘토 TARGET과 스펙폭의 12% 어긋남,
-            # 89일 내내 안 줄어드는 정적 오프셋이라 반복 오탐의 원인이었음).
+            # TARGET(정상 기준값)은 멘토 값을 쓰되, TARGET_RECOMPUTE_FROM_DATA에 있는
+            # 컬럼은 실측 OK median으로 바꾼다 — load_target_override_map docstring 참고
+            # (멘토 TARGET과 스펙폭의 12% 어긋남, 89일 내내 안 줄어드는 정적 오프셋이라
+            # 반복 오탐의 원인이었음).
             baseline_disp = target_override_map.get(col, real_spec["TARGET"])
-            m = _real_spec_margin_pct(g["daily_mean"], direction, lsl_disp, baseline_disp, usl_disp)
-            m.index = g.index
-            margin_parts.append(m)
-        if defect_thr is not None and spec_values.get(col) and (machine, col) in zone_lookup:
-            # C유형: 임시 percentile도, 일평균 대 threshold 비교도 아니고,
-            # "그날 샷 중 몇 %가 불량 위험구간에 들어갔나"로 잰다.
-            # (일평균은 356일 내내 threshold를 한 번도 안 넘어서 경보 자체가 불가능했음 —
-            #  compute_daily_defect_zone_rate docstring 참고.)
-            thr = defect_thr["threshold"]
-            risky_direction = defect_thr["risky_direction"]
-            if real_spec is None:
-                spec_source = "defect_zone_rate"
-                baseline_disp = spec_values[col]["baseline_median"]
-                if risky_direction == "low_is_risky":
-                    lsl_disp, usl_disp = thr, baseline_disp
-                else:
-                    lsl_disp, usl_disp = baseline_disp, thr
-            else:
-                # 스펙과 threshold를 둘 다 가진 컬럼 — 표시는 진짜 스펙으로 하되, 근거가
-                # 둘이라는 걸 spec_source에 남긴다(어느 쪽이 점수를 결정했는지는
-                # margin_used_pct와 defect_zone_rate_pct를 같이 보면 읽힌다).
-                spec_source = f"{spec_source}+defect_zone_rate"
-
-            zr = zone_lookup[(machine, col)].reindex(g["date"].values)
-            n_shots = zone_shots[(machine, col)].reindex(g["date"].values)
-            base_rate = zone_base_rate.get((machine, col), 0.0) or 0.0
-            # margin 100% = "그날 샷 수에서 이만큼 진입할 확률이 alpha 미만" 지점.
-            # 그날 샷 수가 다르면 경계도 달라지므로 날짜별로 계산한다(같은 샷 수는 캐시).
-            need_by_n: dict[int, int] = {}
-            alert_rate = np.full(len(zr), np.nan)
-            for i, n in enumerate(n_shots.values):
-                if not np.isfinite(n) or n < 1:
-                    continue
-                n = int(n)
-                if n not in need_by_n:
-                    need_by_n[n] = binomial_alert_count(base_rate, n, config.C_DANGER_ALPHA)
-                k = need_by_n[n]
-                if k <= n:
-                    alert_rate[i] = k / n
-            span = alert_rate - base_rate
-            # 데이터가 없는 날(zr NaN)은 NaN을 그대로 남긴다 — 0.0으로 두면 "그날은 완벽히
-            # 정상"으로 둔갑해서 최신값 후보에 잘못 끼어든다(아래 dropna가 걸러야 함).
-            margin_pct = np.where(
-                pd.isna(zr.values) | ~np.isfinite(span) | (span <= 0),
-                np.nan,
-                (zr.values - base_rate) / np.where(span > 0, span, np.nan) * 100,
-            )
-            margin_parts.append(pd.Series(margin_pct, index=g.index, dtype=float).clip(lower=0.0))
-            zone_rate_now = zr.values
-
-        if margin_parts:
-            # 둘 다 있으면 나쁜 쪽(margin이 큰 쪽)이 그날의 상태다. 한쪽만 NaN인 날은
-            # 있는 쪽을 그대로 쓴다(skipna) — 둘 다 없는 날만 NaN으로 남는다.
-            margin_pct = pd.concat(margin_parts, axis=1).max(axis=1, skipna=True)
+            spec_source = ("mentor_spec_recomputed_target" if col in target_override_map
+                           else "mentor_spec") + "+cusum_alarm_line"
+        elif spec_values.get(col):
+            baseline_disp = spec_values[col]["baseline_median"]
+            lsl_disp = usl_disp = np.nan
         else:
-            b = boundary_z.get(col)
-            spec = spec_values.get(col)
-            if not b or not spec or not spec.get("robust_z_scale"):
-                continue
-            up_b, down_b = b.get("up"), b.get("down")
-            if direction == "up" and not up_b:
-                continue
-            if direction == "down" and not down_b:
-                continue
-            if direction == "either" and not up_b and not down_b:
-                continue
-            spec_source = "provisional_percentile"
-            baseline_disp = spec["baseline_median"]
-            scale = spec["robust_z_scale"]
-            # either인데 한쪽 경계가 없으면(분포가 한쪽으로만 벗어난 경우) 반대쪽 크기를
-            # 그대로 대칭 fallback으로 씀 — lsl/usl을 아예 안 보여줄 순 없어서.
-            up_disp = up_b if up_b else down_b
-            down_disp = down_b if down_b else up_b
-            lsl_disp = baseline_disp - down_disp * scale if direction != "up" else baseline_disp
-            usl_disp = baseline_disp + up_disp * scale if direction != "down" else baseline_disp
+            continue
 
-            z = g["daily_mean_z"]
-            margin_pct = pd.Series(np.nan, index=z.index, dtype=float)
-            if direction == "up":
-                margin_pct[z >= 0] = (z[z >= 0] / up_b) * 100
-                margin_pct[z < 0] = 0.0
-            elif direction == "down":
-                margin_pct[z <= 0] = (-z[z <= 0] / down_b) * 100
-                margin_pct[z > 0] = 0.0
-            else:
-                # either: 지금 어느 쪽으로 벗어났는지 보고 그 방향의 경계로 나눈다 —
-                # 예전처럼 |z|를 min(up,down) 경계 하나로 재면, 분포가 한쪽으로 치우친
-                # 컬럼(예: CLN_Flow)에서 "넓은 쪽" 값이 "좁은 쪽" 경계에 걸려 margin이
-                # 1000%+ 로 튀는 문제가 있었다(26.08.05 발견). up_b/down_b 중 없는 쪽은
-                # 위 up_disp/down_disp와 같은 방식으로 대칭 fallback.
-                eff_up_b = up_b if up_b else down_b
-                eff_down_b = down_b if down_b else up_b
-                above = z >= 0
-                margin_pct[above] = (z[above] / eff_up_b) * 100
-                margin_pct[~above] = (-z[~above] / eff_down_b) * 100
+        # 이 컬럼의 CUSUM 경보선. load_cusum_alert_lines가 이미 계산해둔 값을 쓰고,
+        # 없으면(C유형 — 그 함수가 아직 A/B/E만 다룬다) 여기서 같은 식으로 만든다.
+        line_info = cusum_lines.get(col) or {}
+        alarm_lo, alarm_up = line_info.get("lower"), line_info.get("upper")
+        if alarm_lo is None and alarm_up is None:
+            sd = stratum_std_map.get(col)
+            if sd and np.isfinite(sd) and sd > 0 and np.isfinite(baseline_disp):
+                # 편측 컬럼(A유형 / C유형)은 위험한 쪽 선만 만든다 — 반대쪽으로의 이탈은
+                # 여유 소진이 아니다. direction_of가 관계DB의 방향을 이미 반영한다.
+                if direction != "down":
+                    alarm_up = baseline_disp + CUSUM_K * sd
+                if direction != "up":
+                    alarm_lo = baseline_disp - CUSUM_K * sd
+        if alarm_lo is None and alarm_up is None:
+            continue
+
+        vals = g["daily_mean"]
+        above = vals >= baseline_disp
+        margin_pct = pd.Series(0.0, index=g.index, dtype=float)
+        if alarm_up is not None and alarm_up != baseline_disp:
+            margin_pct[above] = (vals[above] - baseline_disp) / (alarm_up - baseline_disp) * 100
+        if alarm_lo is not None and alarm_lo != baseline_disp:
+            margin_pct[~above] = (baseline_disp - vals[~above]) / (baseline_disp - alarm_lo) * 100
+        margin_pct = margin_pct.clip(lower=0.0)
+        margin_pct[vals.isna()] = np.nan
+
+        if real_spec is None:
+            # 진짜 스펙이 없는 컬럼은 표시 경계도 점수를 내는 선과 같게 둔다 — 예전엔
+            # 임시 백분위 경계(provisional_percentile)를 보여줬는데, 그 선은 점수 계산에
+            # 쓰이지도 않으면서 "스펙처럼" 읽혔다.
+            lsl_disp = alarm_lo if alarm_lo is not None else baseline_disp
+            usl_disp = alarm_up if alarm_up is not None else baseline_disp
+
+        # 진입률은 점수에서 빠지지만 화면/agent 문구의 근거라 계속 계산한다.
+        if defect_thr is not None and (machine, col) in zone_lookup:
+            zone_rate_now = zone_lookup[(machine, col)].reindex(g["date"].values).values
+
+        # (26.08.08) spec_status를 margin이 아니라 **진짜 멘토 스펙 위반**으로 판정한다.
+        # 예전엔 margin>=100을 SPEC_OUT으로 표시했는데, margin의 100% 지점이 컬럼마다
+        # 스펙이 아니었다(임시 백분위 경계, 이항 경보선). 그래서 화면에 "스펙아웃" 4건이
+        # 떴지만 그중 스펙이 있는 컬럼은 0건이었다 — 멘토 스펙 기준 실제 위반은 89일
+        # 17,203행 검사 중 34행(0.2%)뿐이고 지속 위반 경보는 0건이다.
+        spec_violating = (
+            ((vals < real_spec["LSL"]) | (vals > real_spec["USL"]))
+            if real_spec is not None else pd.Series(False, index=g.index)
+        )
 
         valid = margin_pct.dropna()
         if valid.empty:
@@ -825,10 +807,13 @@ def compute_level_and_trend(
         # 예전엔 margin_used_pct를 100%에서 clip해서, 경계를 살짝 넘은 것(margin 105%)과
         # 몇 배로 폭주한 것(margin 291%)이 똑같이 "HI 0.0"으로 뭉개졌다 — worst_factors/
         # worst_defects/장비 순위에서 뭐가 더 급한지 구분이 안 됐다(김시우님 피드백).
-        # 지금은 0~100은 유지하면서 아래쪽 SPEC_OUT_BAND점을 스펙아웃 전용 구간으로 써서
-        # 그 안에서도 순위가 갈리게 한다 — SPEC_OUT_BAND 주석 참고.
+        # 지금은 0~100은 유지하면서 아래쪽 ALARM_BAND점을 경보선 초과 전용 구간으로 써서
+        # 그 안에서도 순위가 갈리게 한다 — ALARM_BAND 주석 참고.
         health_index_var = margin_to_health(current_margin_pct)
-        spec_out = current_margin_pct >= 100
+        # 경보선을 넘었는가(점수 밴드/추세 페널티 게이트). 스펙 위반과는 다른 축이다.
+        alarm_exceeded = current_margin_pct >= 100
+        # 스펙 위반은 최근 창에서 한 번이라도 LSL/USL 밖으로 나갔는가로 따로 판정한다.
+        spec_out = bool(spec_violating.loc[window.index].any())
 
         recent = valid.iloc[-RECENT_WINDOW_DAYS:]
         margin_slope, est_days = None, None
@@ -836,21 +821,21 @@ def compute_level_and_trend(
             x = np.arange(len(recent))
             lr = scipy_stats.linregress(x, recent.values)
             margin_slope = float(lr.slope)  # %/일 (양수=여유가 줄어드는 중)
-            if not spec_out and margin_slope > 1e-9:
+            if not alarm_exceeded and margin_slope > 1e-9:
                 remaining = 100 - current_margin_pct
                 projected = remaining / margin_slope
                 est_days = round(projected, 1) if projected <= 365 else None  # 1년 넘게 남으면 "임박 아님" 취급
-            # 이미 스펙아웃이면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다 (spec_status로 대체)
+            # 이미 경보선을 넘었으면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다.
 
         ta_status = trend_status.get((machine, col), {})
-        # 추세 페널티는 "스펙 안" 구간(SPEC_OUT_BAND 위)에서만, 그 구간 안에서만 깎는다.
+        # 추세 페널티는 "스펙 안" 구간(ALARM_BAND 위)에서만, 그 구간 안에서만 깎는다.
         #  - 이미 SPEC_OUT이면 안 깎는다: margin 자체가 이미 심각하다고 말하고 있어서 추세가
         #    추가로 알려줄 정보가 없다(이 페널티의 존재 목적 자체가 "margin은 멀쩡해 보이는데
         #    추세가 나쁜" 사각지대를 잡는 것이었음).
-        #  - 스펙 안이면 SPEC_OUT_BAND 위에 남은 몫(excess)만 깎는다. 점수 전체에 배율을
+        #  - 스펙 안이면 ALARM_BAND 위에 남은 몫(excess)만 깎는다. 점수 전체에 배율을
         #    곱하면 스펙 안인 변수가 스펙아웃 전용 구간(0~10) 안으로 내려가 "10점 미만 =
         #    이미 스펙아웃"이라는 읽는 법이 깨진다.
-        if ta_status.get("early_warning_active") and not spec_out:
+        if ta_status.get("early_warning_active") and not alarm_exceeded:
             # (26.08.08) 예전엔 성숙도(경보 지속일)만 썼다. 그러면 "방금 뜬 급한 경보"가
             # 거의 안 깎여서 순위가 뒤집힌다 — DP03에서 CLN_Pressure(17.8일 뒤 스펙아웃,
             # 경보 0.1일째)가 66.3점으로, Head_Temp(41.8일째지만 기울기 -0.02로 오히려
@@ -870,8 +855,8 @@ def compute_level_and_trend(
             # "개선 중"이 자동으로 긴급도 0이 된다.
             maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
             urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
-            excess = health_index_var - SPEC_OUT_BAND
-            health_index_var = SPEC_OUT_BAND + excess * (
+            excess = health_index_var - ALARM_BAND
+            health_index_var = ALARM_BAND + excess * (
                 1 - TREND_PENALTY_MAX_CUT * max(maturity, urgency))
 
         rows.append({
@@ -1117,10 +1102,15 @@ def main() -> None:
     zone_rate_df = load_daily_defect_zone_rate()
     target_override_map = load_target_override_map()
     cusum_lines = load_cusum_alert_lines()
+    # C유형은 load_cusum_alert_lines가 아직 안 다루므로(A/B/E만), 경보선을 그 안에서
+    # 만들 수 있게 층별 std를 같이 넘긴다 — 같은 파일, 같은 CUSUM_K를 쓴다.
+    stratum_std_map = (pd.read_csv(config.PREPROCESSING_DIR / "00_stratum_baseline_stats_by_opcond.csv",
+                                   usecols=["column", "std"])
+                       .groupby("column")["std"].median().to_dict())
 
     level_trend = compute_level_and_trend(
         daily_series_raw, boundary_z, spec_values, trend_status, defect_threshold_map, zone_rate_df,
-        target_override_map, cusum_lines,
+        target_override_map, cusum_lines, stratum_std_map,
     )
     level_trend.to_csv(OUT_DIR / "01_level_trend_by_machine_column.csv", index=False, encoding="utf-8-sig")
 

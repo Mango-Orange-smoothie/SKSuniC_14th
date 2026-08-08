@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T14:49:11.606338",
+  "generated_at": "2026-08-08T15:07:43.906774",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -236,32 +236,32 @@
   },
   "machines": {
     "DP01": {
-      "health_index": 45.8,
+      "health_index": 90.3,
       "worst_defects": [
         {
           "defect": "Particle",
-          "health_index": 45.8,
+          "health_index": 90.3,
           "worst_factor": "Surface_Roughness"
         },
         {
-          "defect": "Remain_Coat",
-          "health_index": 78.8,
-          "worst_factor": "CLN_Pressure"
+          "defect": "Chipping",
+          "health_index": 90.7,
+          "worst_factor": "Power_Efficiency"
         },
         {
-          "defect": "Chipping",
-          "health_index": 96.1,
-          "worst_factor": "Head_Temp"
+          "defect": "Remain_Coat",
+          "health_index": 95.5,
+          "worst_factor": "CLN_Pressure"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 45.8,
+          "health_index": 90.3,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
-              "health_index": 45.8,
+              "health_index": 90.3,
               "spec_status": "OK"
             }
           ],
@@ -272,14 +272,14 @@
               "current_value": 0.5835,
               "baseline_median": 0.5832,
               "lsl": 0.5832,
-              "usl": 0.6001,
-              "spec_source": "defect_zone_rate",
+              "usl": 0.6054,
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 45.8,
+              "health_index": 90.3,
               "defect_zone_rate_pct": 28.57,
               "defect_zone_baseline_pct": 25.02,
-              "margin_trend_pct_per_day": 0.397,
-              "estimated_days_to_spec_out": 110.7,
+              "margin_trend_pct_per_day": 0.354,
+              "estimated_days_to_spec_out": 279.0,
               "trend_direction": "up",
               "early_warning_active": true,
               "trend_message": "DP01 / PKG_E / RCP_8의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -313,11 +313,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 78.8,
+          "health_index": 95.5,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 78.8,
+              "health_index": 95.5,
               "spec_status": "OK"
             },
             {
@@ -332,9 +332,9 @@
             "CLN_Flow": {
               "current_value": 10.0001,
               "baseline_median": 9.992,
-              "lsl": 9.694,
+              "lsl": 9.9347,
               "usl": 9.992,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
@@ -364,14 +364,14 @@
             "CLN_Pressure": {
               "current_value": 299.9679,
               "baseline_median": 300.0362,
-              "lsl": 296.9928,
+              "lsl": 298.6636,
               "usl": 300.0362,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 78.8,
+              "health_index": 95.5,
               "defect_zone_rate_pct": 6.59,
               "defect_zone_baseline_pct": 5.63,
-              "margin_trend_pct_per_day": -3.633,
+              "margin_trend_pct_per_day": -0.349,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -406,21 +406,21 @@
           }
         },
         "Chipping": {
-          "health_index": 96.1,
+          "health_index": 90.7,
           "worst_factors": [
             {
-              "factor": "Head_Temp",
-              "health_index": 96.1,
-              "spec_status": "OK"
-            },
-            {
-              "factor": "Cooling_Flow",
-              "health_index": 98.1,
+              "factor": "Power_Efficiency",
+              "health_index": 90.7,
               "spec_status": "OK"
             },
             {
               "factor": "Laser_Power",
-              "health_index": 99.2,
+              "health_index": 93.5,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Head_Temp",
+              "health_index": 96.1,
               "spec_status": "OK"
             }
           ],
@@ -430,14 +430,14 @@
             "Cooling_Flow": {
               "current_value": 9.9985,
               "baseline_median": 9.999,
-              "lsl": 9.9831,
+              "lsl": 9.9293,
               "usl": 9.999,
-              "spec_source": "provisional_percentile",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 98.1,
+              "health_index": 99.3,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.431,
+              "margin_trend_pct_per_day": -0.087,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -474,12 +474,12 @@
               "baseline_median": 42.0,
               "lsl": 38.0,
               "usl": 47.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 96.1,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.014,
+              "margin_trend_pct_per_day": -0.329,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -516,12 +516,12 @@
               "baseline_median": 18.5,
               "lsl": 17.8,
               "usl": 19.2,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 99.2,
+              "health_index": 93.5,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.007,
+              "margin_trend_pct_per_day": -0.123,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -558,12 +558,12 @@
               "baseline_median": 95.0,
               "lsl": 92.0,
               "usl": 98.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 100.0,
+              "health_index": 90.7,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.005,
+              "margin_trend_pct_per_day": -0.046,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": false,
@@ -601,33 +601,33 @@
       "unconfirmed_anomalies": []
     },
     "DP02": {
-      "health_index": 5.3,
+      "health_index": 9.7,
       "worst_defects": [
         {
-          "defect": "Particle",
-          "health_index": 5.3,
-          "worst_factor": "Surface_Roughness"
-        },
-        {
           "defect": "Chipping",
-          "health_index": 51.1,
+          "health_index": 9.7,
           "worst_factor": "Laser_Power"
         },
         {
+          "defect": "Particle",
+          "health_index": 69.0,
+          "worst_factor": "Surface_Roughness"
+        },
+        {
           "defect": "Remain_Coat",
-          "health_index": 76.6,
+          "health_index": 96.3,
           "worst_factor": "CLN_Pressure"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 5.3,
+          "health_index": 69.0,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
-              "health_index": 5.3,
-              "spec_status": "SPEC_OUT"
+              "health_index": 69.0,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
@@ -637,14 +637,14 @@
               "current_value": 0.59,
               "baseline_median": 0.5832,
               "lsl": 0.5832,
-              "usl": 0.6001,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "SPEC_OUT",
-              "health_index": 5.3,
+              "usl": 0.6054,
+              "spec_source": "cusum_alarm_line",
+              "spec_status": "OK",
+              "health_index": 69.0,
               "defect_zone_rate_pct": 39.07,
               "defect_zone_baseline_pct": 26.97,
-              "margin_trend_pct_per_day": 4.351,
-              "estimated_days_to_spec_out": null,
+              "margin_trend_pct_per_day": 0.537,
+              "estimated_days_to_spec_out": 129.0,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP02 / PKG_A / RCP_3의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -678,11 +678,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 76.6,
+          "health_index": 96.3,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 76.6,
+              "health_index": 96.3,
               "spec_status": "OK"
             },
             {
@@ -697,14 +697,14 @@
             "CLN_Flow": {
               "current_value": 9.9972,
               "baseline_median": 9.992,
-              "lsl": 9.694,
+              "lsl": 9.9347,
               "usl": 9.992,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
               "defect_zone_baseline_pct": 0.02,
-              "margin_trend_pct_per_day": -0.958,
+              "margin_trend_pct_per_day": 0.017,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
@@ -734,14 +734,14 @@
             "CLN_Pressure": {
               "current_value": 299.9847,
               "baseline_median": 300.0362,
-              "lsl": 296.9928,
+              "lsl": 298.6636,
               "usl": 300.0362,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 76.6,
+              "health_index": 96.3,
               "defect_zone_rate_pct": 6.57,
               "defect_zone_baseline_pct": 5.62,
-              "margin_trend_pct_per_day": -2.495,
+              "margin_trend_pct_per_day": -0.331,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -776,21 +776,21 @@
           }
         },
         "Chipping": {
-          "health_index": 51.1,
+          "health_index": 9.7,
           "worst_factors": [
             {
               "factor": "Laser_Power",
-              "health_index": 51.1,
+              "health_index": 9.7,
               "spec_status": "OK"
             },
             {
               "factor": "Power_Efficiency",
-              "health_index": 53.4,
+              "health_index": 10.3,
               "spec_status": "OK"
             },
             {
               "factor": "Head_Temp",
-              "health_index": 99.6,
+              "health_index": 90.9,
               "spec_status": "OK"
             }
           ],
@@ -800,14 +800,14 @@
             "Cooling_Flow": {
               "current_value": 10.0001,
               "baseline_median": 9.999,
-              "lsl": 9.9831,
+              "lsl": 9.9293,
               "usl": 9.999,
-              "spec_source": "provisional_percentile",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.16,
+              "margin_trend_pct_per_day": -0.023,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": false,
@@ -844,13 +844,13 @@
               "baseline_median": 42.0,
               "lsl": 38.0,
               "usl": 47.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 99.6,
+              "health_index": 90.9,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.04,
-              "estimated_days_to_spec_out": null,
+              "margin_trend_pct_per_day": 0.948,
+              "estimated_days_to_spec_out": 94.9,
               "trend_direction": "down",
               "early_warning_active": false,
               "trend_message": "DP02 / PKG_C / RCP_3의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -886,12 +886,12 @@
               "baseline_median": 18.5,
               "lsl": 17.8,
               "usl": 19.2,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 51.1,
+              "health_index": 9.7,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.066,
+              "margin_trend_pct_per_day": 0.79,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -928,13 +928,13 @@
               "baseline_median": 95.0,
               "lsl": 92.0,
               "usl": 98.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 53.4,
+              "health_index": 10.3,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.034,
-              "estimated_days_to_spec_out": null,
+              "margin_trend_pct_per_day": 0.94,
+              "estimated_days_to_spec_out": 0.6,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP02 / PKG_F / RCP_6의 Power_Efficiency에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
@@ -973,14 +973,14 @@
           "column": "Bottom_Kerf",
           "current_value": 50.1509,
           "baseline_median": 50.0942,
-          "lsl": 50.069,
-          "usl": 50.155,
-          "spec_source": "provisional_percentile",
+          "lsl": 50.0254,
+          "usl": 50.163,
+          "spec_source": "cusum_alarm_line",
           "spec_status": "OK",
           "defect_zone_rate_pct": null,
           "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.134,
-          "estimated_days_to_spec_out": 52.3,
+          "margin_trend_pct_per_day": 0.152,
+          "estimated_days_to_spec_out": 115.9,
           "trend_direction": "up",
           "early_warning_active": true,
           "trend_message": "DP02 / PKG_C / RCP_8의 Bottom_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
@@ -1008,17 +1008,55 @@
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
         {
-          "column": "Top_Kerf",
-          "current_value": 50.1382,
-          "baseline_median": 50.0931,
-          "lsl": 50.0713,
-          "usl": 50.144,
-          "spec_source": "provisional_percentile",
+          "column": "Kerf_Width_Profile",
+          "current_value": 50.1495,
+          "baseline_median": 50.0945,
+          "lsl": 49.2,
+          "usl": 50.8,
+          "spec_source": "mentor_spec_recomputed_target+cusum_alarm_line",
           "spec_status": "OK",
           "defect_zone_rate_pct": null,
           "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.854,
-          "estimated_days_to_spec_out": 13.1,
+          "margin_trend_pct_per_day": 0.637,
+          "estimated_days_to_spec_out": 48.9,
+          "trend_direction": "up",
+          "early_warning_active": true,
+          "trend_message": "DP02 / PKG_D / RCP_6의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
+          "alert_since": "2026-03-05",
+          "alert_active_days": 25.4,
+          "recipe_hotspots": [
+            {
+              "product_id": "PKG_B",
+              "recipe_id": "RCP_3",
+              "warning_count": 83
+            },
+            {
+              "product_id": "PKG_D",
+              "recipe_id": "RCP_8",
+              "warning_count": 72
+            },
+            {
+              "product_id": "PKG_D",
+              "recipe_id": "RCP_2",
+              "warning_count": 68
+            }
+          ],
+          "n_product_recipe_combos_affected": 50.0,
+          "recipe_hotspot_concentrated": true,
+          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
+        },
+        {
+          "column": "Top_Kerf",
+          "current_value": 50.1382,
+          "baseline_median": 50.0931,
+          "lsl": 50.0252,
+          "usl": 50.1609,
+          "spec_source": "cusum_alarm_line",
+          "spec_status": "OK",
+          "defect_zone_rate_pct": null,
+          "defect_zone_baseline_pct": null,
+          "margin_trend_pct_per_day": 0.643,
+          "estimated_days_to_spec_out": 52.0,
           "trend_direction": "up",
           "early_warning_active": true,
           "trend_message": "DP02 / PKG_A / RCP_9의 Top_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
@@ -1044,173 +1082,37 @@
           "n_product_recipe_combos_affected": 52.0,
           "recipe_hotspot_concentrated": true,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Groove_Depth",
-          "current_value": 44.947,
-          "baseline_median": 44.9894,
-          "lsl": 44.9355,
-          "usl": 45.0195,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 1.347,
-          "estimated_days_to_spec_out": 15.5,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP02 / PKG_B / RCP_4의 Groove_Depth에서 정상 Baseline 대비 지속적인 하강 추세가 감지되었습니다.",
-          "alert_since": "2026-03-29",
-          "alert_active_days": 1.7,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_6",
-              "warning_count": 26
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_5",
-              "warning_count": 15
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_6",
-              "warning_count": 12
-            }
-          ],
-          "n_product_recipe_combos_affected": 40.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Cutting_Offset",
-          "current_value": 0.035,
-          "baseline_median": 0.0061,
-          "lsl": -0.0241,
-          "usl": 0.048,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": -2.453,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": null,
-          "early_warning_active": false,
-          "trend_message": null,
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [],
-          "n_product_recipe_combos_affected": null,
-          "recipe_hotspot_concentrated": false,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Package_Size_1",
-          "current_value": 4.9999,
-          "baseline_median": 5.0,
-          "lsl": 4.9999,
-          "usl": 5.0001,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.976,
-          "estimated_days_to_spec_out": 47.8,
-          "trend_direction": "up",
-          "early_warning_active": false,
-          "trend_message": "DP02 / PKG_A / RCP_1의 Package_Size_1 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_2",
-              "warning_count": 11
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_1",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_2",
-              "warning_count": 10
-            }
-          ],
-          "n_product_recipe_combos_affected": 30.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Laser_Voltage",
-          "current_value": 24.0077,
-          "baseline_median": 24.0,
-          "lsl": 23.9729,
-          "usl": 24.0284,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.85,
-          "estimated_days_to_spec_out": 56.3,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP02 / PKG_B / RCP_7의 Laser_Voltage 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-03-30",
-          "alert_active_days": 0.2,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_3",
-              "warning_count": 19
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_7",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_5",
-              "warning_count": 9
-            }
-          ],
-          "n_product_recipe_combos_affected": 29.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         }
       ]
     },
     "DP03": {
-      "health_index": 3.8,
+      "health_index": 21.2,
       "worst_defects": [
         {
+          "defect": "Chipping",
+          "health_index": 21.2,
+          "worst_factor": "Head_Temp"
+        },
+        {
           "defect": "Particle",
-          "health_index": 3.8,
+          "health_index": 36.6,
           "worst_factor": "Surface_Roughness"
         },
         {
           "defect": "Remain_Coat",
-          "health_index": 44.3,
+          "health_index": 99.1,
           "worst_factor": "CLN_Pressure"
-        },
-        {
-          "defect": "Chipping",
-          "health_index": 53.6,
-          "worst_factor": "Head_Temp"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 3.8,
+          "health_index": 36.6,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
-              "health_index": 3.8,
-              "spec_status": "SPEC_OUT"
+              "health_index": 36.6,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
@@ -1220,13 +1122,13 @@
               "current_value": 0.5923,
               "baseline_median": 0.5832,
               "lsl": 0.5832,
-              "usl": 0.6001,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "SPEC_OUT",
-              "health_index": 3.8,
+              "usl": 0.6054,
+              "spec_source": "cusum_alarm_line",
+              "spec_status": "OK",
+              "health_index": 36.6,
               "defect_zone_rate_pct": 41.98,
               "defect_zone_baseline_pct": 25.03,
-              "margin_trend_pct_per_day": -0.598,
+              "margin_trend_pct_per_day": -0.195,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -1261,11 +1163,11 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 44.3,
+          "health_index": 99.1,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
-              "health_index": 44.3,
+              "health_index": 99.1,
               "spec_status": "OK"
             },
             {
@@ -1280,9 +1182,9 @@
             "CLN_Flow": {
               "current_value": 9.9996,
               "baseline_median": 9.992,
-              "lsl": 9.694,
+              "lsl": 9.9347,
               "usl": 9.992,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": 0.0,
@@ -1312,15 +1214,15 @@
             "CLN_Pressure": {
               "current_value": 300.0268,
               "baseline_median": 300.0362,
-              "lsl": 296.9928,
+              "lsl": 298.6636,
               "usl": 300.0362,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 44.3,
+              "health_index": 99.1,
               "defect_zone_rate_pct": 7.17,
               "defect_zone_baseline_pct": 5.75,
-              "margin_trend_pct_per_day": 3.526,
-              "estimated_days_to_spec_out": 17.8,
+              "margin_trend_pct_per_day": -0.189,
+              "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
               "trend_message": "DP03 / PKG_E / RCP_9의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -1354,21 +1256,21 @@
           }
         },
         "Chipping": {
-          "health_index": 53.6,
+          "health_index": 21.2,
           "worst_factors": [
             {
               "factor": "Head_Temp",
-              "health_index": 53.6,
-              "spec_status": "OK"
-            },
-            {
-              "factor": "Cooling_Flow",
-              "health_index": 57.7,
+              "health_index": 21.2,
               "spec_status": "OK"
             },
             {
               "factor": "Laser_Power",
-              "health_index": 81.3,
+              "health_index": 52.3,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Power_Efficiency",
+              "health_index": 64.9,
               "spec_status": "OK"
             }
           ],
@@ -1378,15 +1280,15 @@
             "Cooling_Flow": {
               "current_value": 9.9917,
               "baseline_median": 9.999,
-              "lsl": 9.9831,
+              "lsl": 9.9293,
               "usl": 9.999,
-              "spec_source": "provisional_percentile",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 57.7,
+              "health_index": 90.5,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.798,
-              "estimated_days_to_spec_out": 66.4,
+              "margin_trend_pct_per_day": 0.138,
+              "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": false,
               "trend_message": "DP03 / PKG_B / RCP_3의 Cooling_Flow에서 정상 Baseline 대비 지속적인 하강 추세가 감지되었습니다.",
@@ -1422,12 +1324,12 @@
               "baseline_median": 42.0,
               "lsl": 38.0,
               "usl": 47.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 53.6,
+              "health_index": 21.2,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.019,
+              "margin_trend_pct_per_day": -0.442,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -1464,13 +1366,13 @@
               "baseline_median": 18.5,
               "lsl": 17.8,
               "usl": 19.2,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 81.3,
+              "health_index": 52.3,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.035,
-              "estimated_days_to_spec_out": null,
+              "margin_trend_pct_per_day": 0.415,
+              "estimated_days_to_spec_out": 138.0,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP03 / PKG_C / RCP_2의 Laser_Power에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
@@ -1506,12 +1408,12 @@
               "baseline_median": 95.0,
               "lsl": 92.0,
               "usl": 98.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 93.8,
+              "health_index": 64.9,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.004,
+              "margin_trend_pct_per_day": -0.098,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -1551,13 +1453,13 @@
           "column": "Vibration",
           "current_value": 0.1732,
           "baseline_median": 0.1548,
-          "lsl": 0.1472,
-          "usl": 0.1744,
-          "spec_source": "provisional_percentile",
+          "lsl": 0.1548,
+          "usl": 0.1698,
+          "spec_source": "cusum_alarm_line",
           "spec_status": "OK",
           "defect_zone_rate_pct": null,
           "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": -0.533,
+          "margin_trend_pct_per_day": -0.704,
           "estimated_days_to_spec_out": null,
           "trend_direction": "up",
           "early_warning_active": true,
@@ -1586,149 +1488,57 @@
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         },
         {
-          "column": "CLN_Time",
-          "current_value": 15.0289,
-          "baseline_median": 15.0013,
-          "lsl": 14.9259,
-          "usl": 15.062,
-          "spec_source": "provisional_percentile",
+          "column": "Focus",
+          "current_value": 0.135,
+          "baseline_median": 0.0,
+          "lsl": -4.0,
+          "usl": 4.0,
+          "spec_source": "mentor_spec+cusum_alarm_line",
           "spec_status": "OK",
           "defect_zone_rate_pct": null,
           "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 5.04,
-          "estimated_days_to_spec_out": 5.4,
-          "trend_direction": "down",
+          "margin_trend_pct_per_day": 0.493,
+          "estimated_days_to_spec_out": 11.9,
+          "trend_direction": null,
           "early_warning_active": false,
-          "trend_message": "DP03 / PKG_F / RCP_9의 CLN_Time 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+          "trend_message": null,
           "alert_since": null,
           "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_3",
-              "warning_count": 11
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_6",
-              "warning_count": 10
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_4",
-              "warning_count": 10
-            }
-          ],
-          "n_product_recipe_combos_affected": 27.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Cutting_Y_Index",
-          "current_value": 0.014,
-          "baseline_median": -0.0008,
-          "lsl": -0.0796,
-          "usl": 0.0751,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.938,
-          "estimated_days_to_spec_out": 31.2,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP03 / PKG_A / RCP_8의 Cutting_Y_Index에서 이론 기준값(0.0000) 대비 지속적으로 벌어지는 편차가 감지되었습니다.",
-          "alert_since": "2026-03-30",
-          "alert_active_days": 0.4,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_5",
-              "warning_count": 8
-            },
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_2",
-              "warning_count": 7
-            },
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_1",
-              "warning_count": 7
-            }
-          ],
-          "n_product_recipe_combos_affected": 27.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Package_Size_1",
-          "current_value": 5.0,
-          "baseline_median": 5.0,
-          "lsl": 4.9999,
-          "usl": 5.0001,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 1.665,
-          "estimated_days_to_spec_out": 29.1,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP03 / PKG_B / RCP_2의 Package_Size_1 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-03-28",
-          "alert_active_days": 2.3,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_7",
-              "warning_count": 13
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_4",
-              "warning_count": 11
-            },
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_4",
-              "warning_count": 8
-            }
-          ],
-          "n_product_recipe_combos_affected": 32.0,
-          "recipe_hotspot_concentrated": true,
+          "recipe_hotspots": [],
+          "n_product_recipe_combos_affected": null,
+          "recipe_hotspot_concentrated": false,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         }
       ]
     },
     "DP04": {
-      "health_index": 0.4,
+      "health_index": 2.6,
       "worst_defects": [
         {
           "defect": "Remain_Coat",
-          "health_index": 0.4,
+          "health_index": 2.6,
           "worst_factor": "CLN_Flow"
         },
         {
           "defect": "Particle",
-          "health_index": 7.6,
+          "health_index": 78.4,
           "worst_factor": "Surface_Roughness"
         },
         {
           "defect": "Chipping",
-          "health_index": 96.5,
+          "health_index": 90.6,
           "worst_factor": "Power_Efficiency"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
-          "health_index": 7.6,
+          "health_index": 78.4,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
-              "health_index": 7.6,
-              "spec_status": "SPEC_OUT"
+              "health_index": 78.4,
+              "spec_status": "OK"
             }
           ],
           "actual_occurred_recent_7d": true,
@@ -1738,13 +1548,13 @@
               "current_value": 0.5885,
               "baseline_median": 0.5832,
               "lsl": 0.5832,
-              "usl": 0.6001,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "SPEC_OUT",
-              "health_index": 7.6,
+              "usl": 0.6054,
+              "spec_source": "cusum_alarm_line",
+              "spec_status": "OK",
+              "health_index": 78.4,
               "defect_zone_rate_pct": 34.49,
               "defect_zone_baseline_pct": 26.14,
-              "margin_trend_pct_per_day": 1.008,
+              "margin_trend_pct_per_day": -0.048,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": false,
@@ -1779,16 +1589,16 @@
           }
         },
         "Remain_Coat": {
-          "health_index": 0.4,
+          "health_index": 2.6,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
-              "health_index": 0.4,
-              "spec_status": "SPEC_OUT"
+              "health_index": 2.6,
+              "spec_status": "OK"
             },
             {
               "factor": "CLN_Pressure",
-              "health_index": 26.4,
+              "health_index": 73.5,
               "spec_status": "OK"
             }
           ],
@@ -1798,14 +1608,14 @@
             "CLN_Flow": {
               "current_value": 9.7691,
               "baseline_median": 9.992,
-              "lsl": 9.694,
+              "lsl": 9.9347,
               "usl": 9.992,
-              "spec_source": "defect_zone_rate",
-              "spec_status": "SPEC_OUT",
-              "health_index": 0.4,
+              "spec_source": "cusum_alarm_line",
+              "spec_status": "OK",
+              "health_index": 2.6,
               "defect_zone_rate_pct": 16.05,
               "defect_zone_baseline_pct": 0.01,
-              "margin_trend_pct_per_day": 42.86,
+              "margin_trend_pct_per_day": 0.486,
               "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
@@ -1840,15 +1650,15 @@
             "CLN_Pressure": {
               "current_value": 299.9067,
               "baseline_median": 300.0362,
-              "lsl": 296.9928,
+              "lsl": 298.6636,
               "usl": 300.0362,
-              "spec_source": "defect_zone_rate",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 26.4,
+              "health_index": 73.5,
               "defect_zone_rate_pct": 8.13,
               "defect_zone_baseline_pct": 5.66,
-              "margin_trend_pct_per_day": 3.317,
-              "estimated_days_to_spec_out": 11.0,
+              "margin_trend_pct_per_day": -0.368,
+              "estimated_days_to_spec_out": null,
               "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
@@ -1882,21 +1692,21 @@
           }
         },
         "Chipping": {
-          "health_index": 96.5,
+          "health_index": 90.6,
           "worst_factors": [
             {
               "factor": "Power_Efficiency",
-              "health_index": 96.5,
+              "health_index": 90.6,
+              "spec_status": "OK"
+            },
+            {
+              "factor": "Laser_Power",
+              "health_index": 92.9,
               "spec_status": "OK"
             },
             {
               "factor": "Head_Temp",
-              "health_index": 98.1,
-              "spec_status": "OK"
-            },
-            {
-              "factor": "Cooling_Flow",
-              "health_index": 100.0,
+              "health_index": 97.6,
               "spec_status": "OK"
             }
           ],
@@ -1906,14 +1716,14 @@
             "Cooling_Flow": {
               "current_value": 10.0042,
               "baseline_median": 9.999,
-              "lsl": 9.9831,
+              "lsl": 9.9293,
               "usl": 9.999,
-              "spec_source": "provisional_percentile",
+              "spec_source": "cusum_alarm_line",
               "spec_status": "OK",
               "health_index": 100.0,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -1.114,
+              "margin_trend_pct_per_day": -0.264,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": false,
@@ -1950,12 +1760,12 @@
               "baseline_median": 42.0,
               "lsl": 38.0,
               "usl": 47.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 98.1,
+              "health_index": 97.6,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.001,
+              "margin_trend_pct_per_day": -0.021,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -1992,12 +1802,12 @@
               "baseline_median": 18.5,
               "lsl": 17.8,
               "usl": 19.2,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 100.0,
+              "health_index": 92.9,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": -0.007,
+              "margin_trend_pct_per_day": 0.151,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": false,
@@ -2034,12 +1844,12 @@
               "baseline_median": 95.0,
               "lsl": 92.0,
               "usl": 98.0,
-              "spec_source": "mentor_spec",
+              "spec_source": "mentor_spec+cusum_alarm_line",
               "spec_status": "OK",
-              "health_index": 96.5,
+              "health_index": 90.6,
               "defect_zone_rate_pct": null,
               "defect_zone_baseline_pct": null,
-              "margin_trend_pct_per_day": 0.0,
+              "margin_trend_pct_per_day": -0.303,
               "estimated_days_to_spec_out": null,
               "trend_direction": "up",
               "early_warning_active": true,
@@ -2074,84 +1884,7 @@
           }
         }
       },
-      "unconfirmed_anomalies": [
-        {
-          "column": "Bottom_Kerf",
-          "current_value": 50.0815,
-          "baseline_median": 50.0942,
-          "lsl": 50.069,
-          "usl": 50.155,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.349,
-          "estimated_days_to_spec_out": 140.4,
-          "trend_direction": "up",
-          "early_warning_active": false,
-          "trend_message": "DP04 / PKG_E / RCP_7의 Bottom_Kerf 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_7",
-              "warning_count": 14
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_1",
-              "warning_count": 8
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_5",
-              "warning_count": 6
-            }
-          ],
-          "n_product_recipe_combos_affected": 18.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "CLN_Time",
-          "current_value": 15.0095,
-          "baseline_median": 15.0013,
-          "lsl": 14.9259,
-          "usl": 15.062,
-          "spec_source": "provisional_percentile",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": -0.867,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": "down",
-          "early_warning_active": false,
-          "trend_message": "DP04 / PKG_A / RCP_1의 CLN_Time 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_9",
-              "warning_count": 13
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_1",
-              "warning_count": 11
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_9",
-              "warning_count": 8
-            }
-          ],
-          "n_product_recipe_combos_affected": 34.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        }
-      ]
+      "unconfirmed_anomalies": []
     }
   }
 }
