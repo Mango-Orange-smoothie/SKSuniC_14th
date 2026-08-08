@@ -1138,6 +1138,10 @@ def build_machine_snapshot(
                     "baseline_median": row["baseline_median"],
                     "lsl": row["lsl"],
                     "usl": row["usl"],
+                    # 점수를 실제로 내는 선. lsl/usl은 멘토 스펙이 있으면 그걸 보여주므로
+                    # margin과 기준이 다를 수 있다(compute_level_and_trend 주석 참고).
+                    "control_lsl": _none_if_nan(row["control_lsl"]),
+                    "control_usl": _none_if_nan(row["control_usl"]),
                     "spec_source": row["spec_source"],
                     "spec_status": row["spec_status"],
                     "health_index": row["health_index"],
@@ -1197,6 +1201,8 @@ def build_machine_snapshot(
                 "baseline_median": row["baseline_median"],
                 "lsl": row["lsl"],
                 "usl": row["usl"],
+                "control_lsl": _none_if_nan(row["control_lsl"]),
+                "control_usl": _none_if_nan(row["control_usl"]),
                 "spec_source": row["spec_source"],
                 "spec_status": row["spec_status"],
                 "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),

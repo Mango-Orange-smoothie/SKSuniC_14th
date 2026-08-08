@@ -30,26 +30,32 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 ## 계산 구조 (v3)
 
 ```
-1) 스펙 경계까지 남은 여유 = 레벨
-   boundary_z(컬럼별) = baseline(median)에서 임시 USL/LSL(정상군 p0.5~p99.5)까지의
-     거리를 robust z-scale로 잰 것. OPCOND 층별로 계산 후 컬럼당 중앙값을 대표값으로.
-   margin_used_pct = (지금 레벨 z ÷ boundary_z) × 100
-     0% = baseline, 100% = 스펙 경계, 100% 넘으면 스펙아웃
+1) 관리한계까지 남은 여유 = 레벨   (26.08.08 개정)
+   margin_used_pct = (현재값 − 정상값) / (관리한계 − 정상값) × 100
+     관리한계 = 정상값 ± 3σ  (Shewhart, CONTROL_LIMIT_SIGMA)
+     0% = 정상값, 100% = 관리한계 도달
    변수별 Health Index = margin_used_pct를 0~100 점수로 단조 변환 (margin_to_health)
-     margin 0%   -> 100점 (여유를 전혀 안 씀)
-     margin 100% -> 10점  (스펙 경계)
-     margin 100%+ -> 10 x (100/margin), 0으로 점근 (예: margin 291% -> 3.4점)
-     즉 **10점 미만 = 이미 스펙아웃, 0에 가까울수록 몇 배로 벗어난 것**입니다.
-     (26.08.06: 예전엔 100 − clip(margin,0,100)이라 경계를 살짝 넘은 것과 3배로
-      폭주한 것이 똑같이 0점으로 뭉개져 우선순위가 안 보였습니다. 아래쪽 10점을
-      스펙아웃 전용 구간으로 예약해서 그 안에서도 순위가 갈리게 하되, 점수 자체는
-      0~100을 벗어나지 않게 했습니다. 왜곡 없는 원본 수치가 필요하면 같이 저장되는
-      margin_used_pct를 그대로 쓰면 됩니다.)
+     margin 0%    -> 100점
+     margin 100%  ->  10점  (관리한계)
+     margin 100%+ -> 10 x (100/margin), 0으로 점근
+     즉 **10점 미만 = 관리한계(3σ) 초과**입니다. **"스펙아웃"이 아닙니다** —
+     89일 동안 멘토 스펙 위반 지속 경보는 0건이고, 스펙아웃은 spec_status로 따로
+     표시합니다(현재 전 장비 OK).
+
+   기준선을 전 컬럼 하나로 통일한 이유와, 왜 CUSUM 경보선(0.7σ)이 아니라 3σ인지는
+   docs/발표_왜_이_식인가.md 및 compute_level_and_trend의 margin 계산부 주석 참고.
+   요약: 0.7σ는 탐지 문턱이라 경보가 확정된 컬럼이 무엇이든 10점 이하로 떨어졌다
+   (DP02 Laser_Power가 목표값에서 0.72σ인데 9.7점). 탐지는 CUSUM이 이미 한다.
+
+   화면에는 두 선을 다 싣습니다:
+     control_lsl / control_usl  점수를 내는 선 (관리한계)
+     lsl / usl                  멘토 실측 스펙 (10개 변수만, 표시용 절대 기준)
 
 2) 추세는 점수에 안 섞고, 두 가지를 같이 제공 (26.08.05부터)
    (a) margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면
-       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 스펙아웃
-       (이미 스펙아웃이거나 좋아지는 중이면 계산 안 함 — null)
+       (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 **관리한계 도달**
+       (필드명 estimated_days_to_spec_out은 옛 이름이 남은 것 — 스펙아웃이 아니다)
+       (이미 관리한계를 넘었거나 좋아지는 중이면 계산 안 함 — null)
    (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + 지속성 필터, Kendall tau
        교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져 있는가"
        → trend_direction("up"/"down"/"flat") / early_warning_active(bool) /
