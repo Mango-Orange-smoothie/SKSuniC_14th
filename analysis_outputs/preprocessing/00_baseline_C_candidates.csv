@@ -36,7 +36,7 @@ Particle,Laser_Centering_Position,41,1.642,2.046,2.332,0.739,0.8,False,False,-0.
 Particle,Groove_Depth,41,1.59,2.046,2.332,0.739,0.78,False,False,45.0345,low_is_risky,0.561,False,False
 Remain_Coat,CLN_Flow,52,20.929,2.88,3.38,0.744,7.27,True,True,9.701,low_is_risky,1.0,False,True
 Remain_Coat,CLN_Pressure,54,19.814,2.88,3.38,0.744,6.88,True,True,296.9915,low_is_risky,1.0,False,True
-Remain_Coat,Coating_Thickness,54,18.522,2.88,3.38,0.744,6.43,True,True,9.69905,low_is_risky,1.0,True,False
+Remain_Coat,Coating_Thickness,54,18.522,2.88,3.38,0.744,6.43,True,True,9.69905,low_is_risky,1.0,True,True
 Remain_Coat,Process_Time,40,2.862,2.88,3.38,0.744,0.99,False,False,4.9715,low_is_risky,0.5,False,False
 Remain_Coat,Kerf_Angle,40,2.773,2.88,3.38,0.744,0.96,False,False,90.007,low_is_risky,0.525,False,False
 Remain_Coat,Vibration,34,2.757,2.88,3.38,0.744,0.96,False,False,0.155,high_is_risky,0.559,False,False

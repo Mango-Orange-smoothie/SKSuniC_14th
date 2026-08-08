@@ -72,6 +72,20 @@ def resolve_defect_pairing() -> dict[str, str]:
               f"  (alert_usable={row.alert_usable}, repro_state={row.repro_state})")
     if pairing != fallback:
         print(f"   [주의] config 폴백값과 다릅니다 — config={fallback}")
+
+    # (26.08.08) 관계DB에 짝이 없어도 **경계가 있으면 경보는 낸다.**
+    # "이 인자가 그 불량의 원인이다"(인과 지목)와 "값이 불량률이 뛰는 경계를 넘었다"
+    # (경계 보고)는 다른 주장이다. 앞엣것만 관계DB가 단일 출처여야 하고, 뒤엣것은
+    # 우리가 감시 데이터에서 직접 검정할 수 있다. 근거·검정 방법은 config 주석 참고.
+    # 이 컬럼들은 관계DB의 cause_factors에 없으므로 is_cause_factor=False가 되어
+    # defect 건강도에는 안 들어가고 "미확인 이상"으로만 나간다 — 원인 지목이 안 된다.
+    for col, defect in config.ALARM_ONLY_C_COLUMNS.items():
+        if col in pairing:
+            print(f"   [경보전용] {col}은 이미 관계DB 짝이 있어 건너뜁니다({pairing[col]}).")
+            continue
+        pairing[col] = defect
+        print(f"   경보전용 {col} ↔ {defect}  (관계DB 짝 아님 — 경계 진입 경보만, 원인 지목 안 함)")
+
     _DEFECT_PAIRING_CACHE = pairing
     return _DEFECT_PAIRING_CACHE
 
@@ -777,16 +791,20 @@ def _find_baseline_c_breakpoint(values: pd.Series, defect_flags: pd.Series) -> d
     }
 
 
-def compute_baseline_type_c(df: pd.DataFrame) -> pd.DataFrame:
+def compute_baseline_type_c(df: pd.DataFrame, pairing: dict[str, str] | None = None) -> pd.DataFrame:
     """C유형(편측 위험 threshold형): OK+NG 전체 데이터로 그룹별 위험 경계값 학습.
 
     OK 데이터만으로는 위험선을 추정할 수 없다(정상 범위 내부 분포만 보고서는
     어디부터 위험한지 알 수 없음) — 그래서 다른 유형과 달리 df_normal이 아니라
     전체 df를 입력으로 받는다.
+
+    pairing을 따로 받는 이유는 main()에서 짝을 defect별로 나눠 서로 다른 데이터셋으로
+    학습시키기 때문이다 — 아래 C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL 주석 참고.
     """
     rows = []
+    pairing = resolve_defect_pairing() if pairing is None else pairing
     for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
-        for column, defect_col in resolve_defect_pairing().items():
+        for column, defect_col in pairing.items():
             result = _find_baseline_c_breakpoint(group[column], group[defect_col])
             if result is None:
                 continue
@@ -1077,7 +1095,30 @@ def main() -> None:
     save_table(c_candidates, "00_baseline_C_candidates.csv", subdir="preprocessing")
     warn_type_c_mismatch(c_candidates)
 
-    baseline_c = compute_baseline_type_c(threshold_source)
+    # (26.08.08) threshold를 짝지어진 defect마다 **다른 데이터셋**에서 배운다.
+    #
+    # 예전엔 전부 R1에서 배웠다. R1이 필요한 이유는 감시 데이터의 Chipping이 4건,
+    # Micro_Crack이 41건뿐이라 그룹별 학습이 불가능해서인데, **현재 C유형 4개는 전부
+    # Remain_Coat(2,332건)/Particle(7,792건) 짝이라 R1이 필요 없다.** 그런데도 R1으로
+    # 배우다가 Coating_Thickness에서 사고가 났다 — 54그룹 중 1그룹만 방향이 뒤집혀
+    # (53 low / 1 high) build_health_index가 "risky_direction 불일치"로 그 컬럼을 통째로
+    # 버렸다. 감시 데이터로 배우면 54/54가 low_is_risky고 경계값도 거의 같다
+    # (R1 9.6993 vs 원본 9.6990). 오늘만 세 번째로 나온 "R1이 판정을 오염시킨" 사례다.
+    #
+    # 기준: 감시 데이터에 그 defect가 이만큼 있으면 감시 데이터로 배운다. 그룹이 54개고
+    # _find_baseline_c_breakpoint가 그룹당 min_samples_leaf(10)를 요구하므로 최소
+    # 54x10=540이 필요하고, 여유를 봐서 그 2배를 기준으로 잡는다.
+    common = {c: d for c, d in resolve_defect_pairing().items()
+              if d in df.columns and int(df[d].sum()) >= config.C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL}
+    rare = {c: d for c, d in resolve_defect_pairing().items() if c not in common}
+    parts = []
+    if common:
+        print(f"[C threshold] 감시 데이터로 학습: {sorted(common)}")
+        parts.append(compute_baseline_type_c(df, common))
+    if rare:
+        print(f"[C threshold] R1으로 학습(감시 데이터 표본 부족): {sorted(rare)}")
+        parts.append(compute_baseline_type_c(threshold_source, rare))
+    baseline_c = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
 
     # C유형 threshold는 샷 단위 경계라 일평균과 직접 비교하면 안 된다(위 함수 docstring 참고).

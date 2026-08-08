@@ -222,10 +222,13 @@ BASELINE_B_COLUMNS = [
     # 같은 성격으로 판단해 B로 편입. Frequency/Feed_Speed/Coating_Thickness/Coating_Uniformity는
     # 멘토 스펙 있음. Laser_Current/Laser_Voltage는 스펙 없고 4개 defect 전부와 상관 r≈0이라
     # 방향성 근거가 없어서(=A유형처럼 "나쁜 방향"을 특정할 근거 없음) B로.
-    "Frequency", "Feed_Speed", "Coating_Thickness", "Coating_Uniformity",
+    "Frequency", "Feed_Speed", "Coating_Uniformity",
     "Laser_Current", "Laser_Voltage",
 ]
-# Coating_Thickness(26.08.08): **C유형 승격 대기 중.** 유형 재검증 스캔(감시 데이터 기준)에서
+# Coating_Thickness(26.08.08): B에서 빠지고 **경보 전용 C유형**이 됐다 —
+# 아래 ALARM_ONLY_C_COLUMNS 참고. 관계DB에 짝이 없어 원인 지목은 안 하지만,
+# 경계(9.699)가 검증됐으므로 진입 경보는 낸다.
+# (이전 기록 — 왜 오래 B였는지) 유형 재검증 스캔(감시 데이터 기준)에서
 # Remain_Coat 분리 18.52배로 이미 C인 CLN_Flow(20.93)/CLN_Pressure(19.81)와 같은 급이고,
 # 54그룹 전부 low_is_risky로 방향이 일치한다(순열 천장: 분리 3.38 / 방향일관성 0.744).
 # 경계 9.699는 멘토 LSL 9.5보다 **위**라 스펙 감시로는 안 잡힌다 — 위험구간 2,263샷 중
@@ -247,6 +250,9 @@ BASELINE_B_COLUMNS = [
 # predictor로 남아 rolling 통계 자체는 참고용으로 볼 수 있음).
 
 BASELINE_C_MIN_SAMPLES_LEAF = 10  # 그룹별 NG 표본이 이 수 미만이면 경계값 추정 skip
+# (26.08.08) C threshold를 감시 데이터로 배울지 R1로 배울지 가르는 선 — step0 main() 주석 참고.
+# 그룹 54개 x BASELINE_C_MIN_SAMPLES_LEAF(10) = 540이 이론적 최소라 그 2배를 기준으로 잡는다.
+C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL = 1080
 
 # (26.08.08) C유형 "평소 위험구간 진입률"을 어느 구간에서 잴 것인가 — SPC의 Phase I
 # (관리한계를 정하는 안정 구간) / Phase II(그 한계로 감시) 구분에 해당한다.
@@ -320,6 +326,30 @@ TARGET_RECOMPUTE_FROM_DATA = {"Kerf_Width_Profile", "Coating_Uniformity"}
 # 한계: Chipping(원본 4건) / Micro_Crack(41건) / Laser_Paim(0건)은 스텀프가 그룹당
 # min_samples_leaf를 못 채워 스캔 자체가 성립하지 않는다. 이 셋의 유형 배정은 데이터로
 # 검증할 수 없고 도메인/관계DB 근거로만 간다 — 스캔 결과표에 아예 행이 없는 이유다.
+# ---------------------------------------------------------------------------
+# (26.08.08) 경보 전용 threshold — 관계DB에 짝이 없어도 경계가 있으면 경보는 낸다.
+# ---------------------------------------------------------------------------
+# "이 인자가 그 불량의 원인이다"(인과 지목)와 "값이 불량률이 뛰는 경계를 넘었다"
+# (경계 보고)는 다른 주장이다. 짝짓기의 단일 출처는 관계DB지만, 경계의 존재는 감시
+# 데이터에서 우리가 직접 검정할 수 있고 그건 다른 종류의 판단이다.
+#
+# 여기 들어간 컬럼은 관계DB의 cause_factors에 없으므로 build_health_index에서
+# is_cause_factor=False가 되고, defect 건강도에는 안 들어간다 — "미확인 이상"으로만
+# 나가서 원인 지목을 하지 않는다. 경보 문구도 defect를 안 부른다.
+#
+# Coating_Thickness -> Remain_Coat (26.08.08 추가)
+#   전처리 6-1 스캔(감시 데이터, 순열 40회): 분리 18.52배 vs FWER 천장 3.38,
+#   54그룹 전부 low_is_risky로 방향 일치(천장 0.744). 이미 C유형인 CLN_Flow(20.93) /
+#   CLN_Pressure(19.81)와 같은 급이고 4위(2.86)와는 6.5배 차이다.
+#   경계 9.699는 멘토 LSL 9.5보다 **위**라 스펙 감시로는 안 잡힌다 — 위험구간 2,263샷
+#   중 2,218샷(98.0%)이 스펙 안이고 그 구간의 Remain_Coat 발생률이 29.9%(정상 1.7%).
+#   4대 전부 진입률 2.19~2.33% / 구간내 26.5~31.9%로 장비 무관하게 일관된다.
+#   JHdaimma님 확인: 관계DB에 없는 게 맞다(tier 평가 대상이 아니었음). 그래서 원인
+#   지목은 안 하되 경계 진입 경보만 낸다.
+ALARM_ONLY_C_COLUMNS = {
+    "Coating_Thickness": "Remain_Coat",
+}
+
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",
