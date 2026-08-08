@@ -125,8 +125,22 @@ OUT_DIR = Path(__file__).resolve().parent
 # ---------------------------------------------------------------------------
 REL_DB = REPO_ROOT / "26.08.05_Goal2_통합_Relationship_DB_JHdaimma"
 with open(REL_DB / "agent_cause_factors.json", encoding="utf-8") as f:
-    CAUSE_FACTORS = json.load(f)["cause_factors"]
-CAUSE_COLS = set(CAUSE_FACTORS.keys())
+    _REL_DB_JSON = json.load(f)
+
+# (26.08.08) 예전엔 cause_factors 하나만 읽었다. 이 파일에는 최상위 키가 12개 있고
+# 그중 monitor_factors를 안 읽어서 Particle 감시가 통째로 빠져 있었다(JHdaimma님 회신).
+#
+#   cause_factors    역할=원인(FDC),      actionable=true   -> "이걸 조정하세요"
+#   monitor_factors  역할=감시지표(Response), actionable=false  -> "이게 나빠지고 있습니다"
+#
+# 둘 다 defect 건강도 산출에는 쓰되, 조치 지시는 actionable=true 인 것만 해야 한다
+# (관계DB agent_rules 6번: "role이 감시지표인 인자에 조치를 지시하지 말 것. 경보만.").
+CAUSE_FACTORS = _REL_DB_JSON["cause_factors"]
+MONITOR_FACTORS = _REL_DB_JSON.get("monitor_factors", {})
+HEALTH_FACTORS = {**CAUSE_FACTORS, **MONITOR_FACTORS}
+CAUSE_COLS = set(HEALTH_FACTORS)
+# 확정 원인이 0건인 defect의 사유(agent가 "왜 원인을 못 말하는지" 답할 수 있게).
+DEFECTS_WITHOUT_CAUSE = _REL_DB_JSON.get("defects_without_confirmed_cause", {})
 
 
 def _usable_defects(meta: dict) -> list[str]:
@@ -145,13 +159,13 @@ def _usable_defects(meta: dict) -> list[str]:
             if per.get(d, {}).get("alert_usable", meta.get("alert_usable", True))]
 
 
-_dropped = [(f, d) for f, meta in CAUSE_FACTORS.items()
+_dropped = [(f, d) for f, meta in HEALTH_FACTORS.items()
             for d in meta.get("defects", []) if d not in _usable_defects(meta)]
 if _dropped:
     print("[관계DB] per_defect.alert_usable=False 라 Health Index 원인에서 제외: "
           + ", ".join(f"{f}↔{d}" for f, d in _dropped))
 _orphans = [d for d in ("Particle", "Remain_Coat", "Micro_Crack", "Chipping")
-            if not any(d in _usable_defects(m) for m in CAUSE_FACTORS.values())]
+            if not any(d in _usable_defects(m) for m in HEALTH_FACTORS.values())]
 if _orphans:
     print(f"[관계DB] 경고: 쓸 수 있는 원인 인자가 하나도 없는 defect {_orphans} — "
           "이 defect는 Health Index가 감시하지 못한다(가짜 100점을 내지 않도록 제외됨).")
@@ -340,8 +354,8 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
 
 
 def direction_of(column: str) -> str:
-    """CAUSE_FACTORS에 있으면 확정된 방향, 없으면 방향 모르니 either(양방향 이상 취급)."""
-    meta = CAUSE_FACTORS.get(column)
+    """관계DB에 있으면 확정된 방향, 없으면 방향 모르니 either(양방향 이상 취급)."""
+    meta = HEALTH_FACTORS.get(column)
     return meta["direction"] if meta else "either"
 
 
@@ -883,7 +897,7 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
     for (machine, defect), _ in [
         ((m, d), None) for m in cause_rows["Machine_ID"].unique() for d in DEFECT_RATE_COLS
     ]:
-        factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
+        factor_names = [f for f, meta in HEALTH_FACTORS.items() if defect in _usable_defects(meta)]
         sub = cause_rows[(cause_rows["Machine_ID"] == machine) & (cause_rows["column"].isin(factor_names))]
         if sub.empty:
             continue
@@ -965,13 +979,13 @@ def build_machine_snapshot(
         # defect별로 원인변수 묶기
         defect_signals: dict[str, dict] = {}
         for defect in DEFECT_RATE_COLS:
-            factor_names = [f for f, meta in CAUSE_FACTORS.items() if defect in _usable_defects(meta)]
+            factor_names = [f for f, meta in HEALTH_FACTORS.items() if defect in _usable_defects(meta)]
             factor_rows = cause_rows[cause_rows["column"].isin(factor_names)]
             if factor_rows.empty:
                 continue
             causes = {}
             for _, row in factor_rows.iterrows():
-                meta = CAUSE_FACTORS[row["column"]]
+                meta = HEALTH_FACTORS[row["column"]]
                 causes[row["column"]] = {
                     "current_value": row["current_value"],
                     "baseline_median": row["baseline_median"],
@@ -995,6 +1009,11 @@ def build_machine_snapshot(
                     "direction": meta["direction"],
                     "mechanism": meta["mechanism"],
                     "source": meta["owner"],
+                    # (26.08.08) 조치 가능 여부 — 관계DB agent_rules 6번 "role이 감시지표인
+                    # 인자에 조치를 지시하지 말 것. 경보만." 을 agent가 지킬 수 있게 싣는다.
+                    # Surface_Roughness는 결과 지표라 조정 대상이 아니다.
+                    "role": meta.get("role", "원인(FDC)"),
+                    "actionable": bool(meta.get("actionable", True)),
                 }
             occ = occurrence[(occurrence["Machine_ID"] == machine) & (occurrence["defect"] == defect)]
             d_idx = defect_index[(defect_index["Machine_ID"] == machine) & (defect_index["defect"] == defect)]

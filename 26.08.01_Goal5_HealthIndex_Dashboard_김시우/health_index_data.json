@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T03:37:19.617693",
+  "generated_at": "2026-08-08T14:06:18.634585",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -236,8 +236,13 @@
   },
   "machines": {
     "DP01": {
-      "health_index": 78.8,
+      "health_index": 45.8,
       "worst_defects": [
+        {
+          "defect": "Particle",
+          "health_index": 45.8,
+          "worst_factor": "Surface_Roughness"
+        },
         {
           "defect": "Remain_Coat",
           "health_index": 78.8,
@@ -251,6 +256,62 @@
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
+        "Particle": {
+          "health_index": 45.8,
+          "worst_factors": [
+            {
+              "factor": "Surface_Roughness",
+              "health_index": 45.8,
+              "spec_status": "OK"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Surface_Roughness": {
+              "current_value": 0.5835,
+              "baseline_median": 0.5832,
+              "lsl": 0.5832,
+              "usl": 0.6001,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "OK",
+              "health_index": 45.8,
+              "defect_zone_rate_pct": 28.57,
+              "defect_zone_baseline_pct": 25.02,
+              "margin_trend_pct_per_day": 0.397,
+              "estimated_days_to_spec_out": 110.7,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP01 / PKG_E / RCP_8의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": "2026-03-28",
+              "alert_active_days": 2.7,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_E",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 13
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_4",
+                  "warning_count": 12
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 11
+                }
+              ],
+              "n_product_recipe_combos_affected": 40.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "up",
+              "mechanism": "Surface_Roughness 증가 → Particle 증가",
+              "source": "JHdaimma",
+              "role": "감시지표(Response)",
+              "actionable": false
+            }
+          }
+        },
         "Remain_Coat": {
           "health_index": 78.8,
           "worst_factors": [
@@ -296,7 +357,9 @@
               "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "CLN_Pressure": {
               "current_value": 299.9679,
@@ -336,7 +399,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         },
@@ -400,7 +465,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Cooling_Flow 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Head_Temp": {
               "current_value": 41.9938,
@@ -440,7 +507,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "up",
               "mechanism": "Head_Temp 증가 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Laser_Power": {
               "current_value": 18.499,
@@ -480,7 +549,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Power_Efficiency": {
               "current_value": 95.0032,
@@ -520,55 +591,23 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Power_Efficiency 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         }
       },
-      "unconfirmed_anomalies": [
-        {
-          "column": "Surface_Roughness",
-          "current_value": 0.5835,
-          "baseline_median": 0.5832,
-          "lsl": 0.5832,
-          "usl": 0.6001,
-          "spec_source": "defect_zone_rate",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": 28.57,
-          "defect_zone_baseline_pct": 25.02,
-          "margin_trend_pct_per_day": 0.397,
-          "estimated_days_to_spec_out": 110.7,
-          "trend_direction": "up",
-          "early_warning_active": true,
-          "trend_message": "DP01 / PKG_E / RCP_8의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-03-28",
-          "alert_active_days": 2.7,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_9",
-              "warning_count": 13
-            },
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_4",
-              "warning_count": 12
-            },
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_7",
-              "warning_count": 11
-            }
-          ],
-          "n_product_recipe_combos_affected": 40.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        }
-      ]
+      "unconfirmed_anomalies": []
     },
     "DP02": {
-      "health_index": 51.1,
+      "health_index": 5.3,
       "worst_defects": [
+        {
+          "defect": "Particle",
+          "health_index": 5.3,
+          "worst_factor": "Surface_Roughness"
+        },
         {
           "defect": "Chipping",
           "health_index": 51.1,
@@ -582,6 +621,62 @@
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
+        "Particle": {
+          "health_index": 5.3,
+          "worst_factors": [
+            {
+              "factor": "Surface_Roughness",
+              "health_index": 5.3,
+              "spec_status": "SPEC_OUT"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Surface_Roughness": {
+              "current_value": 0.59,
+              "baseline_median": 0.5832,
+              "lsl": 0.5832,
+              "usl": 0.6001,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "SPEC_OUT",
+              "health_index": 5.3,
+              "defect_zone_rate_pct": 39.07,
+              "defect_zone_baseline_pct": 26.97,
+              "margin_trend_pct_per_day": 4.351,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "down",
+              "early_warning_active": true,
+              "trend_message": "DP02 / PKG_A / RCP_3의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": "2026-03-30",
+              "alert_active_days": 1.0,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_6",
+                  "warning_count": 18
+                },
+                {
+                  "product_id": "PKG_E",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 17
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_6",
+                  "warning_count": 14
+                }
+              ],
+              "n_product_recipe_combos_affected": 49.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "up",
+              "mechanism": "Surface_Roughness 증가 → Particle 증가",
+              "source": "JHdaimma",
+              "role": "감시지표(Response)",
+              "actionable": false
+            }
+          }
+        },
         "Remain_Coat": {
           "health_index": 76.6,
           "worst_factors": [
@@ -632,7 +727,9 @@
               "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "CLN_Pressure": {
               "current_value": 299.9847,
@@ -672,7 +769,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         },
@@ -736,7 +835,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Cooling_Flow 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Head_Temp": {
               "current_value": 42.0215,
@@ -776,7 +877,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "up",
               "mechanism": "Head_Temp 증가 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Laser_Power": {
               "current_value": 18.44,
@@ -816,7 +919,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Power_Efficiency": {
               "current_value": 94.8923,
@@ -856,50 +961,14 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Power_Efficiency 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         }
       },
       "unconfirmed_anomalies": [
-        {
-          "column": "Surface_Roughness",
-          "current_value": 0.59,
-          "baseline_median": 0.5832,
-          "lsl": 0.5832,
-          "usl": 0.6001,
-          "spec_source": "defect_zone_rate",
-          "spec_status": "SPEC_OUT",
-          "defect_zone_rate_pct": 39.07,
-          "defect_zone_baseline_pct": 26.97,
-          "margin_trend_pct_per_day": 4.351,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": "down",
-          "early_warning_active": true,
-          "trend_message": "DP02 / PKG_A / RCP_3의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-03-30",
-          "alert_active_days": 1.0,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_6",
-              "warning_count": 18
-            },
-            {
-              "product_id": "PKG_E",
-              "recipe_id": "RCP_5",
-              "warning_count": 17
-            },
-            {
-              "product_id": "PKG_C",
-              "recipe_id": "RCP_6",
-              "warning_count": 14
-            }
-          ],
-          "n_product_recipe_combos_affected": 49.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
         {
           "column": "Bottom_Kerf",
           "current_value": 50.1509,
@@ -1115,8 +1184,13 @@
       ]
     },
     "DP03": {
-      "health_index": 53.6,
+      "health_index": 3.8,
       "worst_defects": [
+        {
+          "defect": "Particle",
+          "health_index": 3.8,
+          "worst_factor": "Surface_Roughness"
+        },
         {
           "defect": "Chipping",
           "health_index": 53.6,
@@ -1130,6 +1204,62 @@
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
+        "Particle": {
+          "health_index": 3.8,
+          "worst_factors": [
+            {
+              "factor": "Surface_Roughness",
+              "health_index": 3.8,
+              "spec_status": "SPEC_OUT"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Surface_Roughness": {
+              "current_value": 0.5923,
+              "baseline_median": 0.5832,
+              "lsl": 0.5832,
+              "usl": 0.6001,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "SPEC_OUT",
+              "health_index": 3.8,
+              "defect_zone_rate_pct": 41.98,
+              "defect_zone_baseline_pct": 25.03,
+              "margin_trend_pct_per_day": -0.598,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": true,
+              "trend_message": "DP03 / PKG_F / RCP_7의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
+              "alert_since": "2026-02-24",
+              "alert_active_days": 34.5,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 39
+                },
+                {
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_1",
+                  "warning_count": 28
+                },
+                {
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 25
+                }
+              ],
+              "n_product_recipe_combos_affected": 53.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "up",
+              "mechanism": "Surface_Roughness 증가 → Particle 증가",
+              "source": "JHdaimma",
+              "role": "감시지표(Response)",
+              "actionable": false
+            }
+          }
+        },
         "Remain_Coat": {
           "health_index": 66.3,
           "worst_factors": [
@@ -1175,7 +1305,9 @@
               "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "CLN_Pressure": {
               "current_value": 300.0268,
@@ -1215,7 +1347,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         },
@@ -1279,7 +1413,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Cooling_Flow 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Head_Temp": {
               "current_value": 42.1605,
@@ -1319,7 +1455,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "up",
               "mechanism": "Head_Temp 증가 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Laser_Power": {
               "current_value": 18.4751,
@@ -1359,7 +1497,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Power_Efficiency": {
               "current_value": 94.9617,
@@ -1399,50 +1539,14 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Power_Efficiency 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         }
       },
       "unconfirmed_anomalies": [
-        {
-          "column": "Surface_Roughness",
-          "current_value": 0.5923,
-          "baseline_median": 0.5832,
-          "lsl": 0.5832,
-          "usl": 0.6001,
-          "spec_source": "defect_zone_rate",
-          "spec_status": "SPEC_OUT",
-          "defect_zone_rate_pct": 41.98,
-          "defect_zone_baseline_pct": 25.03,
-          "margin_trend_pct_per_day": -0.598,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": "up",
-          "early_warning_active": true,
-          "trend_message": "DP03 / PKG_F / RCP_7의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-02-24",
-          "alert_active_days": 34.5,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_5",
-              "warning_count": 39
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_1",
-              "warning_count": 28
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_9",
-              "warning_count": 25
-            }
-          ],
-          "n_product_recipe_combos_affected": 53.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
         {
           "column": "Vibration",
           "current_value": 0.1732,
@@ -1606,6 +1710,11 @@
           "worst_factor": "CLN_Flow"
         },
         {
+          "defect": "Particle",
+          "health_index": 7.6,
+          "worst_factor": "Surface_Roughness"
+        },
+        {
           "defect": "Chipping",
           "health_index": 96.5,
           "worst_factor": "Power_Efficiency"
@@ -1613,6 +1722,62 @@
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
+        "Particle": {
+          "health_index": 7.6,
+          "worst_factors": [
+            {
+              "factor": "Surface_Roughness",
+              "health_index": 7.6,
+              "spec_status": "SPEC_OUT"
+            }
+          ],
+          "actual_occurred_recent_7d": true,
+          "occurred_days_recent_7d": 7,
+          "causes": {
+            "Surface_Roughness": {
+              "current_value": 0.5885,
+              "baseline_median": 0.5832,
+              "lsl": 0.5832,
+              "usl": 0.6001,
+              "spec_source": "defect_zone_rate",
+              "spec_status": "SPEC_OUT",
+              "health_index": 7.6,
+              "defect_zone_rate_pct": 34.49,
+              "defect_zone_baseline_pct": 26.14,
+              "margin_trend_pct_per_day": 1.008,
+              "estimated_days_to_spec_out": null,
+              "trend_direction": "up",
+              "early_warning_active": false,
+              "trend_message": "DP04 / PKG_D / RCP_1의 Surface_Roughness에서 위험 Threshold(0.6001)에 진입했습니다.",
+              "alert_since": null,
+              "alert_active_days": null,
+              "recipe_hotspots": [
+                {
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_8",
+                  "warning_count": 12
+                },
+                {
+                  "product_id": "PKG_B",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 11
+                },
+                {
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 11
+                }
+              ],
+              "n_product_recipe_combos_affected": 50.0,
+              "recipe_hotspot_concentrated": true,
+              "direction": "up",
+              "mechanism": "Surface_Roughness 증가 → Particle 증가",
+              "source": "JHdaimma",
+              "role": "감시지표(Response)",
+              "actionable": false
+            }
+          }
+        },
         "Remain_Coat": {
           "health_index": 0.4,
           "worst_factors": [
@@ -1668,7 +1833,9 @@
               "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "CLN_Pressure": {
               "current_value": 299.9067,
@@ -1708,7 +1875,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         },
@@ -1772,7 +1941,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Cooling_Flow 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Head_Temp": {
               "current_value": 42.0011,
@@ -1812,7 +1983,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "up",
               "mechanism": "Head_Temp 증가 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Laser_Power": {
               "current_value": 18.5001,
@@ -1852,7 +2025,9 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Laser_Power 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             },
             "Power_Efficiency": {
               "current_value": 95.0017,
@@ -1892,50 +2067,14 @@
               "recipe_hotspot_concentrated": true,
               "direction": "down",
               "mechanism": "Power_Efficiency 감소 → Chipping 증가",
-              "source": "JHdaimma"
+              "source": "JHdaimma",
+              "role": "원인(FDC)",
+              "actionable": true
             }
           }
         }
       },
       "unconfirmed_anomalies": [
-        {
-          "column": "Surface_Roughness",
-          "current_value": 0.5885,
-          "baseline_median": 0.5832,
-          "lsl": 0.5832,
-          "usl": 0.6001,
-          "spec_source": "defect_zone_rate",
-          "spec_status": "SPEC_OUT",
-          "defect_zone_rate_pct": 34.49,
-          "defect_zone_baseline_pct": 26.14,
-          "margin_trend_pct_per_day": 1.008,
-          "estimated_days_to_spec_out": null,
-          "trend_direction": "up",
-          "early_warning_active": false,
-          "trend_message": "DP04 / PKG_D / RCP_1의 Surface_Roughness에서 위험 Threshold(0.6001)에 진입했습니다.",
-          "alert_since": null,
-          "alert_active_days": null,
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_8",
-              "warning_count": 12
-            },
-            {
-              "product_id": "PKG_B",
-              "recipe_id": "RCP_9",
-              "warning_count": 11
-            },
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_9",
-              "warning_count": 11
-            }
-          ],
-          "n_product_recipe_combos_affected": 50.0,
-          "recipe_hotspot_concentrated": true,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
         {
           "column": "Bottom_Kerf",
           "current_value": 50.0815,

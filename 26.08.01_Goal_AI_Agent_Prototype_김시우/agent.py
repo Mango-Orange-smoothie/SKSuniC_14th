@@ -494,11 +494,23 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
 
     hi = sig.get("health_index")
     title = f"{icon} {machine_id} · {rank}순위 - {defect} (HI `{hi}`)"
+    # (26.08.08) 관계DB agent_rules 6번 "role이 감시지표인 인자에 조치를 지시하지 말 것.
+    # 경보만." — Surface_Roughness처럼 actionable=false인 인자를 "원인"이라 부르면 틀린
+    # 말이다(표면조도는 결과지 조정 대상이 아님). 라벨 자체를 바꿔서 오해를 막는다.
+    if c.get("actionable", True):
+        cause_label = "원인"
+        extra = ""
+    else:
+        cause_label = "감시지표"
+        # JHdaimma님 회신: 결과 공변이라 사후 탐지에는 유효하지만 예측에는 못 쓴다
+        # (선행신호 잔존율 7.5%). 그 단서를 문구에 남긴다.
+        extra = "\n- **주의**: 확정 원인 미확인 — 결과 지표로 감시 중(사후 탐지용, 예측 불가)"
     explanation_md = (
         f"- **발생**: {occ_txt}\n"
-        f"- **원인**: `{factor}` {_format_cause_value_line(c)}\n"
+        f"- **{cause_label}**: `{factor}` {_format_cause_value_line(c)}\n"
         f"- **메커니즘**: {c.get('mechanism', '-')}\n"
         f"- **조치**: {_format_action_line(factor)}"
+        f"{extra}"
     )
     try:
         chart = json.loads(get_trend_chart_data.func(machine_id, factor))
