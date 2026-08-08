@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T15:07:43.906774",
+  "generated_at": "2026-08-08T15:29:41.227491",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -244,11 +244,6 @@
           "worst_factor": "Surface_Roughness"
         },
         {
-          "defect": "Chipping",
-          "health_index": 90.7,
-          "worst_factor": "Power_Efficiency"
-        },
-        {
           "defect": "Remain_Coat",
           "health_index": 95.5,
           "worst_factor": "CLN_Pressure"
@@ -258,6 +253,8 @@
       "defect_signals": {
         "Particle": {
           "health_index": 90.3,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
@@ -314,6 +311,8 @@
         },
         "Remain_Coat": {
           "health_index": 95.5,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
@@ -407,6 +406,8 @@
         },
         "Chipping": {
           "health_index": 90.7,
+          "counts_toward_machine_score": false,
+          "not_scored_reason": "감시 데이터에서 원인 관계가 재현 검증되지 않음(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외",
           "worst_factors": [
             {
               "factor": "Power_Efficiency",
@@ -601,13 +602,8 @@
       "unconfirmed_anomalies": []
     },
     "DP02": {
-      "health_index": 9.7,
+      "health_index": 69.0,
       "worst_defects": [
-        {
-          "defect": "Chipping",
-          "health_index": 9.7,
-          "worst_factor": "Laser_Power"
-        },
         {
           "defect": "Particle",
           "health_index": 69.0,
@@ -623,6 +619,8 @@
       "defect_signals": {
         "Particle": {
           "health_index": 69.0,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
@@ -679,6 +677,8 @@
         },
         "Remain_Coat": {
           "health_index": 96.3,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
@@ -777,6 +777,8 @@
         },
         "Chipping": {
           "health_index": 9.7,
+          "counts_toward_machine_score": false,
+          "not_scored_reason": "감시 데이터에서 원인 관계가 재현 검증되지 않음(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외",
           "worst_factors": [
             {
               "factor": "Laser_Power",
@@ -1086,13 +1088,8 @@
       ]
     },
     "DP03": {
-      "health_index": 21.2,
+      "health_index": 36.6,
       "worst_defects": [
-        {
-          "defect": "Chipping",
-          "health_index": 21.2,
-          "worst_factor": "Head_Temp"
-        },
         {
           "defect": "Particle",
           "health_index": 36.6,
@@ -1108,6 +1105,8 @@
       "defect_signals": {
         "Particle": {
           "health_index": 36.6,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
@@ -1164,6 +1163,8 @@
         },
         "Remain_Coat": {
           "health_index": 99.1,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "CLN_Pressure",
@@ -1257,6 +1258,8 @@
         },
         "Chipping": {
           "health_index": 21.2,
+          "counts_toward_machine_score": false,
+          "not_scored_reason": "감시 데이터에서 원인 관계가 재현 검증되지 않음(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외",
           "worst_factors": [
             {
               "factor": "Head_Temp",
@@ -1523,17 +1526,14 @@
           "defect": "Particle",
           "health_index": 78.4,
           "worst_factor": "Surface_Roughness"
-        },
-        {
-          "defect": "Chipping",
-          "health_index": 90.6,
-          "worst_factor": "Power_Efficiency"
         }
       ],
       "latest_date": "2026-03-30",
       "defect_signals": {
         "Particle": {
           "health_index": 78.4,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "Surface_Roughness",
@@ -1590,6 +1590,8 @@
         },
         "Remain_Coat": {
           "health_index": 2.6,
+          "counts_toward_machine_score": true,
+          "not_scored_reason": null,
           "worst_factors": [
             {
               "factor": "CLN_Flow",
@@ -1693,6 +1695,8 @@
         },
         "Chipping": {
           "health_index": 90.6,
+          "counts_toward_machine_score": false,
+          "not_scored_reason": "감시 데이터에서 원인 관계가 재현 검증되지 않음(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외",
           "worst_factors": [
             {
               "factor": "Power_Efficiency",

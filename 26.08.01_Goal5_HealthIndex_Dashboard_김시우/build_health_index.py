@@ -159,6 +159,59 @@ def _usable_defects(meta: dict) -> list[str]:
             if per.get(d, {}).get("alert_usable", meta.get("alert_usable", True))]
 
 
+def _load_verified_pairs() -> set[tuple[str, str]] | None:
+    """감시 데이터(원본)에서 인과가 **재현 검증된** (인자, 불량) 짝.
+
+    (26.08.08) 왜 필요한가 — 장비 대표 점수에 "이 데이터로 검증된 적이 없는 인과"가
+    들어가고 있었다. Chipping은 감시 데이터에 4건뿐이라 그 원인 인자(Laser_Power/
+    Head_Temp/Power_Efficiency/Cooling_Flow)와의 관계를 여기서 검정할 방법이 없다 —
+    전처리 6-1 스캔에도 Chipping 행이 아예 안 생기고, 관계DB도 repro_state를
+    "판정불가(원본 표본부족)"로 적어놨으며, 경계값 자체가 threshold_source_dataset=
+    "r1 주도(원본 기여 미미)"라 주입 데이터에서 학습된 것이다.
+
+    그런데도 DP02의 장비 점수가 Chipping 9.7(Laser_Power 경보선 초과)로 잡혀서,
+    매일 실제로 나는 Particle(8.68%)을 제치고 대표가 됐다. 즉 **r1에서만 성립하는
+    인과로 장비 순위를 매기고 있었다** — 오늘 유형 판정을 R1에서 원본으로 되돌린 것과
+    같은 문제다.
+
+    기준: **감시 데이터에서 인과가 검증된 짝만 대표 점수에 넣고, 검증 안 된 짝은
+    점수가 아니라 경보로 낸다.** 새 규칙이 아니라 이 프로젝트가 이미 도처에서 쓰는
+    규칙이다(C유형 채택 = 원본 순열검정, alert_usable=False 존중, Micro_Crack 제외).
+
+    중요한 건 "최근에 터졌는가"가 아니라 "인과가 검증됐는가"다. 검증된 짝이라면 7일
+    무발생이어도 대표로 올려야 맞다 — 그게 예측이다. 반대로 아무리 자주 터져도 원인이
+    검증 안 됐으면(Micro_Crack) 점수로 확신을 가장하면 안 된다.
+
+    판정은 우리가 다시 하지 않고 관계DB의 repro_state를 그대로 읽는다 — C유형 짝짓기
+    (common.load_defect_pairing_from_db)가 쓰는 조건과 같은 단일 출처다. 파일이 없거나
+    스키마가 바뀌면 None을 돌려주고, 호출부는 "전부 검증됨"으로 폴백한다(조용히 빠지는
+    것보다 예전 동작이 낫다 — 대신 경고를 찍는다).
+    """
+    path = REL_DB / "rel_20_tier_table.csv"
+    if not path.exists():
+        return None
+    try:
+        t = pd.read_csv(path, usecols=["factor", "defect", "repro_state"])
+    except (ValueError, KeyError):
+        return None
+    ok = t["repro_state"].astype(str).str.strip().eq("통과")
+    return set(zip(t.loc[ok, "factor"], t.loc[ok, "defect"]))
+
+
+VERIFIED_PAIRS = _load_verified_pairs()
+if VERIFIED_PAIRS is None:
+    print("[관계DB] 경고: rel_20_tier_table.csv를 못 읽어 재현 검증 여부를 확인할 수 없습니다 "
+          "— 모든 짝을 검증된 것으로 취급합니다(장비 점수가 과대평가될 수 있음).")
+
+
+def _scored_defects(meta: dict, factor: str) -> list[str]:
+    """대표 점수(장비 순위)에 넣을 defect — 경보용(_usable_defects)의 부분집합."""
+    usable = _usable_defects(meta)
+    if VERIFIED_PAIRS is None:
+        return usable
+    return [d for d in usable if (factor, d) in VERIFIED_PAIRS]
+
+
 _dropped = [(f, d) for f, meta in HEALTH_FACTORS.items()
             for d in meta.get("defects", []) if d not in _usable_defects(meta)]
 if _dropped:
@@ -937,6 +990,10 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
             "defect": defect,
             "health_index": worst["health_index"],
             "worst_factor": worst["column"],
+            # 이 defect의 원인 중 감시 데이터에서 재현 검증된 게 하나라도 있는가 —
+            # 없으면 건강도는 계속 내되 장비 대표 점수에서는 뺀다(_load_verified_pairs 참고).
+            "scored": any(defect in _scored_defects(meta, f)
+                          for f, meta in HEALTH_FACTORS.items()),
             "worst_factors": [
                 {"factor": r["column"], "health_index": r["health_index"], "spec_status": r["spec_status"]}
                 for _, r in ranked.iterrows()
@@ -944,8 +1001,13 @@ def aggregate_health_index(level_trend: pd.DataFrame) -> tuple[pd.DataFrame, pd.
         })
     defect_index = pd.DataFrame(defect_rows)
 
+    unscored = defect_index.loc[~defect_index["scored"], "defect"].unique()
+    if len(unscored):
+        print(f"[관계DB] 장비 대표 점수에서 제외(감시 데이터 재현 검증 안 됨): {sorted(unscored)} "
+              "— 건강도는 계속 산출되고 경보로 나갑니다.")
+
     machine_rows = []
-    for machine, g in defect_index.groupby("Machine_ID"):
+    for machine, g in defect_index[defect_index["scored"]].groupby("Machine_ID"):
         ranked = g.sort_values("health_index").head(TOP_N)
         worst = ranked.iloc[0]
         machine_rows.append({
@@ -1046,8 +1108,16 @@ def build_machine_snapshot(
                 }
             occ = occurrence[(occurrence["Machine_ID"] == machine) & (occurrence["defect"] == defect)]
             d_idx = defect_index[(defect_index["Machine_ID"] == machine) & (defect_index["defect"] == defect)]
+            # scored=False면 건강도는 있지만 장비 대표 점수에는 안 들어간다 —
+            # 감시 데이터에서 인과가 검증 안 된 짝이라(_load_verified_pairs 참고).
+            # agent가 "왜 점수에 없는데 경보가 뜨는지" 답할 수 있게 사유를 같이 싣는다.
+            scored = bool(d_idx["scored"].iloc[0]) if len(d_idx) else False
             defect_signals[defect] = {
                 "health_index": float(d_idx["health_index"].iloc[0]) if len(d_idx) else None,
+                "counts_toward_machine_score": scored,
+                "not_scored_reason": None if scored else (
+                    "감시 데이터에서 원인 관계가 재현 검증되지 않음"
+                    "(관계DB repro_state != 통과) — 경보로만 사용, 장비 점수 제외"),
                 "worst_factors": d_idx["worst_factors"].iloc[0] if len(d_idx) else [],
                 "actual_occurred_recent_7d": bool(occ["actual_occurred_recent_7d"].iloc[0]) if len(occ) else False,
                 "occurred_days_recent_7d": int(occ["occurred_days_recent_7d"].iloc[0]) if len(occ) else 0,
