@@ -225,8 +225,18 @@ def build_ng_summary() -> pd.DataFrame:
 def build_trend_interface(tier: pd.DataFrame) -> pd.DataFrame:
     """김시우님이 추세분석 결과를 붙일 자리.
 
-    내가 채우는 것 : 어느 인자를 어느 defect에 대해 어느 선까지 감시할지
-    추세팀이 채울 것: 현재 기울기, 도달 예상일, 추세 상태
+    내가 채우는 것 : 어느 인자를 어느 defect에 대해 어느 선까지 감시할지 + 판정 파라미터
+    추세팀이 채울 것: 도달 예상일, 추세 상태
+
+    (26.08.08 스키마 정정) 내가 잘못 가정한 방식의 칸 2개를 빼고 실제 구현에 맞춘다.
+      뺀 것  current_slope_per_day / trend_window_days
+             — "고정 창에서 하루에 얼마나 오르나"를 재는 방식인데 안 쓴다.
+      넣은 것 cusum_K / cusum_H / trend_test / trend_alpha
+             — 실제로는 CUSUM 누적합 + Mann-Kendall이다.
+      근거   김시우님 커밋 1947b31 "CUSUM 경로를 전 컬럼으로 확대"
+             (35개 컬럼 × 4대 전수 오경보율 0.000~0.364%로 전부 통과)
+             파라미터 K=0.7σ/H=4.5σ는 교과서값(0.5/4.0)이 아니라 멘토 확정 시나리오
+             (DP01=시나리오 없음)로 채점해서 고른 값이다 — rel_28과 같은 출처를 쓴다.
     """
     rows = []
     for _, x in tier[tier.tier.isin(["T1", "T2", "M1"])].iterrows():
@@ -243,11 +253,14 @@ def build_trend_interface(tier: pd.DataFrame) -> pd.DataFrame:
             alert_usable=x.alert_usable,
             threshold_source_dataset=x.threshold_source_dataset,
             spec_LSL=x.spec_LSL, spec_USL=x.spec_USL,
+            # --- 판정 방식 (rel_28 Vibration 트랙과 같은 파라미터를 쓴다)
+            cusum_K=VIB_CUSUM_K, cusum_H=VIB_CUSUM_H,
+            trend_test=VIB_TREND_TEST, trend_alpha=VIB_TREND_ALPHA,
             # --- 추세팀이 채울 자리
-            current_slope_per_day="", days_to_threshold="", trend_status="",
-            trend_window_days="", trend_owner="김시우(추세분석)",
+            days_to_threshold="", trend_status="", trend_owner="김시우(추세분석)",
             note="target_threshold_raw 가 추세의 목표선이다. "
-                 "threshold_source_dataset 이 'r1 주도'면 정상 운전에서는 도달하지 않을 수 있다.",
+                 "threshold_source_dataset 이 'r1 주도'면 정상 운전에서는 도달하지 않을 수 있다. "
+                 "판정은 CUSUM(평균 이동)과 위험구간 진입(꼬리)을 더해서 본다 — 서로 대체하지 않는다.",
         ))
     return pd.DataFrame(rows)
 
