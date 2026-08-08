@@ -189,6 +189,11 @@ BASELINE_A_DIRECTION = {
     # 노이즈 천장을 6~10배 넘어서 확실히 진짜). 시간분할 안정성 검증(전/후반 threshold
     # 거의 일치)을 통과했던 건 "패턴이 안정적"이었다는 것이지 "인과관계가 진짜"라는
     # 증거는 아니었다. A유형(target 기반 CUSUM)으로 되돌린다.
+    # (26.08.08 재확인) 감시 데이터 기준 정식 스캔에서도 같은 결론이다 — Particle 2.26
+    # vs 순열 천장 2.33, Remain_Coat 2.76 vs 천장 3.38로 둘 다 천장 아래다. 다만
+    # **아슬아슬하다**는 건 기록해둔다(Particle은 천장의 97%). 위 주석이 근거로 든
+    # "무관한 변수 19개의 노이즈 범위" 같은 임시 대조군은 이제 안 쓴다 — 순열검정이
+    # 그 역할을 정식으로 한다.
     "Vibration": True,
     "Alignment_Time": True,
     "Process_Time": True,
@@ -220,6 +225,19 @@ BASELINE_B_COLUMNS = [
     "Frequency", "Feed_Speed", "Coating_Thickness", "Coating_Uniformity",
     "Laser_Current", "Laser_Voltage",
 ]
+# Coating_Thickness(26.08.08): **C유형 승격 대기 중.** 유형 재검증 스캔(감시 데이터 기준)에서
+# Remain_Coat 분리 18.52배로 이미 C인 CLN_Flow(20.93)/CLN_Pressure(19.81)와 같은 급이고,
+# 54그룹 전부 low_is_risky로 방향이 일치한다(순열 천장: 분리 3.38 / 방향일관성 0.744).
+# 경계 9.699는 멘토 LSL 9.5보다 **위**라 스펙 감시로는 안 잡힌다 — 위험구간 2,263샷 중
+# 2,218샷(98.0%)이 스펙 안이고, 그 구간의 Remain_Coat 발생률이 29.9% (스펙 안 나머지는 1.7%).
+# 커버리지: 기존 C 2개로 Remain_Coat의 69.3%를 잡는데, 이걸 더하면 94.8%가 된다(단독 기여
+# 593건). 그런데도 여기 B로 남겨둔 이유는 **짝짓기의 단일 출처가 Goal2 관계DB**이기 때문이다
+# (26.08.08 확정). 관계DB의 Remain_Coat 행은 CLN_Pressure/CLN_Flow 둘뿐이라 이 짝은 기각된
+# 게 아니라 평가 대상이 아니었다 — JHdaimma님께 tier 판정 요청 중. 판정이 오면 C로 옮긴다.
+# 참고: B->C로 바꿔도 멘토 스펙 검사는 그대로다(trend_analysis의 스펙 위반 판정은 유형과
+# 무관하게 공통 적용). 바뀌는 건 CUSUM이 양측->편측(하강만)이 되고 threshold 진입 감시가
+# 붙는 것뿐이다. 현재 양측 CUSUM 경보 602건은 상승 317 / 하강 285로 4대에 고르게 흩어져
+# 있어(추세 없는 노이즈의 서명) 상승 쪽을 잃는 손실은 크지 않다.
 # Laser_Head_Remain_Time: 타입 배정 보류. 이름은 "헤드 잔여수명"인데 실측 확인 결과 연속 샷
 # 간 diff의 표준편차(1622~1637)가 전체 분포 자체의 표준편차(1152)보다 커서 자기상관이
 # 0에 가깝다 — 서서히 줄어드는 소모품이 아니라 매 샷이 독립적인 난수에 가까움(장비 4대
@@ -270,6 +288,38 @@ TARGET_RECOMPUTE_FROM_DATA = {"Kerf_Width_Profile", "Coating_Uniformity"}
 #
 # CLN_Time(방향 불일치 -> B로 재분류)과 Groove_Depth(매칭 defect인 Chipping 발생이
 # 전체 4건뿐이라 표본 부족)는 여기서 제외됨.
+#
+# ---------------------------------------------------------------------------
+# (26.08.08) 유형 배정 재검증 — 스캔을 R1이 아니라 **감시 데이터(원본)** 로 돌린다
+# ---------------------------------------------------------------------------
+# 26.08.07에 만든 scan_type_c_candidates를 threshold_source(=R1)로 돌리고 있었는데,
+# R1은 불량 시나리오를 의도적으로 주입한 학습셋이라 거기서 나온 분리배수는 주입 레시피를
+# 되읽은 값이다. 실제로 두 데이터셋의 답이 달랐다(Remain_Coat 기준, 신호/노이즈):
+#
+#            컬럼              R1     원본     비고
+#   Coating_Thickness         2.69 -> 6.47   R1이 진짜 신호를 **묻고** 있었음
+#   CLN_Pressure              2.07 -> 6.92   위와 같음(배정된 C인데도 R1에선 약해 보임)
+#   Vibration                 1.65 -> 0.96   R1에서만 보이던 가짜
+#   Bottom_Kerf               2.63 -> 0.96   위와 같음
+#   Laser_Centering_Position  2.21 -> 0.94   위와 같음
+#
+# R1에서는 18개 컬럼이 2.0~2.7배에 뭉쳐 구분이 안 됐는데, 원본에서는 3개(18.5~20.9배)와
+# 나머지 31개(<=1.0배)로 깨끗이 갈린다. threshold "값"은 표본 때문에 R1에서 배우되,
+# "어느 컬럼이 어떤 유형인가"는 실제 감시하는 데이터에서 판단해야 한다.
+#
+# 판정 기준은 warn_type_c_mismatch docstring에 있고, 두 컷 모두 순열에서 나온다(사람이
+# 고른 상수 없음). 원본 기준 전 컬럼 x 전 defect 스캔 결과:
+#   통과: Surface_Roughness->Particle(17.74), CLN_Flow->Remain_Coat(20.93),
+#         CLN_Pressure->Remain_Coat(19.81)  = 배정된 3건 그대로
+#         + Coating_Thickness->Remain_Coat(18.52) = 미배정(위 B목록 주석 참고)
+#   기각: Particle 후보 3개(CLN_Flow 3.53 / Coating_Thickness 3.09 / CLN_Pressure 2.74)는
+#         Remain_Coat를 통제하니 32~37% 잃고 천장(2.33) 아래로 내려간다 — 교란이다.
+#         대조로 Surface_Roughness->Particle은 같은 통제에서 17.7 -> 259.7로 오히려
+#         강해진다(독립 원인의 서명). 관계DB의 alert_usable=False 판정과 같은 결론.
+#
+# 한계: Chipping(원본 4건) / Micro_Crack(41건) / Laser_Paim(0건)은 스텀프가 그룹당
+# min_samples_leaf를 못 채워 스캔 자체가 성립하지 않는다. 이 셋의 유형 배정은 데이터로
+# 검증할 수 없고 도메인/관계DB 근거로만 간다 — 스캔 결과표에 아예 행이 없는 이유다.
 BASELINE_C_DEFECT_MAP = {
     "CLN_Pressure": "Remain_Coat",
     "Surface_Roughness": "Particle",

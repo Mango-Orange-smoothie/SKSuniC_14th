@@ -812,7 +812,7 @@ def _stump_separation(values: pd.Series, defect_flags: pd.Series) -> dict | None
 
 
 def scan_type_c_candidates(
-    df: pd.DataFrame, columns: list[str], defect_cols: list[str], n_permutations: int = 3, seed: int = 0
+    df: pd.DataFrame, columns: list[str], defect_cols: list[str], n_permutations: int = 40, seed: int = 0
 ) -> pd.DataFrame:
     """전 컬럼 x 전 defect에 결정트리 스텀프를 돌려 C유형 후보를 스캔한다(순열검정 포함).
 
@@ -843,18 +843,42 @@ def scan_type_c_candidates(
 
     rows = []
     for defect in defect_cols:
-        null_ratios = []
+        null_ratios = []      # 컬럼 1개 = 표본 1개 (개별 검정용 p95)
+        null_max_ratios = []  # 순열 1회 = 표본 1개, 그 안의 전 컬럼 최댓값 (FWER용)
+        null_max_consistency = []  # 방향일관성도 같은 방식으로 천장을 만든다
         for _ in range(n_permutations):
+            this_perm, this_perm_cons = [], []
             for col in columns:
-                per_group = []
+                per_group, per_dir = [], []
                 for g in groups:
                     shuffled = pd.Series(rng.permutation(g[defect].to_numpy()), index=g.index)
                     s = _stump_separation(g[col], shuffled)
                     if s is not None:
                         per_group.append(s["separation_ratio"])
+                        per_dir.append(s["risky_direction"])
                 if per_group:
-                    null_ratios.append(float(np.median(per_group)))
+                    this_perm.append(float(np.median(per_group)))
+                    cnt = pd.Series(per_dir).value_counts()
+                    this_perm_cons.append(float(cnt.iloc[0] / len(per_dir)))
+            null_ratios.extend(this_perm)
+            if this_perm:
+                null_max_ratios.append(max(this_perm))
+                null_max_consistency.append(max(this_perm_cons))
         noise_ceiling = float(np.percentile(null_ratios, 95)) if null_ratios else np.nan
+        # (26.08.08) 다중비교 보정 천장. p95 천장은 "컬럼 하나를 골라 검정했을 때"의 기준이라,
+        # 34개 컬럼을 전부 훑는 이 스캔에 그대로 쓰면 컬럼당 5%씩 오탐이 쌓인다(기대 1.7개).
+        # 실제로 그 차이가 판정을 가른다 — Vibration->Particle은 p95(2.054)는 넘지만 보정
+        # 천장은 못 넘는다(2.26 vs 2.34). Bonferroni 대신 Westfall-Young 최댓값 통계량을
+        # 쓴다: 순열 1회마다 "그 순열에서 가장 잘 갈린 컬럼"을 기록하면, 그 분포가 곧
+        # "아무 관계 없을 때 34개 중 최고가 어디까지 가는가"라 FWER을 정확히 통제한다
+        # (컬럼 간 상관을 자동 반영하므로 Bonferroni보다 덜 보수적이고, p99.93 같은
+        #  극단 분위수를 직접 추정할 필요가 없어 순열 횟수도 훨씬 적게 든다).
+        fwer_ceiling = float(np.percentile(null_max_ratios, 95)) if null_max_ratios else np.nan
+        # 방향일관성 천장도 같은 논리로 순열에서 만든다. 예전엔 0.8을 손으로 박아뒀는데
+        # 근거가 없었다 — 스텀프는 관계가 없어도 그룹마다 어느 한쪽을 "위험"으로 반드시
+        # 고르므로, 순수 노이즈에서도 일관성이 꽤 높게 나올 수 있다(그 수준이 얼마인지는
+        # 그룹 수/표본에 따라 달라져서 상수로 못 박는다). 34개 중 최고를 천장으로 쓴다.
+        cons_ceiling = float(np.percentile(null_max_consistency, 95)) if null_max_consistency else np.nan
 
         for col in columns:
             ratios, thresholds, directions = [], [], []
@@ -868,61 +892,85 @@ def scan_type_c_candidates(
             if not ratios:
                 continue
             counts = pd.Series(directions).value_counts()
+            separation = float(np.median(ratios))
+            consistency = float(counts.iloc[0] / len(directions))
             rows.append({
                 "defect": defect,
                 "column": col,
                 "n_groups_fitted": len(ratios),
-                "separation_ratio_median": round(float(np.median(ratios)), 3),
+                "separation_ratio_median": round(separation, 3),
                 "noise_ceiling_p95": round(noise_ceiling, 3),
+                "noise_ceiling_fwer": round(fwer_ceiling, 3),
+                "consistency_ceiling_fwer": round(cons_ceiling, 3),
                 # 천장 대비 몇 배인가 — 1.0 이하면 순수 노이즈와 구분 불가.
-                "signal_over_noise": round(float(np.median(ratios)) / noise_ceiling, 2) if noise_ceiling else np.nan,
+                "signal_over_noise": round(separation / noise_ceiling, 2) if noise_ceiling else np.nan,
+                # C유형 채택 기준(아래 두 조건 동시 충족) — warn_type_c_mismatch 주석 참고.
+                "passes_fwer": bool(separation > fwer_ceiling) if fwer_ceiling else False,
+                "passes_direction": bool(consistency > cons_ceiling) if cons_ceiling else False,
                 "threshold_median": round(float(np.median(thresholds)), 5),
                 "dominant_direction": str(counts.index[0]),
                 # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄인다(CLN_Time이 이래서 B유형).
-                "direction_consistency": round(float(counts.iloc[0] / len(directions)), 3),
+                "direction_consistency": round(consistency, 3),
                 "has_mentor_spec": col in SPEC,
                 "assigned_type_c": resolve_defect_pairing().get(col) == defect,
             })
     return pd.DataFrame(rows).sort_values(["defect", "separation_ratio_median"], ascending=[True, False])
 
 
-def warn_type_c_mismatch(candidates: pd.DataFrame, min_direction_consistency: float = 0.8) -> None:
-    """스캔 결과를 요약하고, **이미 배정된 C유형이 근거를 잃으면** 경고한다.
+def warn_type_c_mismatch(candidates: pd.DataFrame) -> None:
+    """스캔 결과를 요약하고, 배정과 데이터가 어긋나면 양방향으로 경고한다.
 
-    경고를 "기준 통과했는데 config에 없음"까지 확장하지 않는 이유: 스텀프 분리력이 세다는
-    건 "이 변수가 그 불량을 예측한다"는 뜻이지 "C유형이어야 한다"는 뜻이 아니다. C유형은
-    **정상 target을 정의할 수 없고 편측 위험선만 그을 수 있는** 변수를 위한 것인데, 분리력
-    숫자만으로는 그 구분이 안 된다 — 예컨대 Top/Bottom_Kerf는 Chipping을 37~43배로 가르지만
-    (멘토 시나리오 "Kerf 증가 -> Chipping 증가"가 실제로 데이터에 있음) 커프 폭은 목표값이
-    분명한 양측 변수라 B유형이 맞다. 그래서 "후보 목록"은 표로 제공하되 승격 판단은 사람이
-    한다.
+    (26.08.08) **C유형 채택 기준을 여기 한 번만 적어두고 전 컬럼에 똑같이 적용한다.**
+    예전엔 기준이 글로만 있고(노이즈 천장 p95 + 방향일관성 0.8) 실제 배정은 그때그때
+    사람이 했는데, 그러면 지적받은 컬럼만 검토되고 나머지는 방치된다. 기준은 둘이다:
 
-    반대로 **이미 C유형으로 배정된 컬럼이 노이즈 천장 아래로 내려가는 것**은 명확한 이상
-    신호다 — 이건 반드시 경고한다(26.08.07에 config.py 주석의 근거 수치가 이미 현실과
-    어긋나 있던 게 이 방식으로 발견됐다).
+      (1) 분리배수 > 순열 최댓값 천장(FWER 95%)  — 34컬럼을 동시에 훑는 다중비교 보정
+      (2) 방향일관성 > 순열 최댓값 천장(FWER 95%) — 전 그룹이 같은 쪽을 위험으로 지목
+
+    둘 다 순열에서 나온 값이라 사람이 고른 상수가 없다.
+
+    남은 판단 하나는 데이터로 못 정한다 — **"정상 target"이 정의되는 변수인가**. 정의되면
+    양측 변수라 B/A가 맞다(C는 편측 위험선만 그을 수 있는 변수를 위한 것). 다만 이건
+    "멘토 스펙이 있으면 자동 B"가 아니다. 스펙은 있는데 불량이 뛰는 경계가 스펙 **안쪽**에
+    있으면 스펙 감시만으론 못 잡는다 — 그 경우는 스펙 검사(유형 무관 공통 적용)와 C유형
+    threshold를 둘 다 거는 게 맞다.
+
+    그래서 경고는 **양방향**으로 낸다. 배정됐는데 기준 미달인 것뿐 아니라, 기준을 통과했는데
+    배정이 없는 것도 띄운다(예전엔 후자를 일부러 뺐는데, 그러면 사람이 표를 직접 열어보지
+    않는 한 새 후보가 영영 안 보인다 — 실제로 Coating_Thickness->Remain_Coat가 그렇게
+    묻혀 있었다). 통과했다고 자동 배정하지는 않는다 — 짝짓기의 단일 출처는 Goal2 관계DB다.
     """
     if candidates.empty:
         return
-    print("\n[C유형 스캔] 순열검정 노이즈 천장 대비 신호 강도 (상세: 00_baseline_C_candidates.csv)")
+    print("\n[C유형 스캔] 순열검정 천장 대비 신호 강도 (상세: 00_baseline_C_candidates.csv)")
     for defect, g in candidates.groupby("defect"):
-        ceiling = g["noise_ceiling_p95"].iloc[0]
-        top = g[~g["has_mentor_spec"]].head(3)
-        detail = ", ".join(f"{r.column} {r.signal_over_noise}x" for r in top.itertuples(index=False))
-        print(f"  {defect}: 천장 {ceiling}배 | 상위 {detail}")
+        print(f"  {defect}: 분리 천장 {g['noise_ceiling_fwer'].iloc[0]}배(FWER) / "
+              f"{g['noise_ceiling_p95'].iloc[0]}배(p95), 방향일관성 천장 "
+              f"{g['consistency_ceiling_fwer'].iloc[0]}")
+        passed = g[g["passes_fwer"] & g["passes_direction"]]
+        for r in passed.itertuples(index=False):
+            mark = "배정됨" if r.assigned_type_c else "미배정"
+            print(f"    통과 {r.column:26s} 분리 {r.separation_ratio_median:8.3f} "
+                  f"방향 {r.direction_consistency:.3f} [{mark}]")
 
     assigned = candidates[candidates["assigned_type_c"]]
     missing_rows = set(resolve_defect_pairing().items()) - set(zip(assigned["column"], assigned["defect"]))
-    weak = assigned[(assigned["signal_over_noise"] <= 1.0)
-                    | (assigned["direction_consistency"] < min_direction_consistency)]
+    weak = assigned[~(assigned["passes_fwer"] & assigned["passes_direction"])]
     for r in weak.itertuples(index=False):
         print(f"  [경고] {r.column}->{r.defect}는 C유형으로 배정돼 있으나 이번 스캔에서 기준 미달"
-              f"(신호 {r.signal_over_noise}x, 방향일관성 {r.direction_consistency}) — 재검토 필요.")
+              f"(분리 {r.separation_ratio_median} vs 천장 {r.noise_ceiling_fwer}, "
+              f"방향일관성 {r.direction_consistency} vs 천장 {r.consistency_ceiling_fwer}) — 재검토 필요.")
     for col, defect in sorted(missing_rows):
         print(f"  [경고] {col}->{defect}는 C유형으로 배정돼 있으나 스캔에서 threshold 학습 자체가 안 됨"
               f"(표본 부족 등) — 재검토 필요.")
+    unassigned = candidates[candidates["passes_fwer"] & candidates["passes_direction"]
+                            & ~candidates["assigned_type_c"]]
+    for r in unassigned.itertuples(index=False):
+        print(f"  [후보] {r.column}->{r.defect}는 기준을 통과했으나 관계DB에 짝이 없음"
+              f"(분리 {r.separation_ratio_median}배, 방향일관성 {r.direction_consistency}, "
+              f"경계 {r.threshold_median}) — 관계DB 판정 요청 대상.")
     if weak.empty and not missing_rows:
-        print(f"  배정된 C유형 {len(assigned)}건 모두 노이즈 천장을 넘음"
-              f"(최저 {assigned['signal_over_noise'].min()}x).")
+        print(f"  배정된 C유형 {len(assigned)}건 모두 기준 통과.")
 
 
 def compute_baseline_type_e(ok_df: pd.DataFrame) -> pd.DataFrame:
@@ -1014,11 +1062,18 @@ def main() -> None:
     # scan_type_c_candidates는 반대로 전 컬럼을 돌려서 사람 판단과 대조한다.
     # Yield는 제외한다 — 정의상 불량률의 반대편(Fail_Die vs 100-Yield Spearman 1.000)이라
     # 어떤 defect든 완벽히 가른다(누수). "원인"이 아니라 "결과"라 후보가 될 수 없다.
+    #
+    # (26.08.08) 스캔 대상을 threshold_source(R1)에서 **원본 df**로 되돌린다. R1은 불량
+    # 시나리오를 의도적으로 주입한 학습셋이라, 거기서 나온 분리배수는 "주입 레시피"를
+    # 되읽은 값이지 공정의 성질이 아니다(Chipping 기준 Kerf_Width_Profile 116배 같은
+    # 값이 그 증거 — 원본에서는 그런 분리가 존재하지 않는다). threshold "값"을 R1에서
+    # 배우는 건 표본 부족 때문에 불가피하지만, **어떤 컬럼이 어떤 유형인가**는 실제로
+    # 감시하는 데이터에서 판단해야 한다.
     scan_cols = [c for c in CONTINUOUS_TREND_COLS
-                 if c in threshold_source.columns and c != "Yield"]
+                 if c in df.columns and c != "Yield"]
     scan_defects = [d for d in config.DEFECTS_BINARY
-                    if d in threshold_source.columns and d not in mentor.MENTOR_EXCLUDED_DEFECTS]
-    c_candidates = scan_type_c_candidates(threshold_source, scan_cols, scan_defects)
+                    if d in df.columns and d not in mentor.MENTOR_EXCLUDED_DEFECTS]
+    c_candidates = scan_type_c_candidates(df, scan_cols, scan_defects)
     save_table(c_candidates, "00_baseline_C_candidates.csv", subdir="preprocessing")
     warn_type_c_mismatch(c_candidates)
 
