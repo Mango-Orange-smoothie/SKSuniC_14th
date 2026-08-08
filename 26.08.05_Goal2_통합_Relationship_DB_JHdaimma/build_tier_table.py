@@ -50,7 +50,13 @@ DOMAIN = [
     # 이전에는 "증가 -> Particle 증가"로 두어 Remain_Coat와 상충(트레이드오프)했으나,
     # 정정 후 두 defect 모두 "압력을 올리면 좋아지는" 같은 방향이 되어 상충이 사라진다.
     ("Particle",    "CLN_Pressure",       "down", "level", "멘토 확정 (26.08.06 방향 정정)"),
-    ("Remain_Coat", "CLN_Pressure",       "down", "spike", "멘토 확정 (순간적 급락)"),
+    # 2026-08-08 watch_mode 정정: spike -> level.
+    #   전성재 검증9의 "즉시적 압력 하락"을 "직전 대비 낙차"로 읽고 spike로 뒀으나,
+    #   낙차를 실제로 재보니 급락 사건이 없었다(rel_31 참조).
+    #   압력이 매 샷 ±5로 흔들려 낙차 자체가 노이즈이고, 낙차>2.0이 전체의 16.8%나 된다.
+    #   절대값 경계(lift 3.74, 알람 8.6%)가 낙차 기준(lift 2.33, 알람 16.8%)보다 낫다.
+    #   "선행신호가 없다"는 미리 예고 없이 그 순간 값이 낮다는 뜻이지 낙차를 재라는 뜻이 아니었다.
+    ("Remain_Coat", "CLN_Pressure",       "down", "level", "멘토 확정 (그 순간 값이 낮을 때 위험)"),
     ("Remain_Coat", "CLN_Flow",           "down", "level", "멘토 확정"),
     ("Micro_Crack", "Cooling_Flow",       "down", "level", "멘토 확정"),
     ("Micro_Crack", "Cooling_Water_Temp", "up",   "level", "멘토 확정"),

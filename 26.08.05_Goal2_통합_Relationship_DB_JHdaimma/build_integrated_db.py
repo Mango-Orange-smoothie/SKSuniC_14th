@@ -111,46 +111,91 @@ def enrich_tier_table() -> pd.DataFrame:
 
 
 # ==================================================================== ② Vibration 별도 영역
-def build_vibration_area() -> pd.DataFrame:
-    """티어표에 넣지 않는다. 추세 + 상하한 급이탈 알람 전용 트랙.
+# 김시우님(추세분석) 회신 반영 — 2026-08-08
+#   제가 낸 상한 0.2609는 합본 200k 기준이라 감시 데이터 최댓값(0.2487)보다 높아
+#   영원히 안 울린다. 0.2066(원본 p99)도 89일 전체라 열화 구간이 섞여 있다.
+#   김시우님이 안정구간(Mann-Kendall 추세 발생 직전) × OK샷 p99.9로 다시 내신
+#   0.2111을 채택한다. 장비 4대가 0.2089~0.2117로 수렴하는 것이 근거다.
+VIB_UPPER_LIMIT = 0.2111
+VIB_UPPER_SOURCE = ("김시우(추세분석) 산출 — 안정구간(Mann-Kendall 추세 발생 직전) × "
+                    "OK샷 p99.9. 장비 4대 0.2089~0.2117 수렴. 감시 데이터(원본) 기준.")
+# 추세 판정은 고정 창/기울기가 아니라 CUSUM 누적 + Mann-Kendall이다.
+VIB_CUSUM_K, VIB_CUSUM_H = "0.7σ", "4.5σ"
+VIB_TREND_TEST, VIB_TREND_ALPHA = "Mann-Kendall", 0.05
+VIB_SPEC_BREACH = ("상한 0.2111 초과, 일별 초과 샷 수 >= binom.ppf(0.99, 그날 샷수, 0.001)")
 
-    멘토 공식 스펙에 Vibration이 없으므로 상하한을 데이터에서 제시한다.
-    추세 기준은 추세분석 담당이 채운다 — 여기서는 빈칸으로 자리만 만든다.
+
+def build_vibration_area() -> pd.DataFrame:
+    """티어표에 넣지 않는다. 추세 + 상한 이탈 알람 전용 트랙.
+
+    멘토 공식 스펙에 Vibration이 없어 상한을 데이터에서 잡아야 한다.
+    상한값과 CUSUM 파라미터는 김시우님 산출값을 싣는다(2026-08-08 회신).
+
+    lift는 합본과 원본을 나눠서 싣는다. 합본 lift는 r1(주입 데이터)이 지배하므로
+    감시 데이터에서의 관계를 말해주지 못한다 — 원본에서는 상한 초과 구간에
+    Chipping/Micro_Crack이 둘 다 0건이라 검증 자체가 불가능하다.
     """
     rows = []
+    lim = VIB_UPPER_LIMIT
     for d_ in ["Chipping", "Micro_Crack"]:      # 확정 도메인: Vibration 증가 -> 증가
         others = [z for z in DEFECTS if z != d_]
         pure = (df[d_] == 1) & (df[others].sum(axis=1) == 0)
-        v = df.Vibration
+        pure_o = (o[d_] == 1) & (o[[z for z in DEFECTS if z != d_]].sum(axis=1) == 0)
+        v, vo = df.Vibration, o.Vibration
+
+        hi, hi_o = v > lim, vo > lim
+        rate_c = pure[hi].mean() * 100 if hi.sum() else None
+        base_c = pure.mean() * 100
+        n_def_o = int(pure_o[hi_o].sum()) if hi_o.sum() else 0
+        # 원본에 해당 defect 표본이 거의 없어 lift 산출이 불가능한 경우를 구분한다.
+        verified_o = bool(hi_o.sum() >= 30 and n_def_o >= 5)
+        lift_o = (round(pure_o[hi_o].mean() / pure_o.mean(), 3)
+                  if verified_o and pure_o.mean() > 0 else None)
+
+        lift_c = round(rate_c / base_c, 3) if rate_c is not None and base_c > 0 else None
+        if verified_o:
+            ev = f"멘토 확정 + 감시 데이터 검증(lift {lift_o})"
+        elif lift_c is not None and lift_c > 1:
+            ev = (f"멘토 확정 + r1 포함 합본에서 관계 확인(lift {lift_c}) / "
+                  f"감시 데이터 검증 불가(상한 초과 {int(hi_o.sum()):,}샷 중 불량 {n_def_o}건)")
+        else:
+            ev = (f"멘토 확정만 / 합본에서도 미확인(lift {lift_c}) · "
+                  f"감시 데이터 검증 불가(상한 초과 {int(hi_o.sum()):,}샷 중 불량 {n_def_o}건)")
+
         rows.append(dict(
             factor="Vibration", defect=d_,
             role="원인(정비대상)", area="alarm_only_not_tier",
-            domain_direction="Vibration 증가 → " + d_ + " 증가",
+            domain_direction=f"Vibration 증가 → {d_} 증가",
             domain_evidence="멘토 확정",
-            alarm_type="추세 상승 + 상하한 급이탈",
+            evidence_level=ev,
+            alarm_type="추세 상승(CUSUM) + 상한 이탈",
             why_not_in_tier="값을 조정하는 인자가 아니라 설비 정비 대상이라 "
                             "원인 티어표에 두면 실행 불가능한 조치를 제안하게 됨",
             has_official_spec=False,
-            spec_note="멘토 공식 스펙(spec.py 10개 변수)에 Vibration 없음 — 상하한을 데이터에서 제시",
-            # --- 데이터 기반 상하한 후보 (통합 20만행)
+            spec_note="멘토 공식 스펙(spec.py 10개 변수)에 Vibration 없음 — 상한을 데이터에서 산출",
+            # --- 상한 (김시우님 산출값 채택)
+            upper_limit=lim, upper_limit_source=VIB_UPPER_SOURCE,
+            # --- 참고 분포 (상한 산출용이 아니라 맥락용)
             p01=round(v.quantile(.01), 4), p50=round(v.quantile(.50), 4),
-            p99=round(v.quantile(.99), 4), p999=round(v.quantile(.999), 4),
-            vmin=round(v.min(), 4), vmax=round(v.max(), 4),
-            upper_candidate_p99=round(v.quantile(.99), 4),
-            upper_candidate_p999=round(v.quantile(.999), 4),
-            # 원본 기준(정상 운전)에서의 상한 — r1은 열화 주입이라 별도로 제시
-            upper_original_p99=round(o.Vibration.quantile(.99), 4),
-            upper_r1_p99=round(r.Vibration.quantile(.99), 4),
-            defect_rate_above_p99_pct=round(pure[v > v.quantile(.99)].mean() * 100, 3),
-            defect_rate_overall_pct=round(pure.mean() * 100, 3),
-            # 상한 초과가 실제로 그 defect를 예측하는지 자체 점검.
-            # 1보다 작으면 상한 알람을 그 defect에 연결하면 안 된다.
-            lift_above_p99=round(pure[v > v.quantile(.99)].mean() / pure.mean(), 3)
-            if pure.mean() > 0 else None,
-            # --- 추세 담당이 채울 자리
-            trend_window_days="", trend_slope_threshold="",
-            spec_breach_rule="", alarm_owner="추세분석 담당",
-            status="스키마만 정의 — 기준값은 추세분석 담당이 채움",
+            p99_combined=round(v.quantile(.99), 4),
+            p99_original=round(vo.quantile(.99), 4),
+            p99_r1=round(r.Vibration.quantile(.99), 4),
+            vmax_combined=round(v.max(), 4), vmax_original=round(vo.max(), 4),
+            # --- 상한 초과 구간의 불량률 — 합본과 원본을 반드시 나눠서 본다
+            n_above_limit_combined=int(hi.sum()),
+            n_above_limit_original=int(hi_o.sum()),
+            defect_rate_above_limit_combined_pct=None if rate_c is None else round(rate_c, 3),
+            defect_rate_overall_combined_pct=round(base_c, 3),
+            lift_combined=lift_c,
+            n_defect_above_limit_original=n_def_o,
+            lift_original=lift_o,
+            verified_on_original=verified_o,
+            # --- 추세 판정 (김시우님 구현)
+            cusum_K=VIB_CUSUM_K, cusum_H=VIB_CUSUM_H,
+            trend_test=VIB_TREND_TEST, trend_alpha=VIB_TREND_ALPHA,
+            spec_breach_rule=VIB_SPEC_BREACH,
+            alarm_owner="추세분석 담당(김시우)",
+            status="상한·CUSUM 파라미터 확정(2026-08-08 김시우님 회신 반영)",
         ))
     return pd.DataFrame(rows)
 
@@ -371,14 +416,19 @@ if __name__ == "__main__":
     print("Vibration — 티어표 밖 별도 알람 영역 (rel_28)")
     print("=" * W)
     v = vib.iloc[0]
-    print(f"  공식 스펙        : 없음 (멘토 spec.py 10개 변수에 미포함)")
-    print(f"  데이터 상한 후보 : p99 {v.upper_candidate_p99}  /  p99.9 {v.upper_candidate_p999}")
-    print(f"  원본 p99 {v.upper_original_p99}   r1 p99 {v.upper_r1_p99}")
+    print(f"  공식 스펙  : 없음 (멘토 spec.py 10개 변수에 미포함)")
+    print(f"  상한       : {v.upper_limit}  ← 김시우님 산출 채택")
+    print(f"               (제 이전 값 0.2609는 합본 기준이라 감시 최댓값 "
+          f"{v.vmax_original} 보다 높아 폐기)")
+    print(f"  추세 판정  : CUSUM K={v.cusum_K} H={v.cusum_H} · {v.trend_test} α={v.trend_alpha}")
     for _, x in vib.iterrows():
-        warn = "" if x.lift_above_p99 > 1 else "   ⚠ 상한 초과가 이 defect를 예측 못 함"
-        print(f"  {x.defect:12s} p99 초과 구간 불량률 {x.defect_rate_above_p99_pct:>6.2f}%"
-              f"  (전체 {x.defect_rate_overall_pct:.2f}%, {x.lift_above_p99}배){warn}")
-    print(f"  추세 기준        : 빈칸 — 추세분석 담당이 채움")
+        print(f"\n  [{x.defect}]")
+        print(f"    합본  상한초과 {x.n_above_limit_combined:>6,}샷  "
+              f"불량률 {x.defect_rate_above_limit_combined_pct:>6.2f}%  lift {x.lift_combined}")
+        print(f"    원본  상한초과 {x.n_above_limit_original:>6,}샷  "
+              f"그중 불량 {x.n_defect_above_limit_original}건  "
+              f"→ 검증 {'가능' if x.verified_on_original else '불가'}")
+        print(f"    근거  {x.evidence_level}")
 
     print("\n" + "=" * W)
     print("경계값을 어느 데이터셋이 정했나 (r1 주도면 정상 운전에서 도달 안 할 수 있음)")
