@@ -1142,6 +1142,10 @@ def build_machine_snapshot(
                     # margin과 기준이 다를 수 있다(compute_level_and_trend 주석 참고).
                     "control_lsl": _none_if_nan(row["control_lsl"]),
                     "control_usl": _none_if_nan(row["control_usl"]),
+                    # SYSTEM_PROMPT가 3곳에서 참조하는데 payload에 없었다 —
+                    # "레벨은 아직 여유 있는데 추세 때문에 점수가 깎였다"를 agent가
+                    # 설명하려면 health_index와 margin을 둘 다 봐야 한다.
+                    "margin_used_pct": _none_if_nan(row["margin_used_pct"]),
                     "spec_source": row["spec_source"],
                     "spec_status": row["spec_status"],
                     "health_index": row["health_index"],
