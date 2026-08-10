@@ -352,6 +352,75 @@ function renderChart(cd){
   </div>`;
 }
 
+// 장비별 선 색. 대시보드 어디서든 DP01은 늘 같은 색이어야 눈이 익는다.
+const MACHINE_COLORS = { DP01:'#5b54e8', DP02:'#0ca30c', DP03:'#d98324', DP04:'#d03b3b' };
+
+// 같은 변수를 4대에서 한 그래프에 겹쳐 그린다. renderChart와 달리 기준선은 한 세트뿐이다
+// — 정상값/관리한계는 Product x Recipe 층에서 잡아 Machine_ID를 안 쓰기 때문에 4대가
+// 똑같고, 그게 이 그래프의 요점이다(같은 자로 재서 어느 장비가 벗어났는가).
+function renderCompareChart(cd){
+  const W = 640, H = 240, padL = 50, padR = 16, padT = 14, padB = 40;
+  const n = (cd.dates || []).length;
+  if(n < 2 || !(cd.machines || []).length) return '';
+
+  const has = v => v !== null && v !== undefined;
+  const flat = cd.machines.flatMap(m => m.values).filter(has);
+  if(!flat.length) return '';
+  const allVals = flat.concat([cd.baseline_median],
+                              has(cd.control_lsl) ? [cd.control_lsl] : [],
+                              has(cd.control_usl) ? [cd.control_usl] : []);
+  let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
+  vMin -= pad; vMax += pad;
+
+  const x = i => padL + (i / (n - 1)) * (W - padL - padR);
+  const y = v => padT + (1 - (v - vMin) / (vMax - vMin)) * (H - padT - padB);
+  const hline = (v, color, dashed) =>
+    `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
+
+  const side = cd.score_side || 'both';
+  const scoresUp = side === 'both' || side === 'upper';
+  const scoresLo = side === 'both' || side === 'lower';
+
+  // 값이 없는 날(장비마다 창이 달라서 생긴다)에서는 선을 끊는다 — 0으로 이으면 없는
+  // 데이터를 있는 것처럼 그리게 된다.
+  const paths = cd.machines.map(m => {
+    const color = MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)';
+    let d = '', pen = false, lastI = -1;
+    m.values.forEach((v, i) => {
+      if(!has(v)){ pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
+      pen = true; lastI = i;
+    });
+    const dot = lastI >= 0
+      ? `<circle cx="${x(lastI).toFixed(1)}" cy="${y(m.values[lastI]).toFixed(1)}" r="3" fill="${color}"/>` : '';
+    return `<path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="1.6" opacity="0.9"/>${dot}`;
+  }).join('');
+
+  const legend = cd.machines.map((m, i) => {
+    const color = MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)';
+    const lx = padL + i * 74;
+    return `<line x1="${lx}" y1="${H - 10}" x2="${lx + 14}" y2="${H - 10}" stroke="${color}" stroke-width="2"/>`
+      + `<text x="${lx + 18}" y="${H - 7}" font-size="9" fill="var(--ink-muted)">${m.machine_id}${m.early_warning_active ? '⚠' : ''}</text>`;
+  }).join('');
+
+  return `<div class="chart-wrap">
+    <div class="chart-title">${cd.factor} · 4대 비교 (기준선은 4대 공통)</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+      ${has(cd.control_usl) ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
+      ${has(cd.control_lsl) ? hline(cd.control_lsl, scoresLo ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
+      ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
+      ${paths}
+      <text x="${padL}" y="${H - 24}" font-size="9" fill="var(--ink-faint)">${cd.dates[0]}</text>
+      <text x="${W - padR}" y="${H - 24}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${cd.dates[n - 1]}</text>
+      ${has(cd.control_usl) ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}${scoresUp ? '' : ' (점수 무관)'}</text>` : ''}
+      ${has(cd.control_lsl) ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}${scoresLo ? '' : ' (점수 무관)'}</text>` : ''}
+      <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
+      ${legend}
+    </svg>
+  </div>`;
+}
+
 // ---------- 대시보드 패널(개수 유동) ----------
 // 조회 결과 개수만큼 .dash-panel을 그때그때 새로 만든다(1~4개). 레이아웃은 항상:
 //   1개 = 전체 1칸 / 2개 = 좌우 반반(1행) / 3~4개 = 2x2 (3개면 마지막 칸만 자동으로 빔)
@@ -373,7 +442,7 @@ function buildPanelEl(p){
   el.className = 'dash-panel';
   el.innerHTML =
     `<div class="panel-title">${inline(p.title)}</div>` +
-    (p.chart ? renderChart(p.chart) : '') +
+    (p.compare ? renderCompareChart(p.compare) : p.chart ? renderChart(p.chart) : '') +
     `<div class="panel-explain">${renderMarkdown(p.explanation_md)}</div>`;
   return el;
 }

@@ -676,6 +676,106 @@ def _panel_from_chart(chart: dict) -> dict:
     return {"title": f"📈 {machine_id} · {factor}", "explanation_md": "\n".join(lines), "chart": chart}
 
 
+def _panel_from_compare(charts: list[dict]) -> dict:
+    """같은 변수를 여러 장비에서 조회했을 때 **한 그래프에 겹쳐서** 비교 패널을 만든다.
+
+    (26.08.10) 예전엔 장비마다 패널을 따로 그려서, "이 변수에서 어느 장비가 제일 나쁜가"를
+    보려면 4개의 작은 그래프를 눈으로 옮겨다니며 비교해야 했다. y축 범위도 패널마다 달라서
+    실제로는 비교가 안 됐다.
+
+    기준선(정상값/관리한계)은 장비별로 같다 — OPCOND(Product x Recipe) 층에서 잡고
+    Machine_ID를 안 쓰기 때문이다. 그래서 한 세트만 그리면 되고, 그게 오히려 이 그래프의
+    요점이다: **같은 자로 재서 어느 장비가 벗어났는가.**
+
+    각 장비의 자동 창(경보 시작 14일 전~)이 서로 다르므로 날짜 합집합으로 축을 맞추고,
+    없는 날은 None으로 둔다(화면에서 선을 끊는다).
+    """
+    factor = charts[0]["factor"]
+    base = max(charts, key=lambda c: len(c.get("series") or []))  # 창이 가장 넓은 것을 기준선 출처로
+
+    # 장비마다 자동 창이 다르다(자기 경보 시작 기준). 그대로 합치면 한 장비만 긴 선이고
+    # 나머지는 25일씩 비어서 비교가 안 된다 — **가장 넓은 창으로 통일해서 원본을 다시
+    # 읽는다.** 비교 그래프의 전제가 "같은 구간을 같은 자로 본다"이므로 여기서 타협하면
+    # 그래프 자체가 거짓말이 된다.
+    all_dates = sorted({p["date"] for c in charts for p in (c.get("series") or [])})
+    lo_date, hi_date = all_dates[0], all_dates[-1]
+
+    machines = []
+    for c in sorted(charts, key=lambda c: c["machine_id"]):
+        mid = c["machine_id"]
+        sub = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == mid)
+                           & (DAILY_SERIES["column"] == factor)]
+        sub = sub[(sub["date"].astype(str) >= lo_date) & (sub["date"].astype(str) <= hi_date)]
+        by_date = dict(zip(sub["date"].astype(str), sub["daily_mean"]))
+        values = [(float(by_date[d]) if d in by_date and pd.notna(by_date[d]) else None)
+                  for d in all_dates]
+        present = [v for v in values if v is not None]
+        machines.append({
+            "machine_id": mid,
+            "values": values,
+            "current_value": present[-1] if present else None,
+            "alert_since": c.get("alert_since"),
+            "alert_active_days": c.get("alert_active_days"),
+            "early_warning_active": c.get("early_warning_active"),
+        })
+
+    compare = {
+        "factor": factor,
+        "dates": all_dates,
+        "machines": machines,
+        "baseline_median": base.get("baseline_median"),
+        "control_lsl": base.get("control_lsl"),
+        "control_usl": base.get("control_usl"),
+        "score_side": base.get("score_side", "both"),
+        "lsl": base.get("lsl"),
+        "usl": base.get("usl"),
+        "spec_source": base.get("spec_source"),
+    }
+
+    # 설명은 "정상값에서 위험한 방향으로 얼마나 벗어났나" 순으로 세운다. 단순 대소가
+    # 아니라 방향을 봐야 한다 — CLN_Flow는 낮을수록 나쁘고 Head_Temp는 높을수록 나쁘다.
+    side, b = compare["score_side"], compare["baseline_median"]
+    def deviation(m):
+        v = m["current_value"]
+        if v is None or b is None:
+            return -1.0
+        if side == "lower":
+            return b - v
+        if side == "upper":
+            return v - b
+        return abs(v - b)
+
+    ranked = sorted(machines, key=deviation, reverse=True)
+    worst = ranked[0]
+    dir_word = {"lower": "낮을수록", "upper": "높을수록"}.get(side, "정상값에서 멀수록")
+    lines = [
+        f"- **기준**: 정상값 `{b}`, 관리한계 `{compare['control_lsl']}` ~ `{compare['control_usl']}` "
+        f"— 4대 공통({dir_word} 나쁨). 기준선은 Product×Recipe 층에서 잡아 장비를 안 쓰므로 "
+        f"**같은 자로 4대를 잰 것**이다.",
+        # %.4g는 9.9996을 "10"으로 뭉갠다 — 비교 그래프에서 자릿수가 죽으면 순위가
+        # 사라지므로 정상값과 같은 소수 자릿수(최소 4자리)로 맞춘다.
+        "- **현재값**: " + " · ".join(
+            f"`{m['machine_id']}` {m['current_value']:.4f}" + ("⚠️" if m.get("early_warning_active") else "")
+            for m in ranked if m["current_value"] is not None),
+    ]
+    if deviation(worst) > 0:
+        alert_txt = (f", `{worst['alert_since']}`부터 `{worst['alert_active_days']}일`째 경보"
+                     if worst.get("early_warning_active") and worst.get("alert_since") else "")
+        lines.append(f"- **가장 벗어난 장비**: `{worst['machine_id']}`{alert_txt}")
+
+    meta = CAUSE_FACTORS.get(factor)
+    if factor == "Vibration":
+        lines.append(f"- **참고**: {_VIBRATION_NOTE}")
+    elif meta:
+        lines.append(f"- **메커니즘**: {meta.get('mechanism', '-')}")
+
+    return {
+        "title": f"📊 {factor} · 장비 비교 ({len(machines)}대)",
+        "explanation_md": "\n".join(lines),
+        "compare": compare,
+    }
+
+
 def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dict] | None:
     """이번 턴에 실제로 조회된 내용으로 대시보드 패널을 만든다. 패널 개수는 항상
     고정(2개)이 아니라 실제로 조회한 개수를 그대로 따른다(최대 MAX_PANELS) — 그래프 1개를
@@ -686,7 +786,18 @@ def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dic
     (장비 몇 개가 질문에 언급됐는지로 "무엇을 비교하려는 질문인가"를 판단 — 도구 호출
     횟수로 판단하면 "몇 등이야?" 같은 배경조회에 오염된다)."""
     if chart_calls:
-        return [_panel_from_chart(c) for c in chart_calls[:MAX_PANELS]] or None
+        # 같은 변수를 여러 장비에서 조회했으면 쪼개지 말고 한 그래프에 겹친다 —
+        # "Vibration 전체 장비 비교" 같은 질문에서 작은 그래프 4개를 눈으로 옮겨다니며
+        # 비교하는 건 비교가 아니다(y축 범위도 패널마다 달라진다).
+        by_factor: dict[str, list] = {}
+        for c in chart_calls:
+            by_factor.setdefault(c["factor"], []).append(c)
+        panels = []
+        for factor, group in by_factor.items():
+            uniq = list({c["machine_id"]: c for c in group}.values())
+            panels.append(_panel_from_compare(uniq) if len(uniq) >= 2
+                          else _panel_from_chart(uniq[0]))
+        return panels[:MAX_PANELS] or None
 
     mentioned = list(dict.fromkeys(m.upper() for m in _MACHINE_ID_RE.findall(question)))
 
