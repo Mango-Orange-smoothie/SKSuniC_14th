@@ -842,25 +842,35 @@ def compute_level_and_trend(
         # 이미 나르고 있으므로 margin이 다시 나를 필요가 없다.
         # cusum_alert_lower/upper는 화면에 계속 그린다 — "왜 경보가 떴는지"를 보여주는
         # 선이라 점수 기준선과 별개로 쓸모가 있다.
+        # (26.08.10) **관리한계는 A/B/C/E 전 유형에 양쪽 다 만든다. 점수는 위험한 쪽만
+        # 센다.** 예전엔 편측 컬럼의 안전한 쪽 선을 아예 안 만들었는데, 그러면 엔지니어가
+        # 화면에서 정상 변동폭(±3σ)이 얼마인지를 볼 수 없다 — Shewhart 관리도는 원래 양쪽을
+        # 다 그리고, 한쪽 이탈만 조치 대상인 것과 "선을 안 그리는 것"은 다른 얘기다.
+        #
+        # 그래서 두 쌍으로 분리한다:
+        #   ctrl_lo/ctrl_up   = 정상값 ± 3σ. 항상 양쪽. **표시 전용**
+        #   score_lo/score_up = 위험한 쪽만. **margin/점수 전용**
+        # 섞으면 CLN_Flow(유량 감소가 위험)가 유량이 올라갔다고 점수를 잃는다 — 세정이
+        # 더 잘 되고 있는데 경보가 뜨는 셈이라 명백히 틀린다.
         sd = stratum_std_map.get(col)
-        alarm_lo = alarm_up = None
+        ctrl_lo = ctrl_up = None
         if sd and np.isfinite(sd) and sd > 0 and np.isfinite(baseline_disp):
-            # 편측 컬럼(A유형 / C유형)은 위험한 쪽 선만 만든다 — 반대쪽으로의 이탈은
-            # 여유 소진이 아니다. direction_of가 관계DB의 방향을 이미 반영한다.
-            if direction != "down":
-                alarm_up = baseline_disp + CONTROL_LIMIT_SIGMA * sd
-            if direction != "up":
-                alarm_lo = baseline_disp - CONTROL_LIMIT_SIGMA * sd
-        if alarm_lo is None and alarm_up is None:
+            ctrl_up = baseline_disp + CONTROL_LIMIT_SIGMA * sd
+            ctrl_lo = baseline_disp - CONTROL_LIMIT_SIGMA * sd
+        if ctrl_lo is None and ctrl_up is None:
             continue
+
+        # 점수를 내는 쪽. direction_of가 관계DB의 방향을 이미 반영한다.
+        score_up = ctrl_up if direction != "down" else None
+        score_lo = ctrl_lo if direction != "up" else None
 
         vals = g["daily_mean"]
         above = vals >= baseline_disp
         margin_pct = pd.Series(0.0, index=g.index, dtype=float)
-        if alarm_up is not None and alarm_up != baseline_disp:
-            margin_pct[above] = (vals[above] - baseline_disp) / (alarm_up - baseline_disp) * 100
-        if alarm_lo is not None and alarm_lo != baseline_disp:
-            margin_pct[~above] = (baseline_disp - vals[~above]) / (baseline_disp - alarm_lo) * 100
+        if score_up is not None and score_up != baseline_disp:
+            margin_pct[above] = (vals[above] - baseline_disp) / (score_up - baseline_disp) * 100
+        if score_lo is not None and score_lo != baseline_disp:
+            margin_pct[~above] = (baseline_disp - vals[~above]) / (baseline_disp - score_lo) * 100
         margin_pct = margin_pct.clip(lower=0.0)
         margin_pct[vals.isna()] = np.nan
 
@@ -868,14 +878,11 @@ def compute_level_and_trend(
             # 진짜 스펙이 없는 컬럼은 표시 경계도 점수를 내는 선과 같게 둔다 — 예전엔
             # 임시 백분위 경계(provisional_percentile)를 보여줬는데, 그 선은 점수 계산에
             # 쓰이지도 않으면서 "스펙처럼" 읽혔다.
-            # (26.08.10) 없는 쪽은 baseline이 아니라 NaN이다 — 예전엔 baseline_disp를
-            # 넣었는데, 그러면 "정상값 == 한계선"이 되어 화면에 정상값 자리에 빨간 한계선이
-            # 그려졌다(DP01 Surface_Roughness: baseline 0.5832 = lsl 0.5832). 값이 정상값
-            # 근처에만 있어도 한계선에 올라탄 것처럼 보인다 — 실제로는 여유의 0.3%만 쓴
-            # 상태였다. 편측 컬럼은 반대쪽 한계가 "0"이 아니라 **애초에 없는 것**이므로,
-            # 없다는 걸 그대로 표현하고 그리지 않게 한다.
-            lsl_disp = alarm_lo if alarm_lo is not None else np.nan
-            usl_disp = alarm_up if alarm_up is not None else np.nan
+            # 표시용이므로 양쪽 관리한계를 그대로 쓴다(ctrl_*). 예전엔 baseline_disp로
+            # 채웠는데 "정상값 == 한계선"이 되어 화면에 정상값 자리에 빨간 한계선이
+            # 그려졌다(DP01 Surface_Roughness: baseline 0.5832 = lsl 0.5832).
+            lsl_disp = ctrl_lo if ctrl_lo is not None else np.nan
+            usl_disp = ctrl_up if ctrl_up is not None else np.nan
 
         # 진입률은 점수에서 빠지지만 화면/agent 문구의 근거라 계속 계산한다.
         if defect_thr is not None and (machine, col) in zone_lookup:
@@ -987,8 +994,17 @@ def compute_level_and_trend(
             # 그러면 화면의 한계값과 margin의 기준이 어긋난다 — 예: DP02 Laser_Power는
             # 현재 18.44 / 스펙 하한 17.80이라 여유가 많아 보이는데 margin은 24%다
             # (관리한계 18.25 기준). 두 선을 다 실어서 어느 쪽 기준인지 보이게 한다.
-            "control_lsl": round(alarm_lo, 4) if alarm_lo is not None else None,
-            "control_usl": round(alarm_up, 4) if alarm_up is not None else None,
+            #
+            # (26.08.10) control_lsl/usl은 **전 유형 양쪽 다** 채운다 — 정상 변동폭(±3σ)이
+            # 얼마인지는 편측 컬럼에서도 봐야 하는 정보다. 다만 점수를 내는 건 위험한
+            # 쪽뿐이라, 어느 쪽이 점수 기준인지는 아래 score_side로 따로 알려준다.
+            # 이걸 안 실으면 화면이 CLN_Flow의 위쪽 선을 보고 "여기 넘으면 위험"이라고
+            # 오해할 수 있다(유량이 늘어나는 건 위험이 아니다).
+            "control_lsl": round(ctrl_lo, 4) if ctrl_lo is not None else None,
+            "control_usl": round(ctrl_up, 4) if ctrl_up is not None else None,
+            "score_side": ("both" if score_lo is not None and score_up is not None
+                           else "upper" if score_up is not None
+                           else "lower" if score_lo is not None else "none"),
             # defect_zone_rate 컬럼 전용: margin/health가 "값이 경계에서 얼마나 떨어졌나"가
             # 아니라 "위험구간 샷 비율이 평소 대비 얼마나 늘었나"에서 나온다는 걸 알 수 있게
             # 실제 비율을 그대로 같이 싣는다(다른 컬럼은 None).
@@ -1150,6 +1166,8 @@ def build_machine_snapshot(
                     # margin과 기준이 다를 수 있다(compute_level_and_trend 주석 참고).
                     "control_lsl": _none_if_nan(row["control_lsl"]),
                     "control_usl": _none_if_nan(row["control_usl"]),
+                    # 관리한계는 양쪽 다 있지만 점수를 내는 건 이쪽뿐이다(upper/lower/both).
+                    "score_side": row["score_side"],
                     # SYSTEM_PROMPT가 3곳에서 참조하는데 payload에 없었다 —
                     # "레벨은 아직 여유 있는데 추세 때문에 점수가 깎였다"를 agent가
                     # 설명하려면 health_index와 margin을 둘 다 봐야 한다.
@@ -1215,6 +1233,7 @@ def build_machine_snapshot(
                 "usl": _none_if_nan(row["usl"]),
                 "control_lsl": _none_if_nan(row["control_lsl"]),
                 "control_usl": _none_if_nan(row["control_usl"]),
+                "score_side": row["score_side"],
                 "spec_source": row["spec_source"],
                 "spec_status": row["spec_status"],
                 "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),

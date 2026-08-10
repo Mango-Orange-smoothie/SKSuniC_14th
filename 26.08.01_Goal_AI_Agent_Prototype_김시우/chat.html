@@ -254,6 +254,12 @@ function renderChart(cd){
   // 직선으로 뭉개진다 — 그래서 축 범위 계산에는 관리한계만 넣고, 스펙선은 범위 안에
   // 들어올 때만 그린다(26.08.10).
   const hasLsl = has(cd.control_lsl), hasUsl = has(cd.control_usl);
+  // 관리한계는 A/B/C/E 전 유형에 양쪽 다 그린다(정상 변동폭이 얼마인지 보여야 한다).
+  // 다만 점수를 내는 쪽만 빨간색으로, 나머지는 회색으로 — CLN_Flow의 위쪽 선을
+  // "넘으면 위험"으로 오해하면 안 된다(유량이 늘어나는 건 위험이 아니다).
+  const side = cd.score_side || 'both';
+  const scoresUp = side === 'both' || side === 'upper';
+  const scoresLo = side === 'both' || side === 'lower';
   const allVals = values.concat([cd.baseline_median],
                                 hasLsl ? [cd.control_lsl] : [], hasUsl ? [cd.control_usl] : []);
   let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
@@ -287,15 +293,15 @@ function renderChart(cd){
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
       ${specLines}
-      ${hasUsl ? hline(cd.control_usl, 'var(--critical)', true) : ''}
-      ${hasLsl ? hline(cd.control_lsl, 'var(--critical)', true) : ''}
+      ${hasUsl ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
+      ${hasLsl ? hline(cd.control_lsl, scoresLo ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
       <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
       <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
       <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
-      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">관리상한 ${cd.control_usl}</text>` : ''}
-      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">관리하한 ${cd.control_lsl}</text>` : ''}
+      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}${scoresUp ? '' : ' (점수 무관)'}</text>` : ''}
+      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}${scoresLo ? '' : ' (점수 무관)'}</text>` : ''}
       <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
     </svg>
   </div>`;

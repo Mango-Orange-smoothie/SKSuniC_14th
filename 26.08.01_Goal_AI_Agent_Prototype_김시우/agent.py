@@ -313,6 +313,10 @@ def get_trend_chart_data(
         # 답할 수가 없다. 두 선을 다 실어서 화면에서 구분해 그린다.
         "control_lsl": float(spec["control_lsl"]) if pd.notna(spec["control_lsl"]) else None,
         "control_usl": float(spec["control_usl"]) if pd.notna(spec["control_usl"]) else None,
+        # (26.08.10) 관리한계는 양쪽 다 그리되, 점수를 내는 건 위험한 쪽뿐이다.
+        # 어느 쪽인지 안 알려주면 화면이 CLN_Flow의 위쪽 선을 "넘으면 위험"으로
+        # 오해한다 — 유량이 늘어나는 건 위험이 아니다. upper/lower/both.
+        "score_side": spec["score_side"] if pd.notna(spec["score_side"]) else "both",
         # (26.08.06 추가) 실제로 경보를 결정하는 선. lsl/usl은 이 공정의 자연 변동폭보다
         # 훨씬 넓어서 데이터에서 수십 시그마 떨어져 있고(멘토 스펙 9개 중 7개가 89일 내내
         # 위반 0건), 경보를 내는 건 CUSUM이다. 화면에서 y축을 lsl~usl에 맞추면 실제 등락이
@@ -572,14 +576,15 @@ def _panel_from_chart(chart: dict) -> dict:
     # 점수를 내는 선(control_*)을 먼저 말한다. 멘토 스펙(lsl/usl)은 다른 축이라
     # 괄호로 덧붙이기만 한다 — 둘을 "~"로 섞으면 어느 쪽이 점수 기준인지 사라진다.
     lo, hi_ = chart.get("control_lsl"), chart.get("control_usl")
-    if lo is not None and hi_ is not None:
-        bound_txt = f"관리한계 `{lo}` ~ `{hi_}`"
-    elif hi_ is not None:
-        bound_txt = f"관리상한 `{hi_}` (하한 없음 — 증가만 위험한 변수)"
-    elif lo is not None:
-        bound_txt = f"관리하한 `{lo}` (상한 없음 — 감소만 위험한 변수)"
-    else:
+    side = chart.get("score_side", "both")
+    if lo is None and hi_ is None:
         bound_txt = "관리한계 없음"
+    elif side == "upper":
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}` (점수는 **상한** 기준 — 증가만 위험한 변수)"
+    elif side == "lower":
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}` (점수는 **하한** 기준 — 감소만 위험한 변수)"
+    else:
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}`"
     if str(chart.get("spec_source", "")).startswith("mentor_spec"):
         bound_txt += f" · 멘토 스펙 `{chart.get('lsl')}` ~ `{chart.get('usl')}`(점수 기준 아님)"
 
