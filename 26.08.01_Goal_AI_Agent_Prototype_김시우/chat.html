@@ -345,8 +345,8 @@ function renderChart(cd){
       <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
       <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
       <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
-      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}${scoresUp ? '' : ' (점수 무관)'}</text>` : ''}
-      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}${scoresLo ? '' : ' (점수 무관)'}</text>` : ''}
+      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}</text>` : ''}
+      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}</text>` : ''}
       <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
     </svg>
   </div>`;
@@ -413,8 +413,8 @@ function renderCompareChart(cd){
       ${paths}
       <text x="${padL}" y="${H - 24}" font-size="9" fill="var(--ink-faint)">${cd.dates[0]}</text>
       <text x="${W - padR}" y="${H - 24}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${cd.dates[n - 1]}</text>
-      ${has(cd.control_usl) ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}${scoresUp ? '' : ' (점수 무관)'}</text>` : ''}
-      ${has(cd.control_lsl) ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}${scoresLo ? '' : ' (점수 무관)'}</text>` : ''}
+      ${has(cd.control_usl) ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}</text>` : ''}
+      ${has(cd.control_lsl) ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}</text>` : ''}
       <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
       ${legend}
     </svg>
