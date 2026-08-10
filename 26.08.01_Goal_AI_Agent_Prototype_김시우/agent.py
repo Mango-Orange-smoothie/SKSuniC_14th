@@ -140,6 +140,16 @@ for factor, meta in CAUSE_FACTORS.items():
         if per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)):
             DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
 
+# factor -> 그래프에 같이 그릴 defect 하나. (26.08.10) 원인 변수의 추세만 보여주면
+# "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인 시점과 불량률이 올라간
+# 시점을 한 화면에 겹쳐야 선후관계가 보인다. DEFECT_TO_FACTORS의 역방향인데, 한 인자가
+# 여러 defect의 원인일 수 있으므로(예: Head_Temp) meta["defects"] 순서상 첫 번째를 쓴다.
+# alert_usable=False인 짝은 여기서도 제외한다 — DB가 막아둔 관계를 그림으로 주장하면 안 된다.
+FACTOR_TO_DEFECT: dict[str, str] = {}
+for defect, factors in DEFECT_TO_FACTORS.items():
+    for factor in factors:
+        FACTOR_TO_DEFECT.setdefault(factor, defect)
+
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
 # 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
@@ -356,6 +366,25 @@ def get_trend_chart_data(
             for d, v in zip(series["date"], series["daily_mean"])
         ],
     }
+
+    # (26.08.10) 이 인자가 원인인 defect의 실제 불량률을 같은 날짜 축으로 붙인다.
+    # 원인 변수만 보여주면 "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인
+    # 시점과 불량률이 올라간 시점이 한 화면에 겹쳐야 선후관계가 보인다.
+    # 스케일이 완전히 다르므로(유량 9.99 vs 불량률 0.0x) 화면에서 별도 축으로 그린다.
+    paired_defect = FACTOR_TO_DEFECT.get(factor)
+    rate_col = DEFECT_RATE_COLS.get(paired_defect) if paired_defect else None
+    if rate_col and rate_col in DAILY_TREND.columns:
+        dates = [str(d) for d in series["date"]]
+        sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+        rate_by_date = dict(zip(sub["date"].astype(str), sub[rate_col]))
+        pairs = [(d, rate_by_date.get(d)) for d in dates]
+        if any(v is not None and pd.notna(v) for _, v in pairs):
+            result["defect"] = paired_defect
+            result["defect_series"] = [
+                {"date": d, "value": (float(v) if v is not None and pd.notna(v) else None)}
+                for d, v in pairs
+            ]
+
     _chart_calls_this_turn.append(result)
     return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)
 
@@ -612,6 +641,25 @@ def _panel_from_chart(chart: dict) -> dict:
         f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), " + bound_txt
         + (f", {trend_word}추세" if trend_word else "") + alert_txt
     ]
+
+    # 겹쳐 그린 불량률을 문장으로도 한 줄 남긴다 — 그래프를 캡처해서 붙일 때
+    # 숫자가 같이 가야 한다. 경보 전/후를 나눠서 실제로 늘었는지를 보여준다.
+    ds = chart.get("defect_series") or []
+    since = chart.get("alert_since")
+    if ds and chart.get("defect"):
+        vals = [(p["date"], p["value"]) for p in ds if p.get("value") is not None]
+        if vals:
+            before = [v for d, v in vals if since and d < since]
+            after = [v for d, v in vals if since and d >= since]
+            if before and after:
+                b, a = sum(before) / len(before), sum(after) / len(after)
+                move = "증가" if a > b else "감소"
+                lines.append(
+                    f"- **실제 불량**: `{chart['defect']}` 발생률 경보 전 `{b * 100:.2f}%` "
+                    f"→ 경보 후 `{a * 100:.2f}%` ({move})")
+            else:
+                cur = vals[-1][1]
+                lines.append(f"- **실제 불량**: `{chart['defect']}` 최근 발생률 `{cur * 100:.2f}%`")
     if chart.get("trend_message"):
         lines.append(f"- **추세 메시지**: {chart['trend_message']}")
 

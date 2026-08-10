@@ -10,6 +10,9 @@
   --accent:#5b54e8; --accent-soft:#eeecfc;
   --border:#e1dff0;
   --good:#0ca30c; --critical:#d03b3b;
+  /* 실제 불량률 곡선용. 원인 변수(accent 보라)·관리한계(critical 빨강)와 셋이
+     구분돼야 해서 주황으로 뺐다. --good/--critical처럼 다크에서도 그대로 쓴다. */
+  --warning:#d98324;
   --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
   color-scheme: light;
@@ -275,6 +278,30 @@ function renderChart(cd){
   const last = cd.series[n - 1];
   const lastColor = cd.spec_status === 'SPEC_OUT' ? 'var(--critical)' : 'var(--accent)';
 
+  // 짝지어진 defect의 실제 불량률을 같은 날짜 축에 겹쳐 그린다. 원인 변수(유량 9.99)와
+  // 불량률(0.0x)은 자릿수가 달라서 같은 y축에 놓으면 한쪽이 직선이 된다 — **별도 축**으로
+  // 0~최대값에 정규화해서 아래쪽 40% 영역에 면적으로 깐다. 축이 다르다는 걸 숨기면
+  // 안 되므로 오른쪽에 최대값을 명시한다.
+  let defectArea = '';
+  if (cd.defect_series && cd.defect_series.length === n) {
+    const dv = cd.defect_series.map(p => p.value).filter(v => v !== null && v !== undefined);
+    const dMax = Math.max(...dv);
+    if (dv.length && dMax > 0) {
+      const dTop = padT + (H - padT - padB) * 0.60;   // 불량률 영역 상단
+      const dBot = H - padB;
+      const dy = v => dBot - (v / dMax) * (dBot - dTop);
+      const pts = cd.defect_series.map((p, i) =>
+        (p.value === null || p.value === undefined) ? null : `${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`)
+        .filter(Boolean);
+      if (pts.length > 1) {
+        defectArea =
+          `<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n - 1).toFixed(1)},${dBot}" fill="var(--warning, #d98324)" opacity="0.16"/>`
+          + `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--warning, #d98324)" stroke-width="1.2" opacity="0.75"/>`
+          + `<text x="${padL + 2}" y="${(dTop - 3).toFixed(1)}" font-size="8" fill="var(--warning, #d98324)">${cd.defect} 불량률 (우축 최대 ${(dMax * 100).toFixed(2)}%)</text>`;
+      }
+    }
+  }
+
   const hline = (v, color, dashed) =>
     `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
 
@@ -308,6 +335,7 @@ function renderChart(cd){
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+      ${defectArea}
       ${specLines}
       ${alertMark}
       ${hasUsl ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
