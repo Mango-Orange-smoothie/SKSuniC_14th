@@ -302,8 +302,10 @@ def get_trend_chart_data(
         "machine_id": machine_id,
         "factor": factor,
         "baseline_median": float(spec["baseline_median"]),
-        "lsl": float(spec["lsl"]),
-        "usl": float(spec["usl"]),
+        # 편측 컬럼(증가만 나쁘거나 감소만 나쁜 변수)은 반대쪽 한계가 없다 — None으로
+        # 내보내야 화면이 "정상값 자리에 한계선"을 그리지 않는다(26.08.10).
+        "lsl": float(spec["lsl"]) if pd.notna(spec["lsl"]) else None,
+        "usl": float(spec["usl"]) if pd.notna(spec["usl"]) else None,
         # (26.08.06 추가) 실제로 경보를 결정하는 선. lsl/usl은 이 공정의 자연 변동폭보다
         # 훨씬 넓어서 데이터에서 수십 시그마 떨어져 있고(멘토 스펙 9개 중 7개가 89일 내내
         # 위반 0건), 경보를 내는 건 CUSUM이다. 화면에서 y축을 lsl~usl에 맞추면 실제 등락이
@@ -558,9 +560,20 @@ def _panel_from_chart(chart: dict) -> dict:
     if chart.get("early_warning_active") and chart.get("alert_since"):
         alert_txt = f", `{chart['alert_since']}`부터 `{chart.get('alert_active_days')}일`째 경보 지속"
 
+    # 편측 컬럼은 한쪽 한계만 존재한다 — 없는 쪽을 "~"로 이어 쓰면 없는 선을 있는 것처럼
+    # 말하게 된다(26.08.10). 있는 쪽만 이름을 붙여서 말한다.
+    lo, hi_ = chart.get("lsl"), chart.get("usl")
+    if lo is not None and hi_ is not None:
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}`"
+    elif hi_ is not None:
+        bound_txt = f"관리상한 `{hi_}` (하한 없음 — 증가만 위험한 변수)"
+    elif lo is not None:
+        bound_txt = f"관리하한 `{lo}` (상한 없음 — 감소만 위험한 변수)"
+    else:
+        bound_txt = "관리한계 없음"
+
     lines = [
-        f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), "
-        f"관리한계 `{chart.get('lsl')}` ~ `{chart.get('usl')}`"
+        f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), " + bound_txt
         + (f", {trend_word}추세" if trend_word else "") + alert_txt
     ]
     if chart.get("trend_message"):

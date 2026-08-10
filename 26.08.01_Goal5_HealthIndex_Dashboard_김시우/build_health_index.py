@@ -868,8 +868,14 @@ def compute_level_and_trend(
             # 진짜 스펙이 없는 컬럼은 표시 경계도 점수를 내는 선과 같게 둔다 — 예전엔
             # 임시 백분위 경계(provisional_percentile)를 보여줬는데, 그 선은 점수 계산에
             # 쓰이지도 않으면서 "스펙처럼" 읽혔다.
-            lsl_disp = alarm_lo if alarm_lo is not None else baseline_disp
-            usl_disp = alarm_up if alarm_up is not None else baseline_disp
+            # (26.08.10) 없는 쪽은 baseline이 아니라 NaN이다 — 예전엔 baseline_disp를
+            # 넣었는데, 그러면 "정상값 == 한계선"이 되어 화면에 정상값 자리에 빨간 한계선이
+            # 그려졌다(DP01 Surface_Roughness: baseline 0.5832 = lsl 0.5832). 값이 정상값
+            # 근처에만 있어도 한계선에 올라탄 것처럼 보인다 — 실제로는 여유의 0.3%만 쓴
+            # 상태였다. 편측 컬럼은 반대쪽 한계가 "0"이 아니라 **애초에 없는 것**이므로,
+            # 없다는 걸 그대로 표현하고 그리지 않게 한다.
+            lsl_disp = alarm_lo if alarm_lo is not None else np.nan
+            usl_disp = alarm_up if alarm_up is not None else np.nan
 
         # 진입률은 점수에서 빠지지만 화면/agent 문구의 근거라 계속 계산한다.
         if defect_thr is not None and (machine, col) in zone_lookup:
@@ -1136,8 +1142,10 @@ def build_machine_snapshot(
                 causes[row["column"]] = {
                     "current_value": row["current_value"],
                     "baseline_median": row["baseline_median"],
-                    "lsl": row["lsl"],
-                    "usl": row["usl"],
+                    # 편측 컬럼은 없는 쪽이 NaN이다 — JSON에 NaN을 그대로 실으면 브라우저
+                    # JSON.parse가 죽으므로 반드시 None으로 바꿔서 내보낸다.
+                    "lsl": _none_if_nan(row["lsl"]),
+                    "usl": _none_if_nan(row["usl"]),
                     # 점수를 실제로 내는 선. lsl/usl은 멘토 스펙이 있으면 그걸 보여주므로
                     # margin과 기준이 다를 수 있다(compute_level_and_trend 주석 참고).
                     "control_lsl": _none_if_nan(row["control_lsl"]),
@@ -1203,8 +1211,8 @@ def build_machine_snapshot(
                 "column": row["column"],
                 "current_value": row["current_value"],
                 "baseline_median": row["baseline_median"],
-                "lsl": row["lsl"],
-                "usl": row["usl"],
+                "lsl": _none_if_nan(row["lsl"]),
+                "usl": _none_if_nan(row["usl"]),
                 "control_lsl": _none_if_nan(row["control_lsl"]),
                 "control_usl": _none_if_nan(row["control_usl"]),
                 "spec_source": row["spec_source"],

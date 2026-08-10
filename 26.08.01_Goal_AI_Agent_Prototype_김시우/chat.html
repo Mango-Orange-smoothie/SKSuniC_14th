@@ -243,8 +243,13 @@ function renderChart(cd){
   const n = cd.series.length;
   if(n < 2) return '';
 
+  // 편측 컬럼(증가만 나쁘거나 감소만 나쁜 변수)은 반대쪽 한계가 아예 없어서 null이 온다.
+  // null을 그대로 Math.min에 넘기면 NaN이 되어 그래프 전체가 안 그려지므로 걸러낸다.
   const values = cd.series.map(p => p.value);
-  const allVals = values.concat([cd.lsl, cd.usl, cd.baseline_median]);
+  const hasLsl = cd.lsl !== null && cd.lsl !== undefined;
+  const hasUsl = cd.usl !== null && cd.usl !== undefined;
+  const allVals = values.concat([cd.baseline_median],
+                                hasLsl ? [cd.lsl] : [], hasUsl ? [cd.usl] : []);
   let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
   const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
   vMin -= pad; vMax += pad;
@@ -262,15 +267,16 @@ function renderChart(cd){
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
-      ${hline(cd.usl, 'var(--critical)', true)}
-      ${hline(cd.lsl, 'var(--critical)', true)}
+      ${hasUsl ? hline(cd.usl, 'var(--critical)', true) : ''}
+      ${hasLsl ? hline(cd.lsl, 'var(--critical)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
       <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
       <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
       <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
-      <text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>
-      <text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>
+      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>` : ''}
+      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>` : ''}
+      <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
     </svg>
   </div>`;
 }
