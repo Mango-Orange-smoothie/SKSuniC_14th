@@ -9,32 +9,41 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "1a1a1a1a-0001-4000-8000-000000000001",
+      "id": "36d41968-82d7-436a-94ce-bf70af93fc1f",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [-440, 0],
+      "position": [
+        -704,
+        -80
+      ],
       "webhookId": "run-health-pipeline"
     },
     {
       "parameters": {
-        "command": "cd \"/Users/gimsiu/Downloads/suni c 14조\" && python3 -m pipeline.step0_preprocessing > /dev/null && python3 trend_analysis.py > /dev/null && python3 \"26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py\" > /dev/null && cat \"26.08.01_Goal5_HealthIndex_Dashboard_김시우/health_index_data.json\""
+        "command": "cd /d \"C:\\Users\\User\\Desktop\\써니C 14팀\" && python -m pipeline.step0_preprocessing > NUL && python trend_analysis.py > NUL && python \"26.08.01_Goal5_HealthIndex_Dashboard_김시우\\build_health_index.py\" > NUL && type \"26.08.01_Goal5_HealthIndex_Dashboard_김시우\\health_index_data.json\""
       },
-      "id": "1a1a1a1a-0002-4000-8000-000000000002",
+      "id": "21683f85-edda-44fd-bd80-1445a33c9b2f",
       "name": "Run Pipeline",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [-220, 0]
+      "position": [
+        -496,
+        -80
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const data = JSON.parse($input.first().json.stdout);\nconst ALERT_THRESHOLD = 30;\n\nconst esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\n\nconst machines = Object.entries(data.machines).map(([id, m]) => ({\n  machine_id: id,\n  health_index: m.health_index,\n  worst_defect: m.worst_defects && m.worst_defects[0] ? m.worst_defects[0].defect : null,\n  defect_signals: m.defect_signals || {},\n}));\n\nmachines.sort((a, b) => (a.health_index ?? 100) - (b.health_index ?? 100));\n\nconst warnings = machines.filter(m => m.health_index !== null && m.health_index < ALERT_THRESHOLD);\n\nconst summaryText = warnings.length\n  ? `⚠️ 위험 장비 ${warnings.length}대: ` + warnings.map(w => `${w.machine_id}(${w.health_index})`).join(', ')\n  : `현재 임계값(${ALERT_THRESHOLD}) 이하로 위험한 장비 없음`;\n\n// 장비 전체 개요 표\nconst overviewRows = machines.map(m => `<tr>\n  <td>${esc(m.machine_id)}</td>\n  <td style=\"color:${m.health_index < ALERT_THRESHOLD ? '#d03b3b' : '#0ca30c'};font-weight:bold;\">${m.health_index}</td>\n  <td>${esc(m.worst_defect)}</td>\n</tr>`).join('');\n\n// 위험 장비만 defect/원인변수 상세\nlet detailHtml = '';\nfor (const m of warnings) {\n  detailHtml += `<h3 style=\"margin-top:20px;\">${esc(m.machine_id)} (Health Index ${m.health_index})</h3>`;\n  const defectsSorted = Object.entries(m.defect_signals).sort((a, b) => (a[1].health_index ?? 100) - (b[1].health_index ?? 100));\n  for (const [defect, sig] of defectsSorted) {\n    if (sig.health_index === null || sig.health_index >= ALERT_THRESHOLD) continue;\n    const occ = sig.actual_occurred_recent_7d ? ` — 최근 7일간 실제 ${sig.occurred_days_recent_7d}일 발생` : '';\n    detailHtml += `<p style=\"margin:8px 0 4px;\"><b>${esc(defect)}</b> (Health Index ${sig.health_index})${occ}</p>`;\n    detailHtml += `<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:12.5px;width:100%;\">\n      <tr style=\"background:#f2f2f2;\"><th>원인변수</th><th>현재값</th><th>기준값</th><th>정상범위</th><th>스펙출처</th><th>여유(HI)</th><th>추세</th></tr>`;\n    for (const [factorName, c] of Object.entries(sig.causes || {})) {\n      const trend = c.early_warning_active ? '🔺 경보 활성' : (c.trend_direction || '-');\n      const specTag = c.spec_source === 'mentor_spec' ? '실측 스펙' : '정상군 추정';\n      detailHtml += `<tr>\n        <td>${esc(factorName)}</td>\n        <td>${c.current_value}</td>\n        <td>${c.baseline_median}</td>\n        <td>${c.lsl} ~ ${c.usl}</td>\n        <td>${specTag}</td>\n        <td>${c.health_index}</td>\n        <td>${trend}</td>\n      </tr>`;\n    }\n    detailHtml += `</table>`;\n  }\n}\n\nconst reportHtml = `<div style=\"font-family:sans-serif;max-width:640px;\">\n  <h2>SUGENT Health Index 리포트</h2>\n  <p style=\"color:#666;font-size:13px;\">생성 시각: ${esc(data.generated_at)}</p>\n  <p style=\"font-size:15px;\"><b>${esc(summaryText)}</b></p>\n  <table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:13px;\">\n    <tr style=\"background:#f2f2f2;\"><th>장비</th><th>Health Index</th><th>최악 defect</th></tr>\n    ${overviewRows}\n  </table>\n  ${detailHtml ? `<h3 style=\"margin-top:24px;\">위험 상세</h3>${detailHtml}` : ''}\n  <p style=\"color:#999;font-size:11px;margin-top:24px;\">spec_source가 \"정상군 추정\"인 항목은 멘토 실측 스펙이 아니라 정상군 분포 기반 임시값입니다 — 참고용.</p>\n</div>`;\n\nreturn [{\n  json: {\n    generated_at: data.generated_at,\n    alert_threshold: ALERT_THRESHOLD,\n    summary: summaryText,\n    report_html: reportHtml,\n    has_warning: warnings.length > 0,\n    warnings,\n    machines: machines.map(({ defect_signals, ...rest }) => rest),\n  },\n}];"
+        "jsCode": "const data = JSON.parse($input.first().json.stdout);\nconst ALERT_THRESHOLD = 30;\n\nconst esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\nconst trendLabel = (dir) => dir === 'up' ? '상승 추세' : dir === 'down' ? '하강 추세' : '-';\nconst specLabel = (src) => src === 'mentor_spec' ? '실측 스펙' : '정상군 추정';\n\nconst machines = Object.entries(data.machines).map(([id, m]) => ({\n  machine_id: id,\n  health_index: m.health_index,\n  worst_defect: m.worst_defects?.[0]?.defect ?? null,\n  worst_factor: m.worst_defects?.[0]?.worst_factor ?? null,\n  defect_signals: m.defect_signals || {},\n}));\nmachines.sort((a, b) => (a.health_index ?? 100) - (b.health_index ?? 100));\n\nconst warnings = machines.filter(m => m.health_index !== null && m.health_index < ALERT_THRESHOLD);\nconst okMachines = machines.filter(m => m.health_index === null || m.health_index >= ALERT_THRESHOLD);\n\nconst summaryText = warnings.length\n  ? `⚠️ 위험 장비 ${warnings.length}대: ` + warnings.map(w => `${w.machine_id}(${w.health_index})`).join(', ')\n  : `현재 임계값(${ALERT_THRESHOLD}) 이하로 위험한 장비 없음`;\n\n// 장비 전체 현황\nconst fleetHtml = machines.map(m => {\n  const critical = m.health_index !== null && m.health_index < ALERT_THRESHOLD;\n  return `<td style=\"padding:10px 12px;border:1px solid ${critical ? '#e7bcb6' : '#bfdccc'};background:${critical ? '#fbeae8' : '#e7f2ec'};border-radius:8px;\">\n    <div style=\"font-family:monospace;font-size:12px;font-weight:600;color:#5b6570;\">${esc(m.machine_id)}</div>\n    <div style=\"font-family:monospace;font-size:20px;font-weight:700;color:${critical ? '#b3362b' : '#3c7a5d'};\">${m.health_index}</div>\n    <div style=\"font-size:10.5px;color:#8993a0;\">${esc(m.worst_defect)} · ${esc(m.worst_factor)}</div>\n  </td>`;\n}).join('');\n\n// 장비 상세 현황 카드 — defect마다 원인변수 전부(위험=빨강, 정상범위=회색)\nlet cardsHtml = '';\nfor (const m of warnings) {\n  let defectsHtml = '';\n  const defectsSorted = Object.entries(m.defect_signals).sort((a, b) => (a[1].health_index ?? 100) - (b[1].health_index ?? 100));\n  for (const [defect, sig] of defectsSorted) {\n    if (sig.health_index === null || sig.health_index >= ALERT_THRESHOLD) continue;\n\n    const factorsSorted = Object.entries(sig.causes || {}).sort((a, b) => (a[1].health_index ?? 100) - (b[1].health_index ?? 100));\n    if (!factorsSorted.length) continue;\n\n    let rowsHtml = '';\n    for (const [factorName, c] of factorsSorted) {\n      const critical = c.health_index !== null && c.health_index < ALERT_THRESHOLD;\n      const color = critical ? '#b3362b' : '#9aa3ac';\n      const margin = c.health_index !== null ? Math.max(0, Math.min(100, 100 - c.health_index)) : 0;\n      rowsHtml += `<div style=\"padding:6px 0;border-top:1px solid #dde1e4;\">\n        <div style=\"font-size:12px;font-weight:600;\">${esc(factorName)} <span style=\"font-size:9.5px;color:#8993a0;font-weight:400;\">${specLabel(c.spec_source)}</span>\n          <span style=\"float:right;font-family:monospace;font-weight:700;color:${color};\">${c.health_index}</span></div>\n        <div style=\"height:6px;border-radius:3px;background:#dde1e4;overflow:hidden;margin:4px 0 2px;\">\n          <div style=\"height:6px;border-radius:3px;background:${color};width:${margin}%;\"></div>\n        </div>\n        <div style=\"font-size:12.5px;color:#8993a0;display:flex;justify-content:space-between;\">\n          <span style=\"color:#5b6570;font-weight:600;\">${trendLabel(c.trend_direction)}</span><span>여유 ${c.health_index}%</span>\n        </div>\n        <div style=\"font-size:12px;color:#5b6570;font-family:monospace;\">현재 ${c.current_value} · 기준 ${c.baseline_median} · 범위 ${c.lsl}~${c.usl}</div>\n      </div>`;\n    }\n\n    const occText = sig.actual_occurred_recent_7d\n      ? `최근 7일 실제 발생 ${sig.occurred_days_recent_7d}일 (계속 발생 중)`\n      : `최근 7일 실제 발생 없음 (선행 신호 단계)`;\n\n    defectsHtml += `<div style=\"padding:12px 16px;border-top:1px dashed #dde1e4;\">\n      <p style=\"font-size:13px;font-weight:700;margin:0 0 2px;\">${esc(defect)} <span style=\"display:inline-block;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:3px;background:#b3362b;color:#fff;margin-left:5px;\">경보 활성</span></p>\n      <p style=\"font-size:11px;color:#8993a0;margin:0 0 8px;\">${occText}</p>\n      ${rowsHtml}\n    </div>`;\n  }\n  if (!defectsHtml) continue;\n\n  cardsHtml += `<div style=\"margin:10px 0;border:1px solid #e7bcb6;border-left:4px solid #b3362b;border-radius:8px;overflow:hidden;\">\n    <div style=\"padding:12px 16px;background:#fbeae8;display:flex;justify-content:space-between;\">\n      <span style=\"font-family:monospace;font-weight:700;font-size:15px;\">${esc(m.machine_id)}</span>\n      <span style=\"font-family:monospace;font-weight:700;font-size:18px;color:#b3362b;\">${m.health_index}</span>\n    </div>\n    ${defectsHtml}\n  </div>`;\n}\n\n// 정상 목록\nconst okHtml = okMachines.map(m => `<div style=\"display:flex;gap:10px;padding:8px 14px;background:#e7f2ec;border-top:1px solid #bfdccc;font-size:12px;\">\n  <span style=\"font-family:monospace;font-weight:700;width:42px;\">${esc(m.machine_id)}</span>\n  <span style=\"font-family:monospace;font-weight:700;color:#3c7a5d;width:34px;\">${m.health_index}</span>\n  <span style=\"color:#5b6570;\">취약 defect: ${esc(m.worst_defect)} (${esc(m.worst_factor)})</span>\n</div>`).join('');\n\nconst reportHtml = `<div style=\"font-family:-apple-system,'Segoe UI',Roboto,'Malgun Gothic',Helvetica,Arial,sans-serif;max-width:640px;color:#1a2027;\">\n  <h2 style=\"margin:0 0 4px;\">Health Index 데일리 리포트</h2>\n  <p style=\"color:#8993a0;font-size:12px;margin:0 0 14px;\">생성 ${esc(data.generated_at)}</p>\n  <p style=\"font-size:15px;\"><b>${esc(summaryText)}</b></p>\n  <p style=\"margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#8993a0;\">장비 전체 현황</p>\n  <p style=\"margin:0 0 8px;font-size:11px;color:#8993a0;\">🔴 위험 Health Index&lt;30(ALERT_THRESHOLD) · 🟢 정상 ≥30</p>\n  <table cellpadding=\"0\" cellspacing=\"8\" style=\"border-collapse:separate;width:100%;\"><tr>${fleetHtml}</tr></table>\n  <p style=\"margin:16px 0 0;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#8993a0;\">장비 상세 현황</p>\n  <p style=\"margin:2px 0 10px;font-size:11px;color:#8993a0;\">위험 (Health Index &lt; 30)</p>\n  ${cardsHtml}\n  ${okHtml ? `<div style=\"margin-top:16px;border:1px solid #dde1e4;border-radius:8px;overflow:hidden;\">${okHtml}</div>` : ''}\n</div>`;\n\nreturn [{\n  json: {\n    generated_at: data.generated_at,\n    alert_threshold: ALERT_THRESHOLD,\n    summary: summaryText,\n    report_html: reportHtml,\n    has_warning: warnings.length > 0,\n    warnings,\n    machines: machines.map(({ defect_signals, ...rest }) => rest),\n  },\n}];"
       },
-      "id": "1a1a1a1a-0003-4000-8000-000000000003",
+      "id": "b648ab1c-c206-490f-b1f5-c534764d52f2",
       "name": "Summarize Health Index",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [0, 0]
+      "position": [
+        -272,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -42,43 +51,54 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 3
           },
           "conditions": [
             {
               "id": "cond-has-warning",
               "leftValue": "={{ $json.has_warning }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "1a1a1a1a-0005-4000-8000-000000000005",
+      "id": "0cbf428a-0318-466d-9ce2-7ffe79e288c9",
       "name": "위험 장비 있음?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [220, 0]
+      "position": [
+        -48,
+        -80
+      ]
     },
     {
       "parameters": {
         "fromEmail": "tldn6850@gmail.com",
-        "toEmail": "tldn6850@gmail.com",
+        "toEmail": "seungyeonlee27@gmail.com",
         "subject": "={{ '[SUGENT] Health Index 리포트 - 위험 ' + $json.warnings.length + '대' }}",
-        "emailFormat": "html",
         "html": "={{ $json.report_html }}",
         "options": {}
       },
-      "id": "1a1a1a1a-0006-4000-8000-000000000006",
+      "id": "61a75e81-6fb0-42c9-af8f-7ffebe417c7f",
       "name": "위험 메일 발송",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [460, -100],
+      "position": [
+        272,
+        -176
+      ],
+      "webhookId": "5e1291cb-02e4-46ab-8899-61fc2e301692",
       "credentials": {
         "smtp": {
-          "id": "TUIZNPYTWoebRdgz",
+          "id": "mhofBlKoV3osKgNY",
           "name": "SMTP account"
         }
       }
@@ -89,31 +109,78 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "1a1a1a1a-0004-4000-8000-000000000004",
+      "id": "f2dfcf4c-acad-4b1f-84d4-b00a9d86b00f",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [700, 0]
+      "position": [
+        432,
+        -80
+      ]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[{ "node": "Run Pipeline", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Run Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Run Pipeline": {
-      "main": [[{ "node": "Summarize Health Index", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Summarize Health Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Summarize Health Index": {
-      "main": [[{ "node": "위험 장비 있음?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "위험 장비 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "위험 장비 있음?": {
       "main": [
-        [{ "node": "위험 메일 발송", "type": "main", "index": 0 }],
-        [{ "node": "Respond", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "위험 메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "위험 메일 발송": {
-      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
