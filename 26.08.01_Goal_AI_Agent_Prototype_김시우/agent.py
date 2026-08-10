@@ -317,8 +317,10 @@ def get_trend_chart_data(
         days = DEFAULT_CHART_DAYS
         alert_since = spec["alert_since"]
         if pd.notna(alert_since) and len(series):
+            # span은 두 날짜의 "간격"이라 경보일 당일이 안 세어진다(2/19~3/30 = 39일이지만
+            # 행 수는 40개). +1을 빼먹으면 경보 전 구간이 14일이 아니라 13일이 된다.
             span = (pd.to_datetime(series["date"].iloc[-1]) - pd.Timestamp(alert_since)).days
-            days = max(days, span + PRE_ALERT_CONTEXT_DAYS)
+            days = max(days, span + 1 + PRE_ALERT_CONTEXT_DAYS)
 
     if center_date:
         center = pd.Timestamp(center_date)
