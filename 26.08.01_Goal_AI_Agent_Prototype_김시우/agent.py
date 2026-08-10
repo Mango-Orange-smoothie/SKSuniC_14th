@@ -801,6 +801,21 @@ def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dic
 
     mentioned = list(dict.fromkeys(m.upper() for m in _MACHINE_ID_RE.findall(question)))
 
+    # (26.08.10) "4대 전부", "장비 전체", "제일 급한 장비 어디야?"처럼 장비 ID를 하나도
+    # 안 부르는 질문은 패널이 0개였다 — Claude는 4대를 다 조회해서 답하는데 화면은 빈
+    # 상태로 남았다. 조회한 장비가 2대 이상이면 전부 보여주는 게 맞다.
+    #
+    # 명시적으로 부른 장비가 있으면 그쪽이 우선이다("DP03 몇 등이야?"는 배경으로 4대를
+    # 다 조회하지만 사용자가 물은 건 DP03 하나다). 다만 "전부/전체/모든/4대"처럼 범위를
+    # 넓히는 말이 같이 있으면 조회된 전부로 확장한다 — "DP01부터 DP04까지 전부"가
+    # DP01/DP04 두 개만 나오던 문제.
+    _ALL_MARKERS = ("전부", "전체", "모든", "4대", "네 대", "다 ", "모두")
+    wants_all = any(k in question for k in _ALL_MARKERS)
+    if len(snapshots) >= 2 and (not mentioned or wants_all):
+        # 나쁜 순서로 세운다 — "어디부터 봐야 되냐"가 이 질문의 요지다.
+        mentioned = [mid for mid, _ in sorted(
+            snapshots.items(), key=lambda kv: kv[1].get("health_index", 100))]
+
     if len(mentioned) >= 2:
         picks = []  # (snapshot, defect, factor, rank)
         for mid in mentioned[:MAX_PANELS]:
