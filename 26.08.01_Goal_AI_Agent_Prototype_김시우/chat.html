@@ -165,7 +165,9 @@ button#send:disabled{opacity:.5;cursor:default}
         <textarea id="input" placeholder="예: DP02 지금 괜찮아?" rows="1"></textarea>
         <button id="send">전송</button>
       </div>
-      <p class="disclaimer">이 채팅은 초안입니다. 레벨/추세는 통계적 유의성 재검정 없이 계산된 최근 동향이고, SOP 제안은 DRAFT_UNVERIFIED입니다.</p>
+      <!-- (26.08.10) 문구 갱신: 레벨/추세는 이제 순열검정으로 FWER을 통제한 결과이고,
+           SOP는 "미검증 초안"이 아니라 아직 수령 전이라 아예 만들지 않는다. -->
+      <p class="disclaimer">점수 기준선은 Shewhart 관리한계(정상값 ± 3σ)입니다. 멘토 스펙과는 다른 축이라 화면에서 구분해 표시합니다. SOP는 아직 수령 전이라 조치 문구는 만들지 않고, 긴급도와 위험구간만 전달합니다.</p>
     </div>
   </div>
 
@@ -289,10 +291,25 @@ function renderChart(cd){
   const specLines = hasMentorSpec
     ? specLine(cd.usl, '스펙USL') + specLine(cd.lsl, '스펙LSL') : '';
 
+  // 경보 시작 시점에 세로선. 창을 넓힌 이유가 이 지점을 보여주기 위해서다 —
+  // 왼쪽(정상)과 오른쪽(경보 지속)이 나뉘어야 "여기서 꺾였다"가 한눈에 읽힌다.
+  // 시리즈 안에 그 날짜가 없으면(창 밖) 그리지 않는다.
+  let alertMark = '';
+  if (cd.alert_since) {
+    const ai = cd.series.findIndex(p => p.date >= cd.alert_since);
+    if (ai > 0) {
+      const ax = x(ai).toFixed(1);
+      alertMark =
+        `<line x1="${ax}" y1="${padT}" x2="${ax}" y2="${H - padB}" stroke="var(--critical)" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>`
+        + `<text x="${(x(ai) + 3).toFixed(1)}" y="${padT + 9}" font-size="8" fill="var(--critical)">경보 ${cd.alert_since}</text>`;
+    }
+  }
+
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
       ${specLines}
+      ${alertMark}
       ${hasUsl ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${hasLsl ? hline(cd.control_lsl, scoresLo ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}

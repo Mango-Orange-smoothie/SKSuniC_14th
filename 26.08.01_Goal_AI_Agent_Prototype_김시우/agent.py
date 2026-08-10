@@ -226,7 +226,14 @@ def get_sop_for_factor(factor_name: str) -> str:
     }, ensure_ascii=False, indent=2)
 
 
-DEFAULT_CHART_DAYS = 30  # 3개월(전체 89일) 다 보여주면 최근 동향이 묻힘 — 관례적 기본값
+DEFAULT_CHART_DAYS = 30  # 경보가 없는(= 볼 사건이 없는) 변수의 기본 창. 최근 한 달.
+
+# (26.08.10) 경보가 있으면 **경보 시작 시점이 창 안에 들어오도록** 창을 자동으로 넓힌다.
+# 최근 30일 고정이면 정작 값이 꺾인 순간이 잘려나간다 — DP02 Laser_Power는 2/2,
+# DP03 Head_Temp는 2/17, DP04 CLN_Flow는 2/19에 경보가 시작되는데 화면은 3/1부터였다.
+# 그래서 "이미 나빠진 뒤의 평평한 구간"만 보이고, 정작 조기탐지를 그림으로 증명할 수가
+# 없었다. 경보 시작 **전**의 정상 구간도 이만큼 같이 보여줘야 "꺾였다"가 눈에 보인다.
+PRE_ALERT_CONTEXT_DAYS = 14
 
 
 @beta_tool
@@ -261,7 +268,7 @@ def get_defect_occurrence_dates(machine_id: str, defect_name: str) -> str:
 
 @beta_tool
 def get_trend_chart_data(
-    machine_id: str, factor: str, days: int = DEFAULT_CHART_DAYS, center_date: str | None = None,
+    machine_id: str, factor: str, days: int | None = None, center_date: str | None = None,
 ) -> str:
     """특정 장비×변수의 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
 
@@ -273,10 +280,12 @@ def get_trend_chart_data(
     Args:
         machine_id: 장비 ID, 예: "DP01", "DP02", "DP03", "DP04".
         factor: 변수 이름, 예: "Head_Temp", "Laser_Power", "CLN_Flow".
-        days: 최근 며칠치를 보여줄지. 기본 30일(최근 한 달) — 전체 기간(89일)을 다
-            보여주면 최근 동향이 묻힌다. 사용자가 "최근 일주일만", "전체 기간 다"처럼
-            요청하면 그에 맞게 조정(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜
-            앞뒤로 며칠씩 볼지를 뜻한다(예: days=7이면 앞뒤 3일씩 총 7일 근방).
+        days: 최근 며칠치를 보여줄지. **비워두는 게 기본이고 권장값이다** — 비우면
+            경보가 있는 변수는 경보 시작 14일 전부터 지금까지를 자동으로 잡아준다
+            (값이 꺾인 순간이 화면에 들어와야 추세가 보인다). 경보가 없으면 최근 30일.
+            사용자가 "최근 일주일만", "전체 기간 다"처럼 명시적으로 요청할 때만
+            지정한다(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜 앞뒤로 며칠씩
+            볼지를 뜻한다(예: days=7이면 앞뒤 3일씩 총 7일 근방).
         center_date: "YYYY-MM-DD" 형식. "불량 난 구간 보여줘"처럼 특정 시점 주변을
             보고 싶을 때 지정 — get_defect_occurrence_dates로 먼저 날짜를 찾은 뒤 여기
             넘기면 된다. 지정 안 하면(기본) 오늘 기준 최근 days일을 보여준다.
@@ -289,6 +298,18 @@ def get_trend_chart_data(
 
     series = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == machine_id) & (DAILY_SERIES["column"] == factor)]
     series = series.sort_values("date")
+    spec = spec_row.iloc[0]
+
+    # days를 안 받았으면(기본) 경보 시작 시점이 창 안에 들어오게 자동으로 잡는다.
+    # 호출자가 명시적으로 준 값은 그대로 존중한다 — "최근 일주일만" 같은 요청이 있다.
+    auto_days = days is None
+    if auto_days:
+        days = DEFAULT_CHART_DAYS
+        alert_since = spec["alert_since"]
+        if pd.notna(alert_since) and len(series):
+            span = (pd.to_datetime(series["date"].iloc[-1]) - pd.Timestamp(alert_since)).days
+            days = max(days, span + PRE_ALERT_CONTEXT_DAYS)
+
     if center_date:
         center = pd.Timestamp(center_date)
         half = max(days, 2) // 2
@@ -297,7 +318,6 @@ def get_trend_chart_data(
     else:
         series = series.tail(max(days, 2))
 
-    spec = spec_row.iloc[0]
     result = {
         "machine_id": machine_id,
         "factor": factor,
