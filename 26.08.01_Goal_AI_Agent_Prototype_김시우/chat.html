@@ -141,10 +141,12 @@ button#send:disabled{opacity:.5;cursor:default}
   <div class="chat-panel" id="chatPanel">
     <header>
       <div>
-        <p class="eyebrow">Prototype · v0</p>
+        <p class="eyebrow">Prototype · v3</p>
         <h1>공정 품질 통합 관리 AI Agent</h1>
       </div>
-      <p class="sub">Health Index · 경보 · 확정 유효인자 · SOP 초안을 실시간 조회해서 답합니다</p>
+      <!-- SOP는 아직 수령 전이라 "초안"조차 없다 — 지어내지 않는 게 이 agent의 규칙이므로
+           소개 문구에서도 있는 것처럼 쓰지 않는다(26.08.10). -->
+      <p class="sub">Health Index · 경보 · 확정 유효인자 · 조치 긴급도를 실시간 조회해서 답합니다</p>
     </header>
 
     <div class="wrap">
@@ -245,11 +247,15 @@ function renderChart(cd){
 
   // 편측 컬럼(증가만 나쁘거나 감소만 나쁜 변수)은 반대쪽 한계가 아예 없어서 null이 온다.
   // null을 그대로 Math.min에 넘기면 NaN이 되어 그래프 전체가 안 그려지므로 걸러낸다.
+  const has = v => v !== null && v !== undefined;
   const values = cd.series.map(p => p.value);
-  const hasLsl = cd.lsl !== null && cd.lsl !== undefined;
-  const hasUsl = cd.usl !== null && cd.usl !== undefined;
+  // 빨간 실선 = 점수를 내는 관리한계(3σ) / 회색 점선 = 멘토 스펙(다른 축, 점수 기준 아님).
+  // 스펙은 이 공정의 자연 변동폭보다 수십 시그마 넓어서 y축을 스펙에 맞추면 실제 등락이
+  // 직선으로 뭉개진다 — 그래서 축 범위 계산에는 관리한계만 넣고, 스펙선은 범위 안에
+  // 들어올 때만 그린다(26.08.10).
+  const hasLsl = has(cd.control_lsl), hasUsl = has(cd.control_usl);
   const allVals = values.concat([cd.baseline_median],
-                                hasLsl ? [cd.lsl] : [], hasUsl ? [cd.usl] : []);
+                                hasLsl ? [cd.control_lsl] : [], hasUsl ? [cd.control_usl] : []);
   let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
   const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
   vMin -= pad; vMax += pad;
@@ -264,18 +270,32 @@ function renderChart(cd){
   const hline = (v, color, dashed) =>
     `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
 
+  // 멘토 스펙선: 점수 기준이 아니므로 연한 회색으로 구분해서 그린다. y축 범위 밖으로
+  // 나가는 스펙(대부분 그렇다 — 수십 시그마 밖)은 그리면 화살표만 남으므로 생략한다.
+  const inRange = v => has(v) && v >= vMin && v <= vMax;
+  const specLine = (v, label) => inRange(v)
+    ? `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2 4"/>`
+      + `<text x="${padL + 2}" y="${(y(v) - 3).toFixed(1)}" font-size="8" fill="var(--ink-faint)">${label} ${v}</text>`
+    : '';
+  // 멘토 스펙이 있는 컬럼(10개)에서만 그린다. 스펙이 없는 컬럼은 lsl/usl에 관리한계가
+  // 그대로 들어있어서, 안 거르면 같은 선을 두 번 그리고 라벨만 두 개 붙는다.
+  const hasMentorSpec = String(cd.spec_source || '').startsWith('mentor_spec');
+  const specLines = hasMentorSpec
+    ? specLine(cd.usl, '스펙USL') + specLine(cd.lsl, '스펙LSL') : '';
+
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
-      ${hasUsl ? hline(cd.usl, 'var(--critical)', true) : ''}
-      ${hasLsl ? hline(cd.lsl, 'var(--critical)', true) : ''}
+      ${specLines}
+      ${hasUsl ? hline(cd.control_usl, 'var(--critical)', true) : ''}
+      ${hasLsl ? hline(cd.control_lsl, 'var(--critical)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
       <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
       <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
       <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
-      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>` : ''}
-      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>` : ''}
+      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">관리상한 ${cd.control_usl}</text>` : ''}
+      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">관리하한 ${cd.control_lsl}</text>` : ''}
       <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
     </svg>
   </div>`;

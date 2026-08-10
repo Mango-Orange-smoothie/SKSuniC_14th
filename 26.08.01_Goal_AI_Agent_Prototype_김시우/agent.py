@@ -306,6 +306,13 @@ def get_trend_chart_data(
         # 내보내야 화면이 "정상값 자리에 한계선"을 그리지 않는다(26.08.10).
         "lsl": float(spec["lsl"]) if pd.notna(spec["lsl"]) else None,
         "usl": float(spec["usl"]) if pd.notna(spec["usl"]) else None,
+        # (26.08.10) **점수를 실제로 내는 선**. lsl/usl은 멘토 스펙이 있으면 스펙을 담고
+        # 있어서 그래프에 그리면 화면과 점수의 기준이 어긋난다 — DP03 Head_Temp는
+        # 스펙 38~47 한복판(42.16)에 있어 그래프상 안전해 보이지만, 관리상한은 42.9156이라
+        # HI가 50.8이다. 진짜 경계선이 안 그려지면 "그래프는 멀쩡한데 왜 50점이냐"에
+        # 답할 수가 없다. 두 선을 다 실어서 화면에서 구분해 그린다.
+        "control_lsl": float(spec["control_lsl"]) if pd.notna(spec["control_lsl"]) else None,
+        "control_usl": float(spec["control_usl"]) if pd.notna(spec["control_usl"]) else None,
         # (26.08.06 추가) 실제로 경보를 결정하는 선. lsl/usl은 이 공정의 자연 변동폭보다
         # 훨씬 넓어서 데이터에서 수십 시그마 떨어져 있고(멘토 스펙 9개 중 7개가 89일 내내
         # 위반 0건), 경보를 내는 건 CUSUM이다. 화면에서 y축을 lsl~usl에 맞추면 실제 등락이
@@ -562,7 +569,9 @@ def _panel_from_chart(chart: dict) -> dict:
 
     # 편측 컬럼은 한쪽 한계만 존재한다 — 없는 쪽을 "~"로 이어 쓰면 없는 선을 있는 것처럼
     # 말하게 된다(26.08.10). 있는 쪽만 이름을 붙여서 말한다.
-    lo, hi_ = chart.get("lsl"), chart.get("usl")
+    # 점수를 내는 선(control_*)을 먼저 말한다. 멘토 스펙(lsl/usl)은 다른 축이라
+    # 괄호로 덧붙이기만 한다 — 둘을 "~"로 섞으면 어느 쪽이 점수 기준인지 사라진다.
+    lo, hi_ = chart.get("control_lsl"), chart.get("control_usl")
     if lo is not None and hi_ is not None:
         bound_txt = f"관리한계 `{lo}` ~ `{hi_}`"
     elif hi_ is not None:
@@ -571,6 +580,8 @@ def _panel_from_chart(chart: dict) -> dict:
         bound_txt = f"관리하한 `{lo}` (상한 없음 — 감소만 위험한 변수)"
     else:
         bound_txt = "관리한계 없음"
+    if str(chart.get("spec_source", "")).startswith("mentor_spec"):
+        bound_txt += f" · 멘토 스펙 `{chart.get('lsl')}` ~ `{chart.get('usl')}`(점수 기준 아님)"
 
     lines = [
         f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), " + bound_txt

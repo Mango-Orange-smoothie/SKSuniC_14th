@@ -98,7 +98,9 @@ def resolve_defect_pairing() -> dict[str, str]:
     _DEFECT_PAIRING_CACHE = pairing
     return _DEFECT_PAIRING_CACHE
 
-CONTINUOUS_TREND_COLS = config.FDC_COLS + config.RESPONSES + ["Yield"]
+CONTINUOUS_TREND_COLS = (
+    config.FDC_COLS + config.RESPONSES + ["Yield"] + config.MONITOR_ONLY_COLUMNS
+)
 CONTINUOUS_BASELINE_COLS = CONTINUOUS_TREND_COLS + config.DOMAIN_FEATURES
 # flatline(고착) 탐지는 센서성 연속값에만 의미가 있다. Yield는 정상 공정에서
 # 정의상 100이 매우 자주 반복되므로(공정이 잘 돌아간다는 뜻) 여기서 제외한다.
@@ -1096,8 +1098,12 @@ def main() -> None:
     # 값이 그 증거 — 원본에서는 그런 분리가 존재하지 않는다). threshold "값"을 R1에서
     # 배우는 건 표본 부족 때문에 불가피하지만, **어떤 컬럼이 어떤 유형인가**는 실제로
     # 감시하는 데이터에서 판단해야 한다.
+    # MONITOR_ONLY_COLUMNS는 감시(안전망) 전용이라 원인 후보 스캔에서 뺀다 — 여기 들어가면
+    # C유형으로 승격돼 "이 인프라 지표가 저 불량의 원인"이라고 말할 경로가 생긴다.
+    # target/관리한계는 받되 원인은 절대 아니라는 게 이 컬럼들을 넣은 전제다(config 주석 참고).
     scan_cols = [c for c in CONTINUOUS_TREND_COLS
-                 if c in df.columns and c != "Yield"]
+                 if c in df.columns and c != "Yield"
+                 and c not in config.MONITOR_ONLY_COLUMNS]
     scan_defects = [d for d in config.DEFECTS_BINARY
                     if d in df.columns and d not in mentor.MENTOR_EXCLUDED_DEFECTS]
     c_candidates = scan_type_c_candidates(df, scan_cols, scan_defects)
