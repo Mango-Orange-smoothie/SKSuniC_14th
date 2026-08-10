@@ -10,6 +10,9 @@
   --accent:#5b54e8; --accent-soft:#eeecfc;
   --border:#e1dff0;
   --good:#0ca30c; --critical:#d03b3b;
+  /* 실제 불량률 곡선용. 원인 변수(accent 보라)·관리한계(critical 빨강)와 셋이
+     구분돼야 해서 주황으로 뺐다. --good/--critical처럼 다크에서도 그대로 쓴다. */
+  --warning:#d98324;
   --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
   color-scheme: light;
@@ -141,10 +144,12 @@ button#send:disabled{opacity:.5;cursor:default}
   <div class="chat-panel" id="chatPanel">
     <header>
       <div>
-        <p class="eyebrow">Prototype · v0</p>
+        <p class="eyebrow">Prototype · v3</p>
         <h1>공정 품질 통합 관리 AI Agent</h1>
       </div>
-      <p class="sub">Health Index · 경보 · 확정 유효인자 · SOP 초안을 실시간 조회해서 답합니다</p>
+      <!-- SOP는 아직 수령 전이라 "초안"조차 없다 — 지어내지 않는 게 이 agent의 규칙이므로
+           소개 문구에서도 있는 것처럼 쓰지 않는다(26.08.10). -->
+      <p class="sub">Health Index · 경보 · 확정 유효인자 · 조치 긴급도를 실시간 조회해서 답합니다</p>
     </header>
 
     <div class="wrap">
@@ -163,7 +168,9 @@ button#send:disabled{opacity:.5;cursor:default}
         <textarea id="input" placeholder="예: DP02 지금 괜찮아?" rows="1"></textarea>
         <button id="send">전송</button>
       </div>
-      <p class="disclaimer">이 채팅은 초안입니다. 레벨/추세는 통계적 유의성 재검정 없이 계산된 최근 동향이고, SOP 제안은 DRAFT_UNVERIFIED입니다.</p>
+      <!-- (26.08.10) 문구 갱신: 레벨/추세는 이제 순열검정으로 FWER을 통제한 결과이고,
+           SOP는 "미검증 초안"이 아니라 아직 수령 전이라 아예 만들지 않는다. -->
+      <p class="disclaimer">점수 기준선은 Shewhart 관리한계(정상값 ± 3σ)입니다. 멘토 스펙과는 다른 축이라 화면에서 구분해 표시합니다. SOP는 아직 수령 전이라 조치 문구는 만들지 않고, 긴급도와 위험구간만 전달합니다.</p>
     </div>
   </div>
 
@@ -243,8 +250,23 @@ function renderChart(cd){
   const n = cd.series.length;
   if(n < 2) return '';
 
+  // 편측 컬럼(증가만 나쁘거나 감소만 나쁜 변수)은 반대쪽 한계가 아예 없어서 null이 온다.
+  // null을 그대로 Math.min에 넘기면 NaN이 되어 그래프 전체가 안 그려지므로 걸러낸다.
+  const has = v => v !== null && v !== undefined;
   const values = cd.series.map(p => p.value);
-  const allVals = values.concat([cd.lsl, cd.usl, cd.baseline_median]);
+  // 빨간 실선 = 점수를 내는 관리한계(3σ) / 회색 점선 = 멘토 스펙(다른 축, 점수 기준 아님).
+  // 스펙은 이 공정의 자연 변동폭보다 수십 시그마 넓어서 y축을 스펙에 맞추면 실제 등락이
+  // 직선으로 뭉개진다 — 그래서 축 범위 계산에는 관리한계만 넣고, 스펙선은 범위 안에
+  // 들어올 때만 그린다(26.08.10).
+  const hasLsl = has(cd.control_lsl), hasUsl = has(cd.control_usl);
+  // 관리한계는 A/B/C/E 전 유형에 양쪽 다 그린다(정상 변동폭이 얼마인지 보여야 한다).
+  // 다만 점수를 내는 쪽만 빨간색으로, 나머지는 회색으로 — CLN_Flow의 위쪽 선을
+  // "넘으면 위험"으로 오해하면 안 된다(유량이 늘어나는 건 위험이 아니다).
+  const side = cd.score_side || 'both';
+  const scoresUp = side === 'both' || side === 'upper';
+  const scoresLo = side === 'both' || side === 'lower';
+  const allVals = values.concat([cd.baseline_median],
+                                hasLsl ? [cd.control_lsl] : [], hasUsl ? [cd.control_usl] : []);
   let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
   const pad = (vMax - vMin) * 0.08 || Math.abs(vMax) * 0.05 || 1;
   vMin -= pad; vMax += pad;
@@ -256,21 +278,76 @@ function renderChart(cd){
   const last = cd.series[n - 1];
   const lastColor = cd.spec_status === 'SPEC_OUT' ? 'var(--critical)' : 'var(--accent)';
 
+  // 짝지어진 defect의 실제 불량률을 같은 날짜 축에 겹쳐 그린다. 원인 변수(유량 9.99)와
+  // 불량률(0.0x)은 자릿수가 달라서 같은 y축에 놓으면 한쪽이 직선이 된다 — **별도 축**으로
+  // 0~최대값에 정규화해서 아래쪽 40% 영역에 면적으로 깐다. 축이 다르다는 걸 숨기면
+  // 안 되므로 오른쪽에 최대값을 명시한다.
+  let defectArea = '';
+  if (cd.defect_series && cd.defect_series.length === n) {
+    const dv = cd.defect_series.map(p => p.value).filter(v => v !== null && v !== undefined);
+    const dMax = Math.max(...dv);
+    if (dv.length && dMax > 0) {
+      const dTop = padT + (H - padT - padB) * 0.60;   // 불량률 영역 상단
+      const dBot = H - padB;
+      const dy = v => dBot - (v / dMax) * (dBot - dTop);
+      const pts = cd.defect_series.map((p, i) =>
+        (p.value === null || p.value === undefined) ? null : `${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`)
+        .filter(Boolean);
+      if (pts.length > 1) {
+        defectArea =
+          `<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n - 1).toFixed(1)},${dBot}" fill="var(--warning, #d98324)" opacity="0.16"/>`
+          + `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--warning, #d98324)" stroke-width="1.2" opacity="0.75"/>`
+          + `<text x="${padL + 2}" y="${(dTop - 3).toFixed(1)}" font-size="8" fill="var(--warning, #d98324)">${cd.defect} 불량률 (우축 최대 ${(dMax * 100).toFixed(2)}%)</text>`;
+      }
+    }
+  }
+
   const hline = (v, color, dashed) =>
     `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed ? ' stroke-dasharray="4 3"' : ''}/>`;
+
+  // 멘토 스펙선: 점수 기준이 아니므로 연한 회색으로 구분해서 그린다. y축 범위 밖으로
+  // 나가는 스펙(대부분 그렇다 — 수십 시그마 밖)은 그리면 화살표만 남으므로 생략한다.
+  const inRange = v => has(v) && v >= vMin && v <= vMax;
+  const specLine = (v, label) => inRange(v)
+    ? `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W - padR}" y2="${y(v).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2 4"/>`
+      + `<text x="${padL + 2}" y="${(y(v) - 3).toFixed(1)}" font-size="8" fill="var(--ink-faint)">${label} ${v}</text>`
+    : '';
+  // 멘토 스펙이 있는 컬럼(10개)에서만 그린다. 스펙이 없는 컬럼은 lsl/usl에 관리한계가
+  // 그대로 들어있어서, 안 거르면 같은 선을 두 번 그리고 라벨만 두 개 붙는다.
+  const hasMentorSpec = String(cd.spec_source || '').startsWith('mentor_spec');
+  const specLines = hasMentorSpec
+    ? specLine(cd.usl, '스펙USL') + specLine(cd.lsl, '스펙LSL') : '';
+
+  // 경보 시작 시점에 세로선. 창을 넓힌 이유가 이 지점을 보여주기 위해서다 —
+  // 왼쪽(정상)과 오른쪽(경보 지속)이 나뉘어야 "여기서 꺾였다"가 한눈에 읽힌다.
+  // 시리즈 안에 그 날짜가 없으면(창 밖) 그리지 않는다.
+  let alertMark = '';
+  if (cd.alert_since) {
+    const ai = cd.series.findIndex(p => p.date >= cd.alert_since);
+    if (ai > 0) {
+      const ax = x(ai).toFixed(1);
+      alertMark =
+        `<line x1="${ax}" y1="${padT}" x2="${ax}" y2="${H - padB}" stroke="var(--critical)" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>`
+        + `<text x="${(x(ai) + 3).toFixed(1)}" y="${padT + 9}" font-size="8" fill="var(--critical)">경보 ${cd.alert_since}</text>`;
+    }
+  }
 
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
-      ${hline(cd.usl, 'var(--critical)', true)}
-      ${hline(cd.lsl, 'var(--critical)', true)}
+      ${defectArea}
+      ${specLines}
+      ${alertMark}
+      ${hasUsl ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
+      ${hasLsl ? hline(cd.control_lsl, scoresLo ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
       <circle cx="${x(n - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="${lastColor}"/>
       <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
       <text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
-      <text x="${W - padR}" y="${(y(cd.usl) - 4).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">USL ${cd.usl}</text>
-      <text x="${W - padR}" y="${(y(cd.lsl) + 11).toFixed(1)}" font-size="9" fill="var(--critical)" text-anchor="end">LSL ${cd.lsl}</text>
+      ${hasUsl ? `<text x="${W - padR}" y="${(y(cd.control_usl) - 4).toFixed(1)}" font-size="9" fill="${scoresUp ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}${scoresUp ? '' : ' (점수 무관)'}</text>` : ''}
+      ${hasLsl ? `<text x="${W - padR}" y="${(y(cd.control_lsl) + 11).toFixed(1)}" font-size="9" fill="${scoresLo ? 'var(--critical)' : 'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}${scoresLo ? '' : ' (점수 무관)'}</text>` : ''}
+      <text x="${W - padR}" y="${(y(cd.baseline_median) - 4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
     </svg>
   </div>`;
 }

@@ -122,6 +122,78 @@ CUSUM_H = 4.5   # 경보 임계값(시그마 단위) — 누적합이 이걸 넘
 SPEC_RUN_EXPECTED_MAX = 0.01  # "우연히 이만큼도 안 나온다"고 볼 기대 발생 횟수 상한
 
 
+def load_external_limit_rules() -> dict[str, dict]:
+    """rel_28(설비 정비 대상 알람)의 상한 규칙을 읽는다 — 현재 Vibration 하나.
+
+    (26.08.08) 왜 여기 있나 — Vibration은 "값을 조정해서 고치는 인자"가 아니라 설비 정비
+    대상이라 관계DB의 원인 티어표에서 빠져 있다(rel_28.why_not_in_tier). 그래서 C유형
+    threshold도, 원인 짝짓기도 안 걸리는데, 그렇다고 감시를 안 하면 DP02/DP03에서 40일씩
+    올라가는 진동을 아무도 안 보게 된다. 관계DB가 이 컬럼만 별도 파일로 넘겨준 이유다
+    (alarm_owner = "추세분석 담당(김시우)").
+
+    상한 0.2111은 우리가 산출해서 관계DB에 넘긴 값이다 — 안정 구간(Mann-Kendall 추세
+    발생 직전) x OK샷의 p99.9이고, 4대가 0.2089~0.2117로 수렴한다(동일 사양 장비이므로
+    이게 맞는 그림). rel_28에 이전에 있던 upper_candidate_p99=0.2609는 합본 200k 기준이라
+    감시 데이터 최댓값(0.2487)을 넘어 영원히 안 울렸다.
+
+    판정은 rel_28.spec_breach_rule 그대로 — "그날 상한 초과 샷 수 >= binom.ppf(0.99, 그날
+    샷수, 0.001)". 개별 샷 하나가 넘는 건 정상 꼬리라 무시하고, 하루치가 우연이라 보기
+    어려울 만큼 몰릴 때만 경보한다. 멘토 스펙 검사(SPEC_RUN_EXPECTED_MAX)와 같은 사고방식.
+
+    파일이 없거나 옛 스키마(upper_limit 열이 없음)면 빈 dict를 돌려주고 경고를 찍는다 —
+    조용히 빠지면 "감시하고 있다"고 착각하게 된다.
+    """
+    path = config.RELATIONSHIP_DB_DIR / "rel_28_vibration_alarm.csv"
+    if not path.exists():
+        print("[관계DB] rel_28_vibration_alarm.csv 없음 — 설비 상한 알람을 건너뜁니다.")
+        return {}
+    t = pd.read_csv(path)
+    if "upper_limit" not in t.columns:
+        print("[관계DB] 경고: rel_28에 upper_limit 열이 없습니다(옛 스키마) — 상한 알람을 "
+              "건너뜁니다. JHdaimma님 브랜치가 병합됐는지 확인 필요.")
+        return {}
+    rules: dict[str, dict] = {}
+    for factor, g in t.groupby("factor"):
+        limit = pd.to_numeric(g["upper_limit"], errors="coerce").dropna()
+        if limit.empty:
+            continue
+        rules[str(factor)] = {
+            "upper_limit": float(limit.iloc[0]),
+            # 어느 불량과 연결되는지 + 근거 수준. "위험 증가"가 아니라 "관련 가능성"으로
+            # 써야 한다 — 감시 데이터로는 둘 다 검증이 안 된다(JHdaimma 회신 ⑤).
+            "defects": [
+                {"defect": str(r.defect), "evidence_level": str(getattr(r, "evidence_level", ""))}
+                for r in g.itertuples(index=False)
+            ],
+        }
+    for f, r in rules.items():
+        print(f"[관계DB] 설비 상한 알람: {f} > {r['upper_limit']} "
+              f"(연결 불량 {', '.join(d['defect'] for d in r['defects'])})")
+    return rules
+
+
+def compute_external_limit_breach(df, rules) -> dict[tuple[str, object], bool]:
+    """(장비, 날짜)별로 "그날 상한 초과가 우연이라 보기 어려운가"를 판정.
+
+    rel_28.spec_breach_rule: 초과 샷 수 >= binom.ppf(0.99, 그날 샷수, 0.001)
+    """
+    out: dict[tuple[str, object], bool] = {}
+    if not rules:
+        return out
+    day = df["DateTime"].dt.date
+    for col, rule in rules.items():
+        if col not in df.columns:
+            continue
+        over = df[col] > rule["upper_limit"]
+        agg = pd.DataFrame({"m": df["Machine_ID"], "d": day, "over": over}) \
+            .groupby(["m", "d"])["over"].agg(["sum", "size"])
+        need = {n: int(stats.binom.ppf(0.99, n, 0.001)) for n in agg["size"].unique()}
+        for (m, d), row in agg.iterrows():
+            if row["sum"] >= max(need[row["size"]], 1):
+                out[(col, m, d)] = True
+    return out
+
+
 def compute_spec_violation_rules(df, usable_columns):
     """컬럼별 (lsl, usl, 평소 위반율, 경보에 필요한 연속 위반 샷 수)를 미리 계산.
 
@@ -170,7 +242,8 @@ OUTPUT_COLUMNS = [
     "spec_lsl", "spec_usl", "spec_status",
     "current_value", "rolling_mean", "rolling_std",
     "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "spec_violation_warning", "early_warning", "episode_id", "message",
+    "variability_warning", "spec_violation_warning", "external_limit_warning",
+    "early_warning", "episode_id", "message",
 ]
 # (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
 # baseline 자리에 그대로 넣어써서, normalized_deviation(추세/경고용 "정상에서 얼마나
@@ -397,6 +470,10 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
     c_baseline_rate = compute_c_type_baseline_rate(df, column_type, c_map)
     spec_rules = compute_spec_violation_rules(df, usable_columns)
+    # (26.08.08) 설비 정비 대상 상한 알람(rel_28) — 현재 Vibration. 원인 티어표에 없는
+    # 컬럼이라 C유형/짝짓기로는 안 걸리지만 관계DB가 별도 파일로 넘겨준 감시 대상이다.
+    ext_rules = load_external_limit_rules()
+    ext_breach = compute_external_limit_breach(df, ext_rules)
     print(f"[{source_name}] 멘토 스펙 검사 대상 {len(spec_rules)}개 컬럼: "
           + ", ".join(f"{c}(평소위반 {r['rate']*100:.3f}%, 연속 {r['run']}샷이면 경보)"
                       for c, r in spec_rules.items()))
@@ -685,7 +762,28 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     f"로는 우연히 나올 수 없는 수준입니다."
                 )
                 messages[i] = f"{smsg} {messages[i]}".strip() if messages[i] else smsg
-            early_warning = early_warning | variability_warning | spec_violation
+            # (26.08.08) 설비 상한 알람(rel_28) — 유형/짝짓기와 무관하게 공통 적용.
+            # "그날 상한 초과 샷이 우연이라 보기 어려울 만큼 몰렸는가"를 (장비, 날짜)로
+            # 판정해두고, 그날의 샷에 표시한다. 문구는 "위험 증가"가 아니라 "관련 가능성"
+            # 이다 — 감시 데이터로는 연결 불량이 둘 다 검증되지 않는다(JHdaimma 회신 ⑤).
+            ext_rule = ext_rules.get(col)
+            external_limit_warning = np.zeros(len(current_value), dtype=bool)
+            if ext_rule is not None:
+                days = gdf["DateTime"].dt.date.to_numpy()[WINDOW - 1:]
+                over = current_value > ext_rule["upper_limit"]
+                external_limit_warning = np.array(
+                    [bool(ext_breach.get((col, machine_id, d))) for d in days]) & over
+                ev = " / ".join(f"{d['defect']} 관련 가능성" for d in ext_rule["defects"])
+                for i in np.where(external_limit_warning)[0]:
+                    emsg = (
+                        f"{machine_id}의 {col}이(가) 설비 상한({ext_rule['upper_limit']})을 "
+                        f"넘었습니다(현재 {current_value[i]:.4f}). 그날 초과 샷이 우연으로 "
+                        f"보기 어려운 수준입니다 — 설비 정비 점검 필요. {ev}."
+                    )
+                    messages[i] = f"{emsg} {messages[i]}".strip() if messages[i] else emsg
+
+            early_warning = (early_warning | variability_warning | spec_violation
+                             | external_limit_warning)
 
             matched_defect_val = extra.get("matched_defect", "") if extra else ""
             matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
@@ -714,6 +812,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 "trend_direction": trend_direction,
                 "variability_warning": variability_warning,
                 "spec_violation_warning": spec_violation,
+                "external_limit_warning": external_limit_warning,
                 "early_warning": early_warning,
                 # (26.08.05 추가) early_warning은 상태형이라 이상이 지속되는 동안 매 샷마다
                 # True로 계속 저장된다 — "몇 건"을 셀 때 샷 행 수를 세면 하나의 지속 사건이

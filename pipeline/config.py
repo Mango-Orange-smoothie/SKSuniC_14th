@@ -164,6 +164,24 @@ DOMAIN_FEATURES = [
     "Package_Size_Asymmetry",
 ]
 
+# (26.08.10) 감시 전용 컬럼 — target/관리한계는 계산하되 원인 지목에는 절대 안 쓴다.
+#
+# UNDOCUMENTED_COL_NOTES에 "공정 물리량 아님 — 1차 제외"로 근거를 남겨둔 컬럼들이다.
+# 유효인자(원인)로 쓰기엔 근거가 없다는 판단은 그대로 유효하지만, **"이 값이 평소와
+# 다르다"고 말하는 것까지 못 할 이유는 없다.** 원인을 모른다는 것과 이상을 못 본다는
+# 건 다른 얘기다 — 관계DB에 짝이 없어도 추세가 이상하면 보고는 해야 한다(김시우님).
+#
+# 그래서 이 컬럼들은:
+#   - 00_machine_daily_series에 들어가서 target(baseline) / 3σ 관리한계 / CUSUM을 받는다
+#   - Health Index의 **미확인 이상(안전망) 트랙에만** 뜬다
+#   - C유형(원인) 스캔 대상에서는 제외한다(scan_cols) — 원인 후보로 승격될 경로 자체를 막는다
+#   - HEALTH_FACTORS(관계DB 확정 유효인자)에 없으므로 장비 점수에도 반영되지 않는다
+#
+# Maintenance_Count는 원래 UNDOCUMENTED_EXCLUDED에서 빠져 있었는데(= 제외 대상이 아닌데)
+# 어느 subsystem 리스트에도 안 들어가 파이프라인이 집어들지 못했다. 문서는 "보류(포함)",
+# 코드는 "제외"로 어긋나 있던 것 — 여기 넣으면서 해소된다.
+MONITOR_ONLY_COLUMNS = SUBSYSTEMS["undocumented_env_or_infra"]
+
 # ---------------------------------------------------------------------------
 # Baseline 유형(A/B/C/E) — Jun 브랜치 `26.07.29 Baseline 관련 작업/`에서 이식.
 # 열화 패턴 성격이 컬럼마다 달라 baseline 산출 방식도 유형별로 다르다:

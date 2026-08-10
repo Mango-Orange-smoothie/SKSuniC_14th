@@ -140,6 +140,16 @@ for factor, meta in CAUSE_FACTORS.items():
         if per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)):
             DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
 
+# factor -> 그래프에 같이 그릴 defect 하나. (26.08.10) 원인 변수의 추세만 보여주면
+# "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인 시점과 불량률이 올라간
+# 시점을 한 화면에 겹쳐야 선후관계가 보인다. DEFECT_TO_FACTORS의 역방향인데, 한 인자가
+# 여러 defect의 원인일 수 있으므로(예: Head_Temp) meta["defects"] 순서상 첫 번째를 쓴다.
+# alert_usable=False인 짝은 여기서도 제외한다 — DB가 막아둔 관계를 그림으로 주장하면 안 된다.
+FACTOR_TO_DEFECT: dict[str, str] = {}
+for defect, factors in DEFECT_TO_FACTORS.items():
+    for factor in factors:
+        FACTOR_TO_DEFECT.setdefault(factor, defect)
+
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
 # 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
@@ -226,7 +236,14 @@ def get_sop_for_factor(factor_name: str) -> str:
     }, ensure_ascii=False, indent=2)
 
 
-DEFAULT_CHART_DAYS = 30  # 3개월(전체 89일) 다 보여주면 최근 동향이 묻힘 — 관례적 기본값
+DEFAULT_CHART_DAYS = 30  # 경보가 없는(= 볼 사건이 없는) 변수의 기본 창. 최근 한 달.
+
+# (26.08.10) 경보가 있으면 **경보 시작 시점이 창 안에 들어오도록** 창을 자동으로 넓힌다.
+# 최근 30일 고정이면 정작 값이 꺾인 순간이 잘려나간다 — DP02 Laser_Power는 2/2,
+# DP03 Head_Temp는 2/17, DP04 CLN_Flow는 2/19에 경보가 시작되는데 화면은 3/1부터였다.
+# 그래서 "이미 나빠진 뒤의 평평한 구간"만 보이고, 정작 조기탐지를 그림으로 증명할 수가
+# 없었다. 경보 시작 **전**의 정상 구간도 이만큼 같이 보여줘야 "꺾였다"가 눈에 보인다.
+PRE_ALERT_CONTEXT_DAYS = 14
 
 
 @beta_tool
@@ -261,7 +278,7 @@ def get_defect_occurrence_dates(machine_id: str, defect_name: str) -> str:
 
 @beta_tool
 def get_trend_chart_data(
-    machine_id: str, factor: str, days: int = DEFAULT_CHART_DAYS, center_date: str | None = None,
+    machine_id: str, factor: str, days: int | None = None, center_date: str | None = None,
 ) -> str:
     """특정 장비×변수의 추세를 그래프로 보여달라는 요청일 때 시계열 데이터를 조회한다.
 
@@ -273,10 +290,12 @@ def get_trend_chart_data(
     Args:
         machine_id: 장비 ID, 예: "DP01", "DP02", "DP03", "DP04".
         factor: 변수 이름, 예: "Head_Temp", "Laser_Power", "CLN_Flow".
-        days: 최근 며칠치를 보여줄지. 기본 30일(최근 한 달) — 전체 기간(89일)을 다
-            보여주면 최근 동향이 묻힌다. 사용자가 "최근 일주일만", "전체 기간 다"처럼
-            요청하면 그에 맞게 조정(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜
-            앞뒤로 며칠씩 볼지를 뜻한다(예: days=7이면 앞뒤 3일씩 총 7일 근방).
+        days: 최근 며칠치를 보여줄지. **비워두는 게 기본이고 권장값이다** — 비우면
+            경보가 있는 변수는 경보 시작 14일 전부터 지금까지를 자동으로 잡아준다
+            (값이 꺾인 순간이 화면에 들어와야 추세가 보인다). 경보가 없으면 최근 30일.
+            사용자가 "최근 일주일만", "전체 기간 다"처럼 명시적으로 요청할 때만
+            지정한다(예: 7, 89). center_date를 쓸 때는 이 값이 그 날짜 앞뒤로 며칠씩
+            볼지를 뜻한다(예: days=7이면 앞뒤 3일씩 총 7일 근방).
         center_date: "YYYY-MM-DD" 형식. "불량 난 구간 보여줘"처럼 특정 시점 주변을
             보고 싶을 때 지정 — get_defect_occurrence_dates로 먼저 날짜를 찾은 뒤 여기
             넘기면 된다. 지정 안 하면(기본) 오늘 기준 최근 days일을 보여준다.
@@ -289,6 +308,20 @@ def get_trend_chart_data(
 
     series = DAILY_SERIES[(DAILY_SERIES["Machine_ID"] == machine_id) & (DAILY_SERIES["column"] == factor)]
     series = series.sort_values("date")
+    spec = spec_row.iloc[0]
+
+    # days를 안 받았으면(기본) 경보 시작 시점이 창 안에 들어오게 자동으로 잡는다.
+    # 호출자가 명시적으로 준 값은 그대로 존중한다 — "최근 일주일만" 같은 요청이 있다.
+    auto_days = days is None
+    if auto_days:
+        days = DEFAULT_CHART_DAYS
+        alert_since = spec["alert_since"]
+        if pd.notna(alert_since) and len(series):
+            # span은 두 날짜의 "간격"이라 경보일 당일이 안 세어진다(2/19~3/30 = 39일이지만
+            # 행 수는 40개). +1을 빼먹으면 경보 전 구간이 14일이 아니라 13일이 된다.
+            span = (pd.to_datetime(series["date"].iloc[-1]) - pd.Timestamp(alert_since)).days
+            days = max(days, span + 1 + PRE_ALERT_CONTEXT_DAYS)
+
     if center_date:
         center = pd.Timestamp(center_date)
         half = max(days, 2) // 2
@@ -297,13 +330,25 @@ def get_trend_chart_data(
     else:
         series = series.tail(max(days, 2))
 
-    spec = spec_row.iloc[0]
     result = {
         "machine_id": machine_id,
         "factor": factor,
         "baseline_median": float(spec["baseline_median"]),
-        "lsl": float(spec["lsl"]),
-        "usl": float(spec["usl"]),
+        # 편측 컬럼(증가만 나쁘거나 감소만 나쁜 변수)은 반대쪽 한계가 없다 — None으로
+        # 내보내야 화면이 "정상값 자리에 한계선"을 그리지 않는다(26.08.10).
+        "lsl": float(spec["lsl"]) if pd.notna(spec["lsl"]) else None,
+        "usl": float(spec["usl"]) if pd.notna(spec["usl"]) else None,
+        # (26.08.10) **점수를 실제로 내는 선**. lsl/usl은 멘토 스펙이 있으면 스펙을 담고
+        # 있어서 그래프에 그리면 화면과 점수의 기준이 어긋난다 — DP03 Head_Temp는
+        # 스펙 38~47 한복판(42.16)에 있어 그래프상 안전해 보이지만, 관리상한은 42.9156이라
+        # HI가 50.8이다. 진짜 경계선이 안 그려지면 "그래프는 멀쩡한데 왜 50점이냐"에
+        # 답할 수가 없다. 두 선을 다 실어서 화면에서 구분해 그린다.
+        "control_lsl": float(spec["control_lsl"]) if pd.notna(spec["control_lsl"]) else None,
+        "control_usl": float(spec["control_usl"]) if pd.notna(spec["control_usl"]) else None,
+        # (26.08.10) 관리한계는 양쪽 다 그리되, 점수를 내는 건 위험한 쪽뿐이다.
+        # 어느 쪽인지 안 알려주면 화면이 CLN_Flow의 위쪽 선을 "넘으면 위험"으로
+        # 오해한다 — 유량이 늘어나는 건 위험이 아니다. upper/lower/both.
+        "score_side": spec["score_side"] if pd.notna(spec["score_side"]) else "both",
         # (26.08.06 추가) 실제로 경보를 결정하는 선. lsl/usl은 이 공정의 자연 변동폭보다
         # 훨씬 넓어서 데이터에서 수십 시그마 떨어져 있고(멘토 스펙 9개 중 7개가 89일 내내
         # 위반 0건), 경보를 내는 건 CUSUM이다. 화면에서 y축을 lsl~usl에 맞추면 실제 등락이
@@ -323,6 +368,25 @@ def get_trend_chart_data(
             for d, v in zip(series["date"], series["daily_mean"])
         ],
     }
+
+    # (26.08.10) 이 인자가 원인인 defect의 실제 불량률을 같은 날짜 축으로 붙인다.
+    # 원인 변수만 보여주면 "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인
+    # 시점과 불량률이 올라간 시점이 한 화면에 겹쳐야 선후관계가 보인다.
+    # 스케일이 완전히 다르므로(유량 9.99 vs 불량률 0.0x) 화면에서 별도 축으로 그린다.
+    paired_defect = FACTOR_TO_DEFECT.get(factor)
+    rate_col = DEFECT_RATE_COLS.get(paired_defect) if paired_defect else None
+    if rate_col and rate_col in DAILY_TREND.columns:
+        dates = [str(d) for d in series["date"]]
+        sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+        rate_by_date = dict(zip(sub["date"].astype(str), sub[rate_col]))
+        pairs = [(d, rate_by_date.get(d)) for d in dates]
+        if any(v is not None and pd.notna(v) for _, v in pairs):
+            result["defect"] = paired_defect
+            result["defect_series"] = [
+                {"date": d, "value": (float(v) if v is not None and pd.notna(v) else None)}
+                for d, v in pairs
+            ]
+
     _chart_calls_this_turn.append(result)
     return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)
 
@@ -558,11 +622,46 @@ def _panel_from_chart(chart: dict) -> dict:
     if chart.get("early_warning_active") and chart.get("alert_since"):
         alert_txt = f", `{chart['alert_since']}`부터 `{chart.get('alert_active_days')}일`째 경보 지속"
 
+    # 편측 컬럼은 한쪽 한계만 존재한다 — 없는 쪽을 "~"로 이어 쓰면 없는 선을 있는 것처럼
+    # 말하게 된다(26.08.10). 있는 쪽만 이름을 붙여서 말한다.
+    # 점수를 내는 선(control_*)을 먼저 말한다. 멘토 스펙(lsl/usl)은 다른 축이라
+    # 괄호로 덧붙이기만 한다 — 둘을 "~"로 섞으면 어느 쪽이 점수 기준인지 사라진다.
+    lo, hi_ = chart.get("control_lsl"), chart.get("control_usl")
+    side = chart.get("score_side", "both")
+    if lo is None and hi_ is None:
+        bound_txt = "관리한계 없음"
+    elif side == "upper":
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}` (점수는 **상한** 기준 — 증가만 위험한 변수)"
+    elif side == "lower":
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}` (점수는 **하한** 기준 — 감소만 위험한 변수)"
+    else:
+        bound_txt = f"관리한계 `{lo}` ~ `{hi_}`"
+    if str(chart.get("spec_source", "")).startswith("mentor_spec"):
+        bound_txt += f" · 멘토 스펙 `{chart.get('lsl')}` ~ `{chart.get('usl')}`(점수 기준 아님)"
+
     lines = [
-        f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), "
-        f"관리한계 `{chart.get('lsl')}` ~ `{chart.get('usl')}`"
+        f"- **현재값**: `{latest}` (정상값 `{chart.get('baseline_median')}`), " + bound_txt
         + (f", {trend_word}추세" if trend_word else "") + alert_txt
     ]
+
+    # 겹쳐 그린 불량률을 문장으로도 한 줄 남긴다 — 그래프를 캡처해서 붙일 때
+    # 숫자가 같이 가야 한다. 경보 전/후를 나눠서 실제로 늘었는지를 보여준다.
+    ds = chart.get("defect_series") or []
+    since = chart.get("alert_since")
+    if ds and chart.get("defect"):
+        vals = [(p["date"], p["value"]) for p in ds if p.get("value") is not None]
+        if vals:
+            before = [v for d, v in vals if since and d < since]
+            after = [v for d, v in vals if since and d >= since]
+            if before and after:
+                b, a = sum(before) / len(before), sum(after) / len(after)
+                move = "증가" if a > b else "감소"
+                lines.append(
+                    f"- **실제 불량**: `{chart['defect']}` 발생률 경보 전 `{b * 100:.2f}%` "
+                    f"→ 경보 후 `{a * 100:.2f}%` ({move})")
+            else:
+                cur = vals[-1][1]
+                lines.append(f"- **실제 불량**: `{chart['defect']}` 최근 발생률 `{cur * 100:.2f}%`")
     if chart.get("trend_message"):
         lines.append(f"- **추세 메시지**: {chart['trend_message']}")
 
