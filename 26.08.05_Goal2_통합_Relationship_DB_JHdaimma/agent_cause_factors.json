@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "generated_at": "2026-08-06T08:03:59.879926+00:00",
+  "generated_at": "2026-08-08T12:49:12.458034+00:00",
   "basis": "확정 도메인 11건 × (통계검정 Mann-Whitney U + Cliff's delta + BH-FDR, RandomForest 순열중요도). 원본 10만 + r1 10만 = 20만행.",
   "cause_factors": {
     "Power_Efficiency": {
@@ -120,7 +120,7 @@
       "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
       "tier": "T1",
       "role": "원인(FDC)",
-      "action_type": "급락알람",
+      "action_type": "즉시조치",
       "actionable": true,
       "cliffs_delta": -0.2466,
       "rf_rank": "3/39",
@@ -135,7 +135,7 @@
       "per_defect": {
         "Remain_Coat": {
           "tier": "T1",
-          "action_type": "급락알람",
+          "action_type": "즉시조치",
           "threshold_raw": 297.272,
           "normal_range": "297.63 ~ 303.34",
           "risky_range": "294.65 ~ 297.04",
