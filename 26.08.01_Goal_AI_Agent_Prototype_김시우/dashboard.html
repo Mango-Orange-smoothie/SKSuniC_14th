@@ -5,14 +5,20 @@
 <title>공정 품질 통합 관리 — 대시보드</title>
 <style>
 :root{
-  /* (26.08.12) 배경만 하늘색 파스텔로. 글자·강조·경보색은 건드리지 않는다 —
-     경보 3색(good/warn/critical)이 판정 결과를 나르는 정보라 톤을 맞추려고
-     흐리게 하면 화면이 읽히긴 예뻐도 급한 게 안 급해 보인다.
-     카드(--surface)는 흰색 그대로 둔다. 배경만 색을 입혀야 카드가 떠 보이고,
-     그래프가 얹히는 면이 무채색이라 선 색이 그대로 나온다. */
+  /* (26.08.12) 화면 전체를 파랑·하늘 계열로. 배경은 파스텔, 강조는 읽히는 파랑.
+     경보 3색(good/warn/critical)만 남긴다 — 판정 결과를 나르는 정보라 톤을
+     맞추려고 흐리게 하면 화면이 읽히긴 예뻐도 급한 게 안 급해 보인다.
+     카드(--surface)는 흰색 그대로 둔다. 배경에만 색을 입혀야 카드가 떠 보이고,
+     그래프가 얹히는 면이 무채색이라 선 색이 그대로 나온다.
+     회색 3종(ink/ink-muted/ink-faint)도 보라기를 빼고 청회색으로 옮겼다 —
+     배경만 파랑으로 가면 본문 글씨에 남은 보라기가 오히려 도드라진다. */
   --bg:#e9f4fd; --surface:#ffffff; --surface-2:#daebfa;
-  --ink:#171523; --ink-muted:#6b6785; --ink-faint:#a4a0bd;
-  --accent:#5b54e8; --accent-soft:#eeecfc;
+  --ink:#101a26; --ink-muted:#54687e; --ink-faint:#8fa5bb;
+  --accent:#1763bd; --accent-soft:#dbeafb;
+  /* accent를 배경으로 깔고 그 위에 얹는 글자색. 라이트는 흰색이지만 다크의 accent는
+     밝은 하늘색이라 흰 글씨를 얹으면 2.3:1까지 떨어진다(전송 버튼·기간 칩·말풍선).
+     #fff를 그대로 박아두면 테마마다 다른 값을 줄 수가 없어 토큰으로 뺐다. */
+  --on-accent:#ffffff;
   --border:#c9e0f4;
   --good:#0ca30c; --warn:#d98324; --critical:#d03b3b;
   --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
@@ -24,8 +30,9 @@
     /* 다크도 같은 계열로 옮긴다 — OS가 다크면 이쪽이 뜨는데 라이트만 하늘색이면
        발표자 PC 설정에 따라 다른 화면이 나온다. */
     --bg:#0b1523; --surface:#122032; --surface-2:#18293e;
-    --ink:#ede9fb; --ink-muted:#a49dc9; --ink-faint:#726c99;
-    --accent:#9089f7; --accent-soft:#242052; --border:#24374f;
+    --ink:#e8f1fb; --ink-muted:#9bb2c9; --ink-faint:#6a8098;
+    --accent:#6fb0f2; --accent-soft:#12314f; --border:#24374f;
+    --on-accent:#0b1523;
     color-scheme: dark;
   }
 }
@@ -128,7 +135,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .rng{font-size:12px;padding:4px 10px;border-radius:14px;cursor:pointer;color:var(--ink-muted);
   border:1px solid var(--border)}
 .rng:hover{border-color:var(--accent);color:var(--accent)}
-.rng.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rng.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 .rng-n{font-size:11px;color:var(--ink-faint);margin-left:4px}
 .empty{color:var(--ink-faint);text-align:center;padding:60px 20px;font-size:13px;line-height:1.8}
 
@@ -222,7 +229,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .agent-h button{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:16px;padding:0 2px}
 .msgs{flex:1;overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:9px}
 .m{font-size:12.5px;line-height:1.65;padding:9px 12px;border-radius:10px;max-width:94%}
-.m.u{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.m.u{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:3px}
 .m.a{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:3px}
 .m.a.err{color:var(--critical)}
 .m code{font-family:var(--font-mono);font-size:11.5px}
@@ -261,11 +268,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);
   height:38px;min-height:38px;max-height:120px;overflow-y:auto;line-height:1.5}
 .inbar textarea:focus{outline:none;border-color:var(--accent)}
-.inbar button{background:var(--accent);color:#fff;border:none;border-radius:8px;
+.inbar button{background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;
   padding:0 14px;font:600 12.5px var(--font-ui);cursor:pointer}
 .inbar button:disabled{opacity:.5;cursor:default}
 .foot{font-size:10.5px;color:var(--ink-faint);padding:0 14px 11px;line-height:1.6}
-.reopen{position:fixed;right:14px;bottom:14px;background:var(--accent);color:#fff;border:none;
+.reopen{position:fixed;right:14px;bottom:14px;background:var(--accent);color:var(--on-accent);border:none;
   border-radius:18px;padding:9px 15px;font:600 12.5px var(--font-ui);cursor:pointer;display:none}
 .app.agent-closed .reopen{display:block}
 </style>
@@ -317,8 +324,13 @@ const VIEWS = [
   {id:'heatmap', label:'레시피 히트맵', needs:{machine:'single', factor:true}},
   {id:'compare', label:'장비 비교',    needs:{machine:'all',    factor:true}},
 ];
-const DEFECT_COLORS = {Chipping:'#5b54e8', Remain_Coat:'#d98324', Particle:'#0ca30c', Micro_Crack:'#d03b3b'};
-const MACHINE_COLORS = {DP01:'#5b54e8', DP02:'#0ca30c', DP03:'#d98324', DP04:'#d03b3b'};
+// 계열 색 4종. 보라를 뺐다(26.08.12) — 나머지 3색은 경보색과 같은 값이라 유지한다.
+// Chipping은 --accent(파랑)와 같은 그림 안에 겹쳐 그려진다(추세 화면에서 인자선 =
+// accent, 불량률선 = 이 표). 그래서 파랑이 아니라 청록으로 뺐다 — DP02 Laser_Power가
+// 정확히 그 경우(인자선 파랑 + Chipping 불량률선)라 같은 파랑이면 두 선이 붙는다.
+const DEFECT_COLORS = {Chipping:'#0d8fa8', Remain_Coat:'#d98324', Particle:'#0ca30c', Micro_Crack:'#d03b3b'};
+// 장비 비교 화면에는 accent로 그리는 선이 없어서 DP01은 파랑을 그대로 쓸 수 있다.
+const MACHINE_COLORS = {DP01:'#2f7fd6', DP02:'#0ca30c', DP03:'#d98324', DP04:'#d03b3b'};
 
 let BOOT = null;
 
