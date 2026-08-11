@@ -89,10 +89,17 @@ python3 -m pipeline.step0_preprocessing
   있었음(변동성 경보만 가능했음) — 단일방향 편차형이라 A유형이 맞아서 추가.)
 - **B(U자형/최적구간형, 8개)**: 그룹별 OK median. CLN_Time은 원래 C 후보였으나 위험 방향이
   그룹마다 불일치해(54그룹 중 29/25로 갈림) B로 재분류됨.
-- **C(편측 위험 threshold형)**: `CLN_Pressure→Remain_Coat`, `Surface_Roughness→Particle` 두 쌍만
-  대상. OK 데이터만으로는 위험선을 추정할 수 없어(정상 범위 내부 분포만으로는 어디부터 위험한지
+- **C(편측 위험 threshold형)**: 대상 짝은 관계DB에서 읽으므로 DB가 바뀌면 같이 바뀐다.
+  (26.08.11 실측: `CLN_Pressure`↔{Remain_Coat, Particle}, `CLN_Flow`↔{Remain_Coat, Particle},
+  `Surface_Roughness`↔Particle, `Coating_Thickness`↔Remain_Coat, `Laser_Power`↔Chipping —
+  **7쌍**. 8/8 기준 2쌍에서 라벨 확장안(PR #24)으로 늘었다.)
+  OK 데이터만으로는 위험선을 추정할 수 없어(정상 범위 내부 분포만으로는 어디부터 위험한지
   모름) **OK+NG 전체 데이터**로 `DecisionTreeClassifier(max_depth=1)` 스텀프를 그룹별로 학습해
   경계값(threshold)과 위험 방향(risky_direction)을 추정한다. NG 표본이 10개 미만인 그룹은 skip.
+  **(26.08.11) 학습된 위험 방향이 관계DB(`rel_30.threshold_direction`)와 반대인 그룹은 행을
+  안 만든다** — 방향의 단일 출처도 DB다(CLAUDE.md 규칙 6). 실측 사례는 `CLN_Flow↔Particle`
+  하나로, 54그룹 중 7개가 "높으면 위험"으로 학습돼 빠졌다(그래서 이 짝만 47행, 나머지 6쌍은
+  54행). 제외되면 실행 로그에 `[방향불일치]`로 찍힌다.
   Groove_Depth는 매칭 defect(Chipping)가 전체 4건뿐이라 이 산출물에서는 계속 제외(위 A유형
   참고 — 표본 부족 문제가 없는 A유형으로 대신 편입함).
 - **E(대칭성/정렬형, 9개)**: 그룹핑 없이 공정 설계상 이론 상수(대부분 0, Kerf_Angle=90,

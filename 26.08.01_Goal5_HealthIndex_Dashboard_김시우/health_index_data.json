@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T23:25:51.961883",
+  "generated_at": "2026-08-12T00:18:48.815618",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -335,7 +335,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 48
+                  "warning_count": 42
                 },
                 {
                   "product_id": "PKG_F",
@@ -386,14 +386,14 @@
                   "warning_count": 24
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_6",
-                  "warning_count": 22
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 16
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_6",
-                  "warning_count": 20
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 34.0,
@@ -429,14 +429,14 @@
               "alert_level": "early",
               "recipe_hotspots": [
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 13
-                },
-                {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_4",
                   "warning_count": 12
+                },
+                {
+                  "product_id": "PKG_E",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 11
                 },
                 {
                   "product_id": "PKG_C",
@@ -500,7 +500,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 48
+                  "warning_count": 42
                 },
                 {
                   "product_id": "PKG_F",
@@ -551,14 +551,14 @@
                   "warning_count": 24
                 },
                 {
-                  "product_id": "PKG_E",
-                  "recipe_id": "RCP_6",
-                  "warning_count": 22
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 16
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_6",
-                  "warning_count": 20
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 34.0,
@@ -928,7 +928,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 47
+                  "warning_count": 40
                 },
                 {
                   "product_id": "PKG_B",
@@ -942,7 +942,7 @@
                 }
               ],
               "n_product_recipe_combos_affected": 9.0,
-              "recipe_hotspot_concentrated": true,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma",
@@ -976,17 +976,17 @@
                 {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_4",
-                  "warning_count": 48
+                  "warning_count": 40
                 },
                 {
                   "product_id": "PKG_B",
                   "recipe_id": "RCP_8",
-                  "warning_count": 36
+                  "warning_count": 18
                 },
                 {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 26
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 15
                 }
               ],
               "n_product_recipe_combos_affected": 42.0,
@@ -1029,7 +1029,7 @@
                 {
                   "product_id": "PKG_E",
                   "recipe_id": "RCP_5",
-                  "warning_count": 17
+                  "warning_count": 16
                 },
                 {
                   "product_id": "PKG_C",
@@ -1093,7 +1093,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 47
+                  "warning_count": 40
                 },
                 {
                   "product_id": "PKG_B",
@@ -1107,7 +1107,7 @@
                 }
               ],
               "n_product_recipe_combos_affected": 9.0,
-              "recipe_hotspot_concentrated": true,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma",
@@ -1141,17 +1141,17 @@
                 {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_4",
-                  "warning_count": 48
+                  "warning_count": 40
                 },
                 {
                   "product_id": "PKG_B",
                   "recipe_id": "RCP_8",
-                  "warning_count": 36
+                  "warning_count": 18
                 },
                 {
-                  "product_id": "PKG_F",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 26
+                  "product_id": "PKG_A",
+                  "recipe_id": "RCP_9",
+                  "warning_count": 15
                 }
               ],
               "n_product_recipe_combos_affected": 42.0,
@@ -1380,7 +1380,7 @@
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_1",
-                  "warning_count": 242
+                  "warning_count": 241
                 },
                 {
                   "product_id": "PKG_E",
@@ -1428,7 +1428,7 @@
                 {
                   "product_id": "PKG_B",
                   "recipe_id": "RCP_2",
-                  "warning_count": 154
+                  "warning_count": 153
                 },
                 {
                   "product_id": "PKG_C",
@@ -1694,7 +1694,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 50
+                  "warning_count": 48
                 },
                 {
                   "product_id": "PKG_B",
@@ -1742,17 +1742,17 @@
                 {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_4",
-                  "warning_count": 31
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 28
+                  "warning_count": 27
                 },
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
-                  "warning_count": 22
+                  "warning_count": 20
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 31.0,
@@ -1859,7 +1859,7 @@
                 {
                   "product_id": "PKG_F",
                   "recipe_id": "RCP_2",
-                  "warning_count": 50
+                  "warning_count": 48
                 },
                 {
                   "product_id": "PKG_B",
@@ -1907,17 +1907,17 @@
                 {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_4",
-                  "warning_count": 31
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_7",
-                  "warning_count": 28
+                  "warning_count": 27
                 },
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
-                  "warning_count": 22
+                  "warning_count": 20
+                },
+                {
+                  "product_id": "PKG_C",
+                  "recipe_id": "RCP_7",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 31.0,
@@ -2098,12 +2098,12 @@
                 {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_5",
-                  "warning_count": 105
+                  "warning_count": 104
                 },
                 {
                   "product_id": "PKG_C",
                   "recipe_id": "RCP_8",
-                  "warning_count": 96
+                  "warning_count": 95
                 }
               ],
               "n_product_recipe_combos_affected": 53.0,
@@ -2240,7 +2240,7 @@
             {
               "product_id": "PKG_C",
               "recipe_id": "RCP_2",
-              "warning_count": 211
+              "warning_count": 210
             },
             {
               "product_id": "PKG_E",
@@ -2250,7 +2250,7 @@
             {
               "product_id": "PKG_F",
               "recipe_id": "RCP_5",
-              "warning_count": 199
+              "warning_count": 198
             }
           ],
           "n_product_recipe_combos_affected": 54.0,
@@ -2329,19 +2329,19 @@
               "alert_level": "full",
               "recipe_hotspots": [
                 {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_2",
+                  "warning_count": 230
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_6",
+                  "warning_count": 224
+                },
+                {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_1",
-                  "warning_count": 443
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 442
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 442
+                  "warning_count": 222
                 }
               ],
               "n_product_recipe_combos_affected": 54.0,
@@ -2368,7 +2368,7 @@
               "defect_zone_baseline_pct": 6.05,
               "margin_trend_pct_per_day": -0.086,
               "estimated_days_to_control_limit": null,
-              "trend_direction": "up",
+              "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP04 / PKG_D / RCP_4의 CLN_Pressure에서 위험 Threshold(302.3400)에 진입했습니다.",
               "alert_since": "2026-03-24",
@@ -2379,7 +2379,7 @@
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
-                  "warning_count": 42
+                  "warning_count": 29
                 },
                 {
                   "product_id": "PKG_D",
@@ -2387,9 +2387,9 @@
                   "warning_count": 28
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_1",
-                  "warning_count": 24
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 33.0,
@@ -2494,19 +2494,19 @@
               "alert_level": "full",
               "recipe_hotspots": [
                 {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_2",
+                  "warning_count": 230
+                },
+                {
+                  "product_id": "PKG_F",
+                  "recipe_id": "RCP_6",
+                  "warning_count": 224
+                },
+                {
                   "product_id": "PKG_D",
                   "recipe_id": "RCP_1",
-                  "warning_count": 443
-                },
-                {
-                  "product_id": "PKG_A",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 442
-                },
-                {
-                  "product_id": "PKG_C",
-                  "recipe_id": "RCP_9",
-                  "warning_count": 442
+                  "warning_count": 222
                 }
               ],
               "n_product_recipe_combos_affected": 54.0,
@@ -2533,7 +2533,7 @@
               "defect_zone_baseline_pct": 6.05,
               "margin_trend_pct_per_day": -0.086,
               "estimated_days_to_control_limit": null,
-              "trend_direction": "up",
+              "trend_direction": "down",
               "early_warning_active": true,
               "trend_message": "DP04 / PKG_D / RCP_4의 CLN_Pressure에서 위험 Threshold(302.3400)에 진입했습니다.",
               "alert_since": "2026-03-24",
@@ -2544,7 +2544,7 @@
                 {
                   "product_id": "PKG_A",
                   "recipe_id": "RCP_9",
-                  "warning_count": 42
+                  "warning_count": 29
                 },
                 {
                   "product_id": "PKG_D",
@@ -2552,9 +2552,9 @@
                   "warning_count": 28
                 },
                 {
-                  "product_id": "PKG_B",
-                  "recipe_id": "RCP_1",
-                  "warning_count": 24
+                  "product_id": "PKG_D",
+                  "recipe_id": "RCP_5",
+                  "warning_count": 14
                 }
               ],
               "n_product_recipe_combos_affected": 33.0,

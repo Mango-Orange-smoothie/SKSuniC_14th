@@ -145,22 +145,32 @@ python3 server.py
 감소 → Remain_Coat / Particle 증가"* 로 둘 다입니다. 절반만 보여주고 있었습니다.
 실제로 DP04에서 **Particle 쪽이 더 큽니다**(89일 평균 8.80% vs Remain_Coat 4.24%).
 
-**`alert_usable=False`가 막는 건 "경계값"이지 "관계"가 아닙니다.** CLN_Flow↔Particle은
-관계DB에서 tier T2(조건부조치)로 관계가 인정돼 있고, 붙은 경고는 "위험구간 불량률이
-정상구간보다 낮음 — 이 경계값으로 경보를 걸면 안 됨"(risk_ratio 0.80)입니다. 즉 *9.722를
-넘었으니 파티클 경보* 라고 말하지 말라는 것이지, *CLN_Flow가 나빠져도 파티클과 무관하다* 가
-아닙니다. 그래서 이름은 부르되 경계값은 안 씁니다(화면에 `(경계값 미검증)`으로 표시).
+**`alert_usable=False`가 막는 건 "경계값"이지 "관계"가 아닙니다.** 이 규칙을 도입할 때의
+사례가 CLN_Flow↔Particle이었습니다 — tier T2(조건부조치)로 관계는 인정돼 있는데 "위험구간
+불량률이 정상구간보다 낮음"(risk_ratio 0.80)이라 경계값만 못 쓰는 상태였고, 화면에
+`(경계값 미검증)`으로 표시했습니다. 즉 *9.722를 넘었으니 파티클 경보* 라고 말하지 말라는
+것이지, *CLN_Flow가 나빠져도 파티클과 무관하다* 가 아닙니다.
 
-바뀌지 **않은** 것:
+**(26.08.11 갱신) 이 예시 자체는 더 이상 유효하지 않습니다.** 같은 날 라벨 확장안(PR #24)이
+들어오면서 관계DB가 다시 학습됐고, `CLN_Flow↔Particle`은 `alert_usable=True`가 됐습니다.
+규칙(tier와 alert_usable을 별개 축으로 읽는 것)은 코드에 그대로 남아 있고 DB 값을 매번
+읽으므로, 지금 `alert_usable=False`인 짝이 생기면 자동으로 그 취급을 받습니다.
 
-- **Health Index 점수** — 4대 91.9 / 47.6 / 50.8 / 14.5 그대로. `build_health_index.py`는
-  한 줄도 안 고쳤습니다. defect 건강도는 거기서 `_usable_defects`로 따로 판단합니다
-- **경보 경로** — `DEFECT_TO_FACTORS`(경보용 역인덱스)는 계속 `alert_usable`로 걸립니다.
-  Particle의 경보 인자는 여전히 Surface_Roughness 하나뿐입니다
-- **관계DB** — 수정 불필요. `defects: ["Remain_Coat", "Particle"]`로 이미 둘 다 들어 있었고,
-  코드가 그중 하나만 읽고 있었을 뿐입니다
+이 절을 쓸 당시와 달라진 것(전부 26.08.11 재실측):
 
-DB에 defect가 2개 이상 달린 인자는 현재 CLN_Flow 하나뿐이라 파급 범위가 거기로 한정됩니다.
+- **Health Index 점수** — 4대 **85.0** / 47.6 / 50.8 / 14.5. 이 절을 쓸 때는 DP01이 91.9였고
+  "안 바뀐다"고 적었는데, 그 뒤 라벨 확장안으로 `CLN_Flow`가 Particle 원인으로도 잡히면서
+  그 경보가 DP01의 변수 점수를 깎았습니다. 점수가 나빠진 게 아니라 안 보이던 게 보인 것입니다
+- **Particle의 경보 인자** — `Surface_Roughness` 하나뿐이 아니라 `CLN_Flow`·`CLN_Pressure`
+  (둘 다 T2, `alert_usable=True`)가 함께 잡힙니다
+- **defect가 2개 이상 달린 인자** — `CLN_Flow` 하나가 아니라 `CLN_Flow`·`CLN_Pressure`
+  (Remain_Coat + Particle)와 `Cooling_Flow`(Chipping + Micro_Crack) 셋입니다. 파급 범위가
+  넓어져서, 파이프라인이 **(인자, defect) 짝**을 단위로 다루도록 바뀌었습니다
+  (`26.08.01_Goal5_HealthIndex_Dashboard_김시우/README.md` 참고)
+
+바뀌지 **않은** 것 — **관계DB는 수정이 필요 없었습니다.** 당시에도
+`defects: ["Remain_Coat", "Particle"]`로 둘 다 들어 있었고, 코드가 그중 하나만 읽고 있었을
+뿐입니다.
 
 ### 히트맵 셀 값
 
@@ -180,8 +190,10 @@ DB에 defect가 2개 이상 달린 인자는 현재 CLN_Flow 하나뿐이라 파
 
 - 지금은 각자 본인 컴퓨터에서만 실행 가능 (localhost는 외부 공유 안 됨) — 팀 전체가 공용
   링크 하나로 접속하려면 별도 배포(서버 호스팅)가 필요, 아직 미착수
-- 데이터 출처가 `Goal5_HealthIndex_Dashboard`의 `health_index_data.json` 하나뿐 — 윤진혁님의
-  관계DB가 완성되면 그쪽으로 교체 필요 (Particle/Remain_Coat도 관계DB에 포함되도록 확장 필요)
+- ~~데이터 출처가 `Goal5_HealthIndex_Dashboard`의 `health_index_data.json` 하나뿐 — 관계DB가
+  완성되면 그쪽으로 교체 필요~~ **(26.08.11 해소)** 짝짓기·tier·경계값은 이제
+  `agent_cause_factors.json`(윤진혁님 관계DB)에서 직접 읽습니다. Particle/Remain_Coat도
+  DB에 들어와 있습니다. `health_index_data.json`은 계산된 점수/시계열 쪽만 담당합니다
 - 안전망 임계값(스펙 여유 50% 이상 사용)과 추세 윈도우(14일)는 전부 잠정치
   (`Goal5_HealthIndex_Dashboard/README.md` 참고)
 - 에러 처리/인증/멀티유저 지원 없음 — 데모 프로토타입 수준

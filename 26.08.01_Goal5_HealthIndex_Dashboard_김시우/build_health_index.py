@@ -400,6 +400,19 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
                  "trend_direction", "message", "episode_id"],
     )
     tr["DateTime"] = pd.to_datetime(tr["DateTime"])
+    # (26.08.12) **경보 로그는 짝(인자, defect) 단위인데 이 표는 (장비, 컬럼) 단위다.**
+    # 한 인자가 두 defect의 원인이면 같은 샷이 두 행으로 들어오므로, 접지 않으면 이
+    # 함수가 내는 "건수"가 전부 짝 수만큼 부풀려진다. 실측: DP04 CLN_Flow의
+    # PKG_D|RCP_1은 443행이지만 경보 샷은 222개 — recipe_hotspots의 warning_count가
+    # 화면과 에이전트 답변("| 조합 | 경고건수 |" 표)에 그대로 두 배로 나갔다.
+    # 이 표의 모든 값이 "이 장비의 이 변수가 경보였던 **샷**"에 대한 진술이라
+    # (언제부터인가·어느 방향인가·어느 조합에 몰렸나), 여기서 한 번만 접는다.
+    # build_heatmap_data.py의 SHOT_KEY와 같은 이유·같은 키다.
+    n_rows = len(tr)
+    tr = tr.drop_duplicates(["Machine_ID", "Product_ID", "Recipe_ID", "column", "DateTime"])
+    if n_rows != len(tr):
+        print(f"[경보로그] {n_rows:,}행 -> 샷 {len(tr):,}개 "
+              f"(짝 단위 중복 {n_rows - len(tr):,}행 제거)")
     dataset_latest = tr["DateTime"].max()
 
     status: dict[tuple[str, str], dict] = {}

@@ -67,7 +67,8 @@ C유형 경계값은 Product×Recipe 54개 그룹마다 따로 학습하는데, 
 **한 인자에 defect가 둘인 경우가 이제 실제로 있습니다** — `CLN_Flow`와 `CLN_Pressure`가
 각각 Remain_Coat(T1)와 Particle(T2)의 원인입니다. 파이프라인은 **짝(인자, defect)을
 단위로** 다룹니다. 경계값·평소 진입률·경보가 짝마다 따로 나옵니다(실측: `CLN_Flow`는
-Remain_Coat 기준 9.7027 / Particle 기준 9.7390, 54그룹 중 47개에서 다름).
+경계값 중앙값이 Remain_Coat 기준 9.7027 / Particle 기준 9.7355이고, 두 짝이 다 학습된
+47그룹 중 40개에서 다름 — 방향 필터로 빠진 7그룹은 비교 대상이 아님).
 컬럼당 하나를 골라야 하는 자리(`build_health_index`의 화면 대표값)에서는 **파일 행 순서가
 아니라 가장 급한 tier**를 씁니다. 재현 검증은 `docs/check_multi_defect_pairing.py`.
 
