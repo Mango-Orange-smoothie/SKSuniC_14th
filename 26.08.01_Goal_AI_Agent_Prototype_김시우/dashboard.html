@@ -404,24 +404,24 @@ function renderTrend(d){
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
       ${(() => {
-        // 하류 defect를 전부 적는다 — 한 원인이 두 불량을 미는 경우(CLN_Flow -> Remain_Coat
-        // + Particle, 멘토 확정 세정 실패)를 화면이 표현하지 못하고 하나만 보여주고 있었다.
-        const list = (d.defects && d.defects.length) ? d.defects
-                   : (d.defect ? [{defect:d.defect, alert_usable:true}] : []);
-        if(!list.length) return '';
-        // alert_usable=False = "이 변수 값으로 위험구간 선을 못 긋는다". 관계 자체는
-        // 관계DB가 tier로 인정했고(CLN_Flow↔Particle은 T2), 실패한 건 경계값이다 —
-        // 경계 아래쪽 불량률이 위쪽보다 오히려 낮게 나왔다(risk_ratio 0.80).
-        // "미검증"이라고 쓰면 "아직 안 봤다"로 읽히는데, 재보고 안 갈린 것이다.
-        const names = list.map(s => s.alert_usable === false
-          ? `<span title="관계는 인정된 짝이지만(tier), 이 변수 값으로 위험구간 선을 그을 수 없다 — 경계 아래 불량률이 위보다 낮게 나왔다(risk_ratio 0.80). 값이 얼마 이하면 위험이라고 말할 수 없다는 뜻.">`
-            + `${esc(s.defect)} <span style="color:var(--ink-faint)">(위험구간 기준 없음)</span></span>`
-          : esc(s.defect)).join(' · ');
-        return `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${names}</div>`;
+        // 인자 이름으로 분기하지 않는다 — 관계DB에서 만든 단일 표(related_defects)를
+        // tier/is_cause로만 갈라 줄을 만든다. 새 짝이 DB에 추가돼도 여기는 안 고친다.
+        const rel = d.related_defects || (d.defect ? [{defect:d.defect, is_cause:true, alert_usable:true}] : []);
+        const cause = rel.filter(r => r.is_cause), cand = rel.filter(r => !r.is_cause);
+        const label = r => {
+          // alert_usable=false = "재봤는데 경계가 안 갈렸다"(risk_ratio 0.80).
+          // "미검증"으로 쓰면 "아직 안 봤다"로 읽히므로 기준이 없다고 쓴다.
+          if(r.alert_usable === false) return `<span title="관계는 tier ${esc(r.tier||'')}로 인정된 짝이지만, 이 변수 값으로 위험구간 선을 그을 수 없다 — 경계 아래 불량률이 위보다 낮게 나왔다(risk_ratio 0.80).">`
+            + `${esc(r.defect)} <span style="color:var(--ink-faint)">(위험구간 기준 없음)</span></span>`;
+          return esc(r.defect);
+        };
+        let out = '';
+        if(cause.length) out += `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${cause.map(label).join(' · ')}</div>`;
+        // T3 = "원인이라고 답하지 말 것"(관계DB tier_legend) — 그래서 줄을 나눈다.
+        if(cand.length) out += `<div class="vsub" style="color:var(--ink-faint)">감시 후보 → ${
+          cand.map(r => `<span title="${esc(r.reason || '')}">${esc(r.defect)} (${esc(r.tier||'')} · 원인 아님)</span>`).join(' · ')}</div>`;
+        return out;
       })()}
-      ${(d.candidate_defects || []).length ? `<div class="vsub" style="color:var(--ink-faint)">감시 후보 → ${
-        d.candidate_defects.map(c => `<span title="${esc(c.reason || '')}">${esc(c.defect)} (${esc(c.tier)} · 원인 아님)</span>`).join(' · ')
-      }</div>` : ''}
     </div>
 
     <div class="card">

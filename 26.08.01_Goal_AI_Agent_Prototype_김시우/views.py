@@ -264,21 +264,16 @@ def view_trend(machine_id: str, factor: str) -> dict:
     # "이 변수가 나빠지면 이 두 불량이 생길 수 있다"가 맞는 서술이다.
     # tier/진입률 등 숫자는 아래처럼 계속 짝 단위(defect_name)로만 쓴다 — 경계값을
     # 근거로 쓰는 자리에는 alert_usable=False인 짝을 절대 끼워넣지 않는다.
-    downstream = [
-        {"defect": d, "alert_usable": agent.alert_usable_pair(factor, d)}
-        for d in agent.paired_defects(factor)
-    ]
-    # 확정 원인이 아닌 "감시 후보"(T3)는 별도 줄로 나간다 — 관계DB tier_legend가
-    # "원인이라고 답하지 말 것"이라고 못박은 등급이라 위 downstream과 섞으면 안 된다.
-    candidates = agent.candidate_defects(factor)
+    # 관계표는 agent가 관계DB 세 출처를 한 번에 훑어 만든 단일 표다(agent.defect_relations).
+    # 화면은 인자 이름으로 분기하지 않고 tier/is_cause만 보고 줄을 나눈다.
+    relations = agent.defect_relations(factor)
 
     return {
         "view": "trend",
         "machine": machine_id,
         "factor": factor,
         "defect": defect_name,
-        "defects": downstream,
-        "candidate_defects": candidates,
+        "related_defects": relations,
         "chart": chart,
         "detail": detail,
         "meta": {

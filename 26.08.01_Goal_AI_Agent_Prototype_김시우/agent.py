@@ -171,56 +171,89 @@ for factor, meta in CAUSE_FACTORS.items():
 # 위에서 계속 alert_usable로 걸러진 채로 둔다. 점수(Health Index)도 안 건드린다 —
 # defect 건강도는 build_health_index.py가 _usable_defects로 따로 판단한다.
 #
-# 이 목록은 "이 변수가 나빠지면 어떤 불량이 생길 수 있는가"를 이름으로 말하는 데만 쓴다.
-FACTOR_TO_DEFECTS: dict[str, list[str]] = {
-    factor: list(meta.get("defects") or [])
-    for factor, meta in CAUSE_FACTORS.items()
-}
+# ---------------------------------------------------------------------------
+# 인자 -> 관련 defect 관계표 (단일 규칙)
+# ---------------------------------------------------------------------------
+# 관계DB는 (인자, defect) 관계를 **세 군데**에 나눠 적어둔다. 인자마다 분기를 치면
+# 새 짝이 생길 때마다 코드를 고쳐야 하므로, 세 출처를 한 번에 훑어 하나의 표로 만든다.
+#
+#   cause_factors[f].defects            역할=원인(FDC)     tier T1~T2
+#   monitor_factors[f].defects          역할=감시지표      tier M1
+#   defects_without_confirmed_cause[d]  후보              tier T3~T4
+#     .candidates_below_bar[]
+#
+# 표시 방법은 **인자 이름이 아니라 tier로만** 정한다. 관계DB tier_legend가 등급별
+# 취급법을 이미 정의해뒀고, 그게 유일한 판단 근거다:
+#
+#   T1 원인 · 즉시조치        이름 부름 + 경계값 사용
+#   T2 원인 · 조건부조치      이름 부름 + 경계값은 alert_usable일 때만
+#   M1 감시지표 · 경보 전용   이름 부름, 조치 지시 금지
+#   T3 원인 후보 · 감시만     "원인이라고 답하지 말 것" -> 별도 줄
+#   T4 판단보류               도메인과 데이터 방향이 반대 -> 표시 안 함
+#
+# T4를 빼는 이유: 방향이 뒤집힌 짝을 "생길 수 있는 불량"이라고 부르면 근거 없이 겁만
+# 준다. tier_legend는 "양쪽 병기할 것"이라고 하는데, 그건 그 짝을 직접 물었을 때
+# (get_defect_causes) 할 얘기지 인자 화면에 띄울 얘기가 아니다.
+#
+# alert_usable은 tier와 **별개 축**이다 — "위험구간 선을 그을 수 있는가"만 말한다.
+# False는 "아직 안 봤다"가 아니라 "재봤는데 안 갈렸다"는 뜻이다(CLN_Flow↔Particle은
+# 경계 아래 불량률이 위보다 낮게 나왔다, risk_ratio 0.80). 그래서 이름은 부르되
+# "값이 얼마 이하면 위험"이라고는 못 한다. 이름을 부르는 것과 선을 긋는 것은 다른 권한이다.
+_CAUSE_TIERS = {"T1", "T2", "M1"}     # 원인/감시지표로 이름을 부를 수 있는 등급
+_CANDIDATE_TIERS = {"T3"}             # 후보로만 — "원인" 줄에 넣으면 안 되는 등급
+
+FACTOR_DEFECT_RELATIONS: dict[str, list[dict]] = {}
+
+
+def _add_relation(factor: str, defect: str, tier: str | None,
+                  is_cause: bool, reason: str | None = None) -> None:
+    if defect not in DEFECT_RATE_COLS:
+        return
+    meta = CAUSE_FACTORS.get(factor) or {}
+    per = (meta.get("per_defect") or {}).get(defect) or {}
+    rel = {
+        "defect": defect,
+        "tier": tier,
+        # 원인/감시지표로 이름을 부를 수 있는가 (False면 "감시 후보" 줄로)
+        "is_cause": is_cause,
+        # 이 짝의 경계값으로 위험구간 선을 그을 수 있는가 (tier와 별개 축)
+        "alert_usable": bool(per.get("alert_usable", meta.get("alert_usable", True)))
+        if is_cause else False,
+        "reason": reason,
+    }
+    FACTOR_DEFECT_RELATIONS.setdefault(factor, []).append(rel)
+
+
+for _f, _meta in CAUSE_FACTORS.items():
+    _per = _meta.get("per_defect") or {}
+    for _d in _meta.get("defects") or []:
+        _tier = (_per.get(_d) or {}).get("tier", _meta.get("tier"))
+        if _tier in _CANDIDATE_TIERS:
+            _add_relation(_f, _d, _tier, is_cause=False)
+        elif _tier is None or _tier in _CAUSE_TIERS:
+            _add_relation(_f, _d, _tier, is_cause=True)
+        # T4 등 그 외 등급은 표시하지 않는다(위 주석 참고).
+
+for _d, _info in (_REL_DB_JSON.get("defects_without_confirmed_cause") or {}).items():
+    for _c in _info.get("candidates_below_bar") or []:
+        if _c.get("tier") in _CANDIDATE_TIERS:
+            _add_relation(_c["factor"], _d, _c.get("tier"), is_cause=False, reason=_c.get("reason"))
+
+
+def defect_relations(factor: str) -> list[dict]:
+    """이 인자와 관련된 defect 전부 — 등급(tier)과 함께. 화면·답변의 단일 출처."""
+    return FACTOR_DEFECT_RELATIONS.get(factor, [])
 
 
 def paired_defects(factor: str) -> list[str]:
-    """이 인자의 하류 defect 목록 — 불량률을 그래프에 겹쳐 그릴 대상."""
-    return [d for d in FACTOR_TO_DEFECTS.get(factor, []) if d in DEFECT_RATE_COLS]
+    """그래프에 불량률을 겹쳐 그릴 defect — 후보(T3)까지 포함해 실측은 다 보여준다."""
+    return [r["defect"] for r in defect_relations(factor)]
 
 
 def alert_usable_pair(factor: str, defect: str) -> bool:
-    """이 (인자, defect) 짝으로 **위험구간 선을 그을 수 있는가**.
-
-    False는 "아직 안 봤다"가 아니라 "재봤는데 안 갈렸다"는 뜻이다 — CLN_Flow↔Particle은
-    경계 아래쪽 불량률이 위쪽보다 오히려 낮게 나왔다(risk_ratio 0.80). 관계 자체는
-    tier로 인정돼 있으므로(T2) 이름은 부르되 "값이 얼마 이하면 위험"이라고는 못 한다.
-
-    이름을 부르는 것(paired_defects)과 선을 긋는 것은 다른 권한이다 — 위 주석 참고.
-    """
-    meta = CAUSE_FACTORS.get(factor) or {}
-    per = meta.get("per_defect") or {}
-    return bool(per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)))
-
-
-# (26.08.11) 확정 원인이 0건인 defect의 "후보" 인자 — 관계DB의 defects_without_confirmed_cause.
-# Micro_Crack이 여기 해당한다(Cooling_Flow T3 / Cooling_Water_Temp T4).
-#
-# **이건 위의 paired_defects와 같은 줄에 놓으면 안 된다.** 관계DB tier_legend가 못박아뒀다:
-#   T3 = "원인 후보 · 감시만 — 통계·RF 모두 미달. **원인이라고 답하지 말 것**"
-#   T4 = "판단보류 — 도메인과 데이터 방향이 반대. 양쪽 병기할 것"
-# 그래서 화면·답변에서 "원인 →" 줄이 아니라 "감시 후보 →" 줄로 따로 뺀다.
-#
-# T4는 데이터가 도메인과 **반대 방향**을 가리키는 것이라 후보로도 안 올린다 — 방향이
-# 뒤집힌 걸 "생길 수 있는 불량"이라고 부르면 근거 없이 겁만 주는 셈이다.
-# (CLN_Flow↔Particle과 다른 점: 그쪽은 방향이 아니라 경계값만 실패했고 tier가 T2다.)
-CANDIDATE_DEFECTS: dict[str, list[dict]] = {}
-for _defect, _info in (_REL_DB_JSON.get("defects_without_confirmed_cause") or {}).items():
-    for _c in _info.get("candidates_below_bar") or []:
-        if _c.get("tier") != "T3":
-            continue
-        CANDIDATE_DEFECTS.setdefault(_c["factor"], []).append(
-            {"defect": _defect, "tier": _c.get("tier"), "reason": _c.get("reason")}
-        )
-
-
-def candidate_defects(factor: str) -> list[dict]:
-    """이 인자의 "감시 후보" defect — 원인이라고 부르면 안 되는 짝(T3)."""
-    return [c for c in CANDIDATE_DEFECTS.get(factor, []) if c["defect"] in DEFECT_RATE_COLS]
+    """이 짝의 경계값으로 위험구간 선을 그을 수 있는가."""
+    return next((r["alert_usable"] for r in defect_relations(factor)
+                 if r["defect"] == defect), False)
 
 
 # (26.08.11) SYSTEM_PROMPT가 downstream_defects/candidate_defects를 참조하므로 스냅샷의
@@ -229,11 +262,7 @@ def candidate_defects(factor: str) -> list[dict]:
 for _snap in MACHINES.values():
     for _sig in (_snap.get("defect_signals") or {}).values():
         for _f, _c in (_sig.get("causes") or {}).items():
-            _c["downstream_defects"] = [
-                {"defect": _d, "alert_usable": alert_usable_pair(_f, _d)}
-                for _d in paired_defects(_f)
-            ]
-            _c["candidate_defects"] = candidate_defects(_f)
+            _c["related_defects"] = defect_relations(_f)
 
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
@@ -532,12 +561,12 @@ null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — n
 절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
 경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
 - **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}\
-{그 인자의 downstream_defects가 2개 이상이면 이 불릿 끝에 반드시 \
-", 같은 원인으로 `{나머지 defect}`도 위험"을 덧붙여라 — 한 인자가 여러 불량을 밀 수 있고, \
-그게 멘토 확정 시나리오다(세정 실패 → Remain_Coat + Particle). 단 alert_usable이 false인 \
-defect는 이름만 부르고 "값이 얼마 이하면 위험" 식의 경계값 문장을 절대 붙이지 마라 — \
-그 짝은 위험구간 선을 못 그은 짝이다. candidate_defects(T3)가 있으면 별도로 \
-", `{defect}`는 감시 후보(원인 아님)"로만 적어라.}
+{related_defects를 보고 판단하라 — 한 인자가 여러 불량을 밀 수 있고 그게 멘토 확정 \
+시나리오다(세정 실패 → Remain_Coat + Particle). is_cause=true가 2개 이상이면 이 불릿 끝에 \
+반드시 ", 같은 원인으로 `{나머지 defect}`도 위험"을 덧붙여라. is_cause=false(tier T3)는 \
+**원인이라고 쓰지 마라** — ", `{defect}`는 감시 후보(원인 아님)"로만 적어라. \
+alert_usable이 false인 defect는 이름만 부르고 "값이 얼마 이하면 위험" 식의 경계값 문장을 \
+절대 붙이지 마라 — 재봤는데 경계가 안 갈린 짝이다.}
 - **조치**: get_sop_for_factor 호출 후 `{action_type}`(tier `{tier}`) `[SOP 미수령]` — \
 위험구간 `{risky_range}` 참고. **구체적 점검·조치 문구는 아직 없으니 지어내지 말고, \
 tier/action_type과 위험구간 숫자만 전달하라.**
