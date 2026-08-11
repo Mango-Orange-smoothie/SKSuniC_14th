@@ -409,12 +409,19 @@ function renderTrend(d){
         const list = (d.defects && d.defects.length) ? d.defects
                    : (d.defect ? [{defect:d.defect, alert_usable:true}] : []);
         if(!list.length) return '';
+        // alert_usable=False = "이 변수 값으로 위험구간 선을 못 긋는다". 관계 자체는
+        // 관계DB가 tier로 인정했고(CLN_Flow↔Particle은 T2), 실패한 건 경계값이다 —
+        // 경계 아래쪽 불량률이 위쪽보다 오히려 낮게 나왔다(risk_ratio 0.80).
+        // "미검증"이라고 쓰면 "아직 안 봤다"로 읽히는데, 재보고 안 갈린 것이다.
         const names = list.map(s => s.alert_usable === false
-          ? `<span title="관계DB가 tier로 인정한 짝이지만, 경계값이 위험구간과 정상구간을 못 가른다(risk_ratio 0.80) — 이 경계로 경보는 걸지 않는다">`
-            + `${esc(s.defect)} <span style="color:var(--ink-faint)">(경계값 미검증)</span></span>`
+          ? `<span title="관계는 인정된 짝이지만(tier), 이 변수 값으로 위험구간 선을 그을 수 없다 — 경계 아래 불량률이 위보다 낮게 나왔다(risk_ratio 0.80). 값이 얼마 이하면 위험이라고 말할 수 없다는 뜻.">`
+            + `${esc(s.defect)} <span style="color:var(--ink-faint)">(위험구간 기준 없음)</span></span>`
           : esc(s.defect)).join(' · ');
         return `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${names}</div>`;
       })()}
+      ${(d.candidate_defects || []).length ? `<div class="vsub" style="color:var(--ink-faint)">감시 후보 → ${
+        d.candidate_defects.map(c => `<span title="${esc(c.reason || '')}">${esc(c.defect)} (${esc(c.tier)} · 원인 아님)</span>`).join(' · ')
+      }</div>` : ''}
     </div>
 
     <div class="card">
@@ -440,7 +447,7 @@ function renderTrend(d){
           ? ` · 이 추세면 <b>${det.estimated_days_to_control_limit}일</b> 뒤 관리한계 도달` : ''}
         ${meta.mechanism ? `<br>메커니즘 <code>${esc(meta.mechanism)}</code>` : ''}
       </div>
-      ${renderRiskBand(meta, det, d.defect)}
+      ${renderRiskBand(meta, det, d.defect, d.factor)}
     </div>`;
 }
 
@@ -450,7 +457,7 @@ function renderTrend(d){
 // 각 쪽에 떨어진 샷들이 실제로 놓인 범위(p5~p95)이고, 양쪽 꼬리 5%씩을 잘라낸 값이라
 // 두 범위 사이에 빈 구간이 생긴다. 예전엔 두 범위만 색칠해서 그 빈 구간이 "중립지대"처럼
 // 읽혔다 — 경계선을 같이 그리고, 범위가 무엇인지 글로 밝힌다.
-function renderRiskBand(meta, det, defect){
+function renderRiskBand(meta, det, defect, factor){
   const parse = s => {
     const m = String(s || '').match(/(-?[\d.]+)\s*~\s*(-?[\d.]+)/);
     return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
@@ -464,27 +471,34 @@ function renderRiskBand(meta, det, defect){
   const nR = meta.rate_in_risky_pct, nN = meta.rate_in_normal_pct;
   const rate = v => v == null ? '—' : `${v}%`;
 
+  // 경계까지 남은 거리 — "아직 안 넘음"만으로는 여유가 큰지 코앞인지 알 수 없다.
+  const gap = (now != null && thr != null) ? Math.abs(now - thr) : null;
+  const digits = String(thr ?? '').split('.')[1]?.length ?? 3;
+  const op = riskyIsAbove ? '≥' : '≤';
+
   return `<div class="band">
-    <div class="band-h">불량이 갈리는 경계 — 경계값 <b style="color:var(--ink)">${thr ?? '—'}</b>${defect ? ` · ${defect}` : ''}</div>
+    <div class="band-h">${defect ? `${defect} ` : ''}위험구간 — <b style="color:var(--ink)">${esc(factor || '')} ${op} ${thr ?? '—'}</b></div>
     <table class="dtable">
-      <thead><tr><th></th><th>값 범위</th><th>불량률</th></tr></thead>
+      <thead><tr><th>구분</th><th>실측범위 (p5~p95)</th><th>${defect ? defect + ' ' : ''}불량률</th></tr></thead>
       <tbody>
         <tr>
-          <td><span class="swatch" style="background:var(--critical)"></span>불량 난 쪽</td>
+          <td><span class="swatch" style="background:var(--critical)"></span>위험구간</td>
           <td>${meta.risky_range}</td><td class="hot">${rate(nR)}</td>
         </tr>
         <tr>
-          <td><span class="swatch" style="background:var(--good)"></span>괜찮은 쪽</td>
+          <td><span class="swatch" style="background:var(--good)"></span>정상구간</td>
           <td>${meta.normal_range}</td><td>${rate(nN)}</td>
         </tr>
         ${now == null ? '' : `<tr class="nowrow">
-          <td><span class="swatch" style="background:var(--ink)"></span>지금</td>
-          <td>${now}</td><td>${crossed ? '경계 넘음' : '아직 안 넘음'}</td>
+          <td><span class="swatch" style="background:var(--ink)"></span>현재값</td>
+          <td>${now}</td><td>${crossed
+            ? `<span style="color:var(--critical);font-weight:600">진입 (${gap != null ? gap.toFixed(digits) + ' 초과' : ''})</span>`
+            : `미진입${gap != null ? ` · 경계까지 ${gap.toFixed(digits)}` : ''}`}</td>
         </tr>`}
       </tbody>
     </table>
     <div class="band-foot">
-      ${meta.risk_ratio ? `경계를 넘은 쪽이 <b>${meta.risk_ratio}배</b>. ` : ''}값 범위는 판정 기준이 아니라 각 쪽 샷들이 실제로 놓였던 구간(가운데 90%)입니다 — 판정은 경계값 하나로만 합니다.
+      ${meta.risk_ratio ? `위험구간 불량률이 정상구간의 <b>${meta.risk_ratio}배</b>. ` : ''}실측범위는 판정 기준이 아니라 각 구간에 떨어진 샷의 분포(양끝 5%씩 제외) — 판정은 경계값 하나로 한다.
     </div>
   </div>`;
 }
@@ -535,7 +549,7 @@ function renderChart(cd, threshold){
         defectArea+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" opacity="0.8"${s.alert_usable===false?' stroke-dasharray="3 2"':''}/>`;
         // 경계값으로 경보를 못 거는 짝은 점선 — 관계는 인정됐지만(tier) 이 선을 근거로
         // 경보를 걸지는 않는다는 표시다. 실측 불량률 자체는 사실이므로 그린다.
-        labels.push(`<tspan fill="${col}">${s.defect}${s.alert_usable===false?'(경계값 미검증)':''}</tspan>`);
+        labels.push(`<tspan fill="${col}">${s.defect}${s.alert_usable===false?'(위험구간 기준 없음)':''}</tspan>`);
       });
       if(defectArea) defectArea+=`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5">`
         +labels.join('<tspan fill="var(--ink-faint)"> · </tspan>')

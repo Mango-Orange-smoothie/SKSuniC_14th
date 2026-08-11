@@ -268,6 +268,9 @@ def view_trend(machine_id: str, factor: str) -> dict:
         {"defect": d, "alert_usable": agent.alert_usable_pair(factor, d)}
         for d in agent.paired_defects(factor)
     ]
+    # 확정 원인이 아닌 "감시 후보"(T3)는 별도 줄로 나간다 — 관계DB tier_legend가
+    # "원인이라고 답하지 말 것"이라고 못박은 등급이라 위 downstream과 섞으면 안 된다.
+    candidates = agent.candidate_defects(factor)
 
     return {
         "view": "trend",
@@ -275,6 +278,7 @@ def view_trend(machine_id: str, factor: str) -> dict:
         "factor": factor,
         "defect": defect_name,
         "defects": downstream,
+        "candidate_defects": candidates,
         "chart": chart,
         "detail": detail,
         "meta": {

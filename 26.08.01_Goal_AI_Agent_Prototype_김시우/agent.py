@@ -132,9 +132,17 @@ DEFECT_RATE_COLS = {
     "Chipping": "Chipping_rate",
 }
 
-# defect -> 그 defect의 원인으로 확정된 factor 목록 (역인덱스).
+# defect -> 그 defect의 **확정 원인 인자** 목록 (역인덱스).
+#
+# 주의: 이건 "경보 목록"이 아니다. 경보(early_warning_active)는 **변수**에 붙는다 —
+# trend_analysis.py가 (장비, 컬럼)의 시계열에 CUSUM을 돌려서 켜는 것이고, defect는
+# 경보를 받지 않는다. defect는 "그 변수가 나빠지면 생길 수 있는 결과"의 이름일 뿐이다.
+# 이 역인덱스가 쓰이는 곳은 두 군데뿐이다:
+#   get_defect_causes()      "이 불량의 확정 원인이 뭐냐" 조회
+#   views.py usable_factors  "이 불량을 감시할 수단이 있냐" 표시
+#
 # per_defect[defect].alert_usable=False인 짝은 제외한다 — 인자 레벨 플래그만 보면
-# CLN_Flow↔Particle처럼 DB가 "이 경계값으로 경보를 걸면 안 됨"이라고 적어둔 짝이 통과한다.
+# CLN_Flow↔Particle처럼 DB가 "이 경계값으로는 위험구간을 못 가른다"고 적어둔 짝이 통과한다.
 DEFECT_TO_FACTORS: dict[str, list[str]] = {}
 for factor, meta in CAUSE_FACTORS.items():
     per = meta.get("per_defect") or {}
@@ -176,13 +184,56 @@ def paired_defects(factor: str) -> list[str]:
 
 
 def alert_usable_pair(factor: str, defect: str) -> bool:
-    """이 (인자, defect) 짝의 **경계값으로 경보를 걸어도 되는가**.
+    """이 (인자, defect) 짝으로 **위험구간 선을 그을 수 있는가**.
 
-    이름을 부르는 것(paired_defects)과 경보를 거는 것은 다른 권한이다 — 위 주석 참고.
+    False는 "아직 안 봤다"가 아니라 "재봤는데 안 갈렸다"는 뜻이다 — CLN_Flow↔Particle은
+    경계 아래쪽 불량률이 위쪽보다 오히려 낮게 나왔다(risk_ratio 0.80). 관계 자체는
+    tier로 인정돼 있으므로(T2) 이름은 부르되 "값이 얼마 이하면 위험"이라고는 못 한다.
+
+    이름을 부르는 것(paired_defects)과 선을 긋는 것은 다른 권한이다 — 위 주석 참고.
     """
     meta = CAUSE_FACTORS.get(factor) or {}
     per = meta.get("per_defect") or {}
     return bool(per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)))
+
+
+# (26.08.11) 확정 원인이 0건인 defect의 "후보" 인자 — 관계DB의 defects_without_confirmed_cause.
+# Micro_Crack이 여기 해당한다(Cooling_Flow T3 / Cooling_Water_Temp T4).
+#
+# **이건 위의 paired_defects와 같은 줄에 놓으면 안 된다.** 관계DB tier_legend가 못박아뒀다:
+#   T3 = "원인 후보 · 감시만 — 통계·RF 모두 미달. **원인이라고 답하지 말 것**"
+#   T4 = "판단보류 — 도메인과 데이터 방향이 반대. 양쪽 병기할 것"
+# 그래서 화면·답변에서 "원인 →" 줄이 아니라 "감시 후보 →" 줄로 따로 뺀다.
+#
+# T4는 데이터가 도메인과 **반대 방향**을 가리키는 것이라 후보로도 안 올린다 — 방향이
+# 뒤집힌 걸 "생길 수 있는 불량"이라고 부르면 근거 없이 겁만 주는 셈이다.
+# (CLN_Flow↔Particle과 다른 점: 그쪽은 방향이 아니라 경계값만 실패했고 tier가 T2다.)
+CANDIDATE_DEFECTS: dict[str, list[dict]] = {}
+for _defect, _info in (_REL_DB_JSON.get("defects_without_confirmed_cause") or {}).items():
+    for _c in _info.get("candidates_below_bar") or []:
+        if _c.get("tier") != "T3":
+            continue
+        CANDIDATE_DEFECTS.setdefault(_c["factor"], []).append(
+            {"defect": _defect, "tier": _c.get("tier"), "reason": _c.get("reason")}
+        )
+
+
+def candidate_defects(factor: str) -> list[dict]:
+    """이 인자의 "감시 후보" defect — 원인이라고 부르면 안 되는 짝(T3)."""
+    return [c for c in CANDIDATE_DEFECTS.get(factor, []) if c["defect"] in DEFECT_RATE_COLS]
+
+
+# (26.08.11) SYSTEM_PROMPT가 downstream_defects/candidate_defects를 참조하므로 스냅샷의
+# causes에 실어둔다. 프롬프트가 참조하는 필드가 payload에 없으면 모델이 조용히 지어낸다
+# — f32cbae(margin_used_pct 누락)에서 같은 사고가 났었다.
+for _snap in MACHINES.values():
+    for _sig in (_snap.get("defect_signals") or {}).values():
+        for _f, _c in (_sig.get("causes") or {}).items():
+            _c["downstream_defects"] = [
+                {"defect": _d, "alert_usable": alert_usable_pair(_f, _d)}
+                for _d in paired_defects(_f)
+            ]
+            _c["candidate_defects"] = candidate_defects(_f)
 
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
@@ -480,7 +531,13 @@ SYSTEM_PROMPT = """\
 null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
 절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
 경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
-- **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}
+- **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}\
+{그 인자의 downstream_defects가 2개 이상이면 이 불릿 끝에 반드시 \
+", 같은 원인으로 `{나머지 defect}`도 위험"을 덧붙여라 — 한 인자가 여러 불량을 밀 수 있고, \
+그게 멘토 확정 시나리오다(세정 실패 → Remain_Coat + Particle). 단 alert_usable이 false인 \
+defect는 이름만 부르고 "값이 얼마 이하면 위험" 식의 경계값 문장을 절대 붙이지 마라 — \
+그 짝은 위험구간 선을 못 그은 짝이다. candidate_defects(T3)가 있으면 별도로 \
+", `{defect}`는 감시 후보(원인 아님)"로만 적어라.}
 - **조치**: get_sop_for_factor 호출 후 `{action_type}`(tier `{tier}`) `[SOP 미수령]` — \
 위험구간 `{risky_range}` 참고. **구체적 점검·조치 문구는 아직 없으니 지어내지 말고, \
 tier/action_type과 위험구간 숫자만 전달하라.**
