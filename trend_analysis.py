@@ -294,7 +294,10 @@ def load_baseline_maps():
     column_type = {}      # column -> 'A' / 'B' / 'C' / 'E'
     direction_map = {}    # A유형: column -> 'up' / 'down'
     ab_value_map = {}     # (column, group_key) -> baseline_value  (A/B 공용, group_key='Product|Recipe')
-    c_map = {}             # (column, group_key) -> {threshold, risky_direction, matched_defect}
+    # (26.08.11) 값이 dict 하나가 아니라 **리스트**다. 한 컬럼이 두 defect의 원인이면
+    # 경계값이 defect마다 따로 학습되므로 같은 (컬럼, 그룹)에 행이 둘 생긴다. 예전엔
+    # dict 대입이라 나중 행이 앞 행을 조용히 덮어써서 한 defect가 통째로 사라졌다.
+    c_map = {}             # (column, group_key) -> [{threshold, risky_direction, matched_defect}, ...]
     e_value_map = {}       # column -> baseline_value (이론상수)
     e_std_map = {}         # column -> reference_OK_std (E유형 fallback std)
     # (26.08.11) column -> reference_OK_mean (정상일 때 실제로 나오는 값).
@@ -311,11 +314,11 @@ def load_baseline_maps():
     for row in c.itertuples(index=False):
         col = row.column
         column_type[col] = "C"
-        c_map[(col, row.group_key)] = {
+        c_map.setdefault((col, row.group_key), []).append({
             "threshold": row.threshold,
             "risky_direction": row.risky_direction,
             "matched_defect": row.matched_defect,
-        }
+        })
 
     for row in e.itertuples(index=False):
         col = row.column
@@ -430,10 +433,13 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 #      C_BASELINE_MIN_STABLE_DAYS 주석 참고.
 # ----------------------------------------------------------------------
 def compute_c_type_baseline_rate(df, column_type, c_map):
-    """00_baseline_C_entry_rate.csv에서 (장비, 컬럼) -> 평소 진입률을 읽어온다.
+    """00_baseline_C_entry_rate.csv에서 (장비, 컬럼, defect) -> 평소 진입률을 읽어온다.
 
     인자 df/c_map은 더 이상 계산에 쓰지 않지만(호출부 시그니처 유지), column_type은
     C유형만 남기는 필터로 계속 쓴다.
+
+    (26.08.11) 키에 defect가 들어간다 — 한 컬럼이 두 defect의 원인이면 경계값이 둘이라
+    "평소 얼마나 그 구간에 있었나"도 둘이다. 하나로 뭉치면 경보 판정 기준이 섞인다.
     """
     if not os.path.exists(BASELINE_C_ENTRY_RATE_CSV):
         raise FileNotFoundError(
@@ -449,9 +455,10 @@ def compute_c_type_baseline_rate(df, column_type, c_map):
     # 15,604샷 중 5건 = 0.032%), 그러면 "평소 대비 몇 배"가 정의 불가라 이진 판정으로
     # 빠져 Health Index가 saturate했다. 나머지 11개 조합은 두 방식 차이가 0.8% 이내라
     # 잃는 게 없다.
-    agg = table.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
+    agg = table.groupby(["Machine_ID", "column", "matched_defect"])[
+        ["n_in_zone", "n_ok_shots"]].sum()
     rate = agg["n_in_zone"] / agg["n_ok_shots"]
-    return {(m, c): float(v) for (m, c), v in rate.items()}
+    return {(m, c, d): float(v) for (m, c, d), v in rate.items()}
 
 
 # ----------------------------------------------------------------------
@@ -497,373 +504,378 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
 
         out_frames = []
         for col in usable_columns:
-            values = gdf[col].to_numpy(dtype=float)
-            result = compute_group_rolling(values)
-            if result is None:
-                continue
-            rolling_mean, rolling_std, difference, slope = result
-            current_value = values[WINDOW - 1:]
+            # (26.08.11) 한 컬럼이 두 defect의 원인이면 defect마다 따로 돈다 —
+            # 경계값도 경보 판정도 defect별로 다르기 때문이다. C유형이 아니거나
+            # 짝이 하나면 [None] 한 번이라 예전과 완전히 같은 경로다.
+            for c_variant in (c_map.get((col, group_key)) or [None]):
+                values = gdf[col].to_numpy(dtype=float)
+                result = compute_group_rolling(values)
+                if result is None:
+                    continue
+                rolling_mean, rolling_std, difference, slope = result
+                current_value = values[WINDOW - 1:]
 
-            col_type = column_type.get(col)
-            baseline = np.nan
-            threshold = np.nan
-            extra = {}
-            if col_type in ("A", "B"):
-                baseline = ab_value_map.get((col, group_key), np.nan)
-            elif col_type == "C":
-                info = c_map.get((col, group_key))
-                if info is not None:
-                    threshold = info["threshold"]
-                    extra = info
-                # target(정상 기준값)은 threshold와 별개 — Product×Recipe별 OK median.
-                baseline = stratum_target_map.get((product_id, recipe_id, col), np.nan)
-            elif col_type == "E":
-                baseline = e_value_map.get(col, np.nan)
+                col_type = column_type.get(col)
+                baseline = np.nan
+                threshold = np.nan
+                extra = {}
+                if col_type in ("A", "B"):
+                    baseline = ab_value_map.get((col, group_key), np.nan)
+                elif col_type == "C":
+                    # 위 for문이 이미 이 (컬럼, 그룹)의 defect 하나를 골라줬다.
+                    if c_variant is not None:
+                        threshold = c_variant["threshold"]
+                        extra = c_variant
+                    # target(정상 기준값)은 threshold와 별개 — Product×Recipe별 OK median.
+                    baseline = stratum_target_map.get((product_id, recipe_id, col), np.nan)
+                elif col_type == "E":
+                    baseline = e_value_map.get(col, np.nan)
 
-            baseline_arr = np.full(len(current_value), baseline, dtype=float)
-            threshold_arr = np.full(len(current_value), threshold, dtype=float)
+                baseline_arr = np.full(len(current_value), baseline, dtype=float)
+                threshold_arr = np.full(len(current_value), threshold, dtype=float)
 
-            # --- std 안전 대체 로직 ---
-            eff_std = rolling_std.copy()
-            need_fallback = np.isnan(eff_std) | (eff_std == 0)
-            if need_fallback.any():
-                fb_val = np.nan
+                # --- std 안전 대체 로직 ---
+                eff_std = rolling_std.copy()
+                need_fallback = np.isnan(eff_std) | (eff_std == 0)
+                if need_fallback.any():
+                    fb_val = np.nan
+                    if col_type == "E":
+                        fb_val = e_std_map.get(col, np.nan)
+                    if fb_val is None or (isinstance(fb_val, float) and np.isnan(fb_val)) or fb_val == 0:
+                        fb_val = fallback_std_map.get((product_id, recipe_id, col), np.nan)
+                    eff_std = np.where(need_fallback, fb_val, eff_std)
+
+                valid_baseline = ~np.isnan(baseline_arr)
+                valid_std = (~np.isnan(eff_std)) & (eff_std != 0)
+                calc_mask = valid_baseline & valid_std
+
+                # 추세분석 목적: 순간값이 아니라 최근 10개 평균(rolling_mean)이 baseline에서
+                # 얼마나 벗어났는지를 기준으로 정규화 편차를 계산한다.
+                normalized_deviation = np.full(len(current_value), np.nan)
+                normalized_deviation[calc_mask] = (
+                    (rolling_mean[calc_mask] - baseline_arr[calc_mask]) / eff_std[calc_mask]
+                )
+                # std를 전혀 구할 수 없는 경우: 상대/절대 편차로 대체 표기(참고용, 조기경보 판정에는 미사용)
+                rel_mask = valid_baseline & (~valid_std)
+                nz_base = rel_mask & (baseline_arr != 0)
+                z_base = rel_mask & (baseline_arr == 0)
+                normalized_deviation[nz_base] = (
+                    (rolling_mean[nz_base] - baseline_arr[nz_base]) / np.abs(baseline_arr[nz_base])
+                )
+                normalized_deviation[z_base] = rolling_mean[z_base] - baseline_arr[z_base]
+
+                # 10개 단위 로컬 slope의 부호. 장기 drift 신호와는 스케일이 달라서(뒤
+                # compute_reference_style_trend 참고) 이것만으로 추세를 주장하면 안 된다.
+                # (26.08.06 수정) 예전엔 이 값을 그대로 trend_direction으로 내보냈는데, 저장되는
+                # 행은 전부 early_warning=True인 행이고 그 경보를 실제로 띄운 건 CUSUM(A/B/E)
+                # 이나 threshold 진입(C)이지 이 로컬 slope가 아니다. 그래서 "지속적인 하강이
+                # 감지되었습니다" 메시지에 trend_direction="up"이 붙는 행이 절반 가까이 나왔고
+                # (하강 경고 11,945행 중 5,383행), build_health_index -> agent.py가 그걸 그대로
+                # 읽어서 엔지니어에게 반대 방향을 알려주고 있었다. 이제 경보가 뜬 행은 아래에서
+                # 그 경보 자신의 방향으로 덮어쓴다(alert_direction).
+                local_slope_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
+                trend_direction = local_slope_direction.copy()
+
+                # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
+                std_slope = compute_std_trend(rolling_std)
+                ref_std = fallback_std_map.get((product_id, recipe_id, col), np.nan)
+                if ref_std is not None and not (isinstance(ref_std, float) and np.isnan(ref_std)) and ref_std > 0:
+                    std_ratio = rolling_std / ref_std
+                else:
+                    std_ratio = np.full(len(current_value), np.nan)
+                variability_raw = (
+                    ~np.isnan(std_slope) & (std_slope > 0)
+                    & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
+                )
+                # 10행 표본으로 구한 std는 그 자체로 추정 노이즈가 커서, 1행짜리 순간 판정 대신
+                # PERSIST_WINDOW행 연속 유지될 때만 "진짜 변동성 확대"로 본다(상태형 — 지속되는
+                # 동안 계속 표시).
+                variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
+
+                early_warning = np.zeros(len(current_value), dtype=bool)
+                messages = np.array([""] * len(current_value), dtype=object)
+
+                # --- 멘토 실측 스펙(LSL/USL) 위반 — A/B/C/E 유형 판정과 무관하게 공통 적용 ---
+                # 상대 기준(baseline 대비 드리프트)만 보던 기존 판정에 절대 기준을 하나 더한다.
+                # 판정 근거/연속 샷 수를 정한 이유는 compute_spec_violation_rules 주석 참고.
+                rule = spec_rules.get(col)
+                if rule is not None:
+                    spec_lsl_arr = np.full(len(current_value), rule["lsl"], dtype=float)
+                    spec_usl_arr = np.full(len(current_value), rule["usl"], dtype=float)
+                    out_full = (values < rule["lsl"]) | (values > rule["usl"])
+                    spec_status_arr = np.where(out_full[WINDOW - 1:], "OUT_OF_SPEC", "OK").astype(object)
+                    # 전체 이력에 대해 "연속 run샷 위반"이 막 시작된 시점만 이벤트로 잡는다
+                    # (상태형으로 두면 긴 이탈 구간 내내 매 샷 알림이 나감 — episode_id가 있긴
+                    #  하지만 진입 시점이 알림의 단위여야 맞다. Type C entered_first와 동일 논리).
+                    spec_violation = _sustained_first(out_full, rule["run"])[WINDOW - 1:]
+                else:
+                    spec_lsl_arr = np.full(len(current_value), np.nan)
+                    spec_usl_arr = np.full(len(current_value), np.nan)
+                    spec_status_arr = np.full(len(current_value), "", dtype=object)
+                    spec_violation = np.zeros(len(current_value), dtype=bool)
+
+                # --- CUSUM(누적합) — A/B/E유형의 "지속적 편차" 판정에 공통으로 쓴다 ---
+                # rolling_mean 기반 WINDOW+PERSIST_WINDOW 방식보다 반응이 빠르다. target(OPCOND
+                # 공통 baseline)과 안정적인 참조 std(rolling 아닌 스칼라)로 샷 단위 z-score를
+                # 만들고 전체 이력에 누적합을 씌운다 — K/H 튜닝 배경은 위 CUSUM_K/H 주석 참고.
+                ref_std_scalar = np.nan
                 if col_type == "E":
-                    fb_val = e_std_map.get(col, np.nan)
-                if fb_val is None or (isinstance(fb_val, float) and np.isnan(fb_val)) or fb_val == 0:
-                    fb_val = fallback_std_map.get((product_id, recipe_id, col), np.nan)
-                eff_std = np.where(need_fallback, fb_val, eff_std)
+                    ref_std_scalar = e_std_map.get(col, np.nan)
+                if ref_std_scalar is None or (isinstance(ref_std_scalar, float) and np.isnan(ref_std_scalar)) or ref_std_scalar == 0:
+                    ref_std_scalar = fallback_std_map.get((product_id, recipe_id, col), np.nan)
+                cusum_pos = cusum_neg = None
+                # (26.08.08) 유형 제한을 풀었다 — 예전엔 A/B/E만 CUSUM을 받고 C는 threshold
+                # 판정만 받았는데, 그건 원리가 아니라 C 컬럼에 baseline을 안 만들어줬던 탓이다
+                # (실제로는 stratum_target_map에 Product×Recipe OK median이 이미 있다).
+                # 전 컬럼 측정 결과 no_trend 장비에서의 CUSUM 오경보율이 0.000~0.364%로
+                # 35개 전부 C_DANGER_ALPHA(1%) 미만이라, 붙여서 해로운 컬럼이 없다.
+                # 유형이 "어떤 경보를 받는지"를 정하지 않게 하는 것이 목적이다(김시우님 지적).
+                #
+                # (26.08.11) **E유형의 CUSUM target을 이론상수가 아니라 reference_OK_mean으로
+                # 바꾼다.** CUSUM은 "지금 있어야 할 자리에서 밀려났나"를 재는 도구인데, E유형만
+                # target이 이론값(Kerf_Angle=90, Package_Size=5)이라 정상 상태에서도 항상 얼마간
+                # 벗어나 있었다. 그 고정 편차는 드리프트가 아닌데 CUSUM은 방향이 안 바뀌는
+                # 편차를 계속 누적하므로, 영원히 끝나지 않는 드리프트로 읽힌다.
+                #
+                # 실측 — Kerf_Angle은 이론값 90 대비 정상 평균이 90.0329로 **+0.317σ 고정
+                # 치우침**이 있다(00_baseline_E.csv). 그 결과:
+                #   · 4대 경보행 457/462/662/654 — 시나리오 없는 정상 장비 DP01에도 똑같이 뜬다
+                #     (진짜 시나리오 컬럼은 CLN_Flow 170배 / Laser_Power 45배로 갈린다)
+                #   · 순수 잡음 시뮬레이션(추세 0)에서 치우침 0.317σ면 경보 샷 2.06%,
+                #     장비당 514건 — 실측 457~662와 일치한다. 즉 신호가 안 들어 있다.
+                #   · 치우침 0σ면 0.15%(장비당 39건)로 떨어진다. **0.317σ 하나로 오경보 14배.**
+                # 0.317σ는 CUSUM_K(0.7)보다 작아 "감지"된 게 아니다 — 누적합이 0으로 되돌아가는
+                # 힘이 약해져서 잡음이 H를 넘는 빈도가 올라간 것이다.
+                #
+                # 다른 E컬럼은 치우침이 0.001~0.036σ라 사실상 안 바뀐다. Kerf_Angle만 고쳐진다.
+                # 이론값은 버리지 않고 baseline_arr(=출력의 baseline/difference/
+                # normalized_deviation)에 그대로 남긴다 — "설계값에서 얼마나 비껴 있나"는
+                # 여전히 볼 값이고, 다만 그건 매일 울릴 경보가 아니라 한 번 보고할 사실이다.
+                cusum_target = baseline
+                if col_type == "E":
+                    ok_mean = e_ok_mean_map.get(col, np.nan)
+                    if ok_mean is not None and not np.isnan(ok_mean):
+                        cusum_target = ok_mean
+                if not np.isnan(cusum_target) and ref_std_scalar and ref_std_scalar > 0:
+                    z_full = (values - cusum_target) / ref_std_scalar
+                    s_pos_full, s_neg_full = compute_cusum(z_full)
+                    cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
 
-            valid_baseline = ~np.isnan(baseline_arr)
-            valid_std = (~np.isnan(eff_std)) & (eff_std != 0)
-            calc_mask = valid_baseline & valid_std
-
-            # 추세분석 목적: 순간값이 아니라 최근 10개 평균(rolling_mean)이 baseline에서
-            # 얼마나 벗어났는지를 기준으로 정규화 편차를 계산한다.
-            normalized_deviation = np.full(len(current_value), np.nan)
-            normalized_deviation[calc_mask] = (
-                (rolling_mean[calc_mask] - baseline_arr[calc_mask]) / eff_std[calc_mask]
-            )
-            # std를 전혀 구할 수 없는 경우: 상대/절대 편차로 대체 표기(참고용, 조기경보 판정에는 미사용)
-            rel_mask = valid_baseline & (~valid_std)
-            nz_base = rel_mask & (baseline_arr != 0)
-            z_base = rel_mask & (baseline_arr == 0)
-            normalized_deviation[nz_base] = (
-                (rolling_mean[nz_base] - baseline_arr[nz_base]) / np.abs(baseline_arr[nz_base])
-            )
-            normalized_deviation[z_base] = rolling_mean[z_base] - baseline_arr[z_base]
-
-            # 10개 단위 로컬 slope의 부호. 장기 drift 신호와는 스케일이 달라서(뒤
-            # compute_reference_style_trend 참고) 이것만으로 추세를 주장하면 안 된다.
-            # (26.08.06 수정) 예전엔 이 값을 그대로 trend_direction으로 내보냈는데, 저장되는
-            # 행은 전부 early_warning=True인 행이고 그 경보를 실제로 띄운 건 CUSUM(A/B/E)
-            # 이나 threshold 진입(C)이지 이 로컬 slope가 아니다. 그래서 "지속적인 하강이
-            # 감지되었습니다" 메시지에 trend_direction="up"이 붙는 행이 절반 가까이 나왔고
-            # (하강 경고 11,945행 중 5,383행), build_health_index -> agent.py가 그걸 그대로
-            # 읽어서 엔지니어에게 반대 방향을 알려주고 있었다. 이제 경보가 뜬 행은 아래에서
-            # 그 경보 자신의 방향으로 덮어쓴다(alert_direction).
-            local_slope_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
-            trend_direction = local_slope_direction.copy()
-
-            # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
-            std_slope = compute_std_trend(rolling_std)
-            ref_std = fallback_std_map.get((product_id, recipe_id, col), np.nan)
-            if ref_std is not None and not (isinstance(ref_std, float) and np.isnan(ref_std)) and ref_std > 0:
-                std_ratio = rolling_std / ref_std
-            else:
-                std_ratio = np.full(len(current_value), np.nan)
-            variability_raw = (
-                ~np.isnan(std_slope) & (std_slope > 0)
-                & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
-            )
-            # 10행 표본으로 구한 std는 그 자체로 추정 노이즈가 커서, 1행짜리 순간 판정 대신
-            # PERSIST_WINDOW행 연속 유지될 때만 "진짜 변동성 확대"로 본다(상태형 — 지속되는
-            # 동안 계속 표시).
-            variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
-
-            early_warning = np.zeros(len(current_value), dtype=bool)
-            messages = np.array([""] * len(current_value), dtype=object)
-
-            # --- 멘토 실측 스펙(LSL/USL) 위반 — A/B/C/E 유형 판정과 무관하게 공통 적용 ---
-            # 상대 기준(baseline 대비 드리프트)만 보던 기존 판정에 절대 기준을 하나 더한다.
-            # 판정 근거/연속 샷 수를 정한 이유는 compute_spec_violation_rules 주석 참고.
-            rule = spec_rules.get(col)
-            if rule is not None:
-                spec_lsl_arr = np.full(len(current_value), rule["lsl"], dtype=float)
-                spec_usl_arr = np.full(len(current_value), rule["usl"], dtype=float)
-                out_full = (values < rule["lsl"]) | (values > rule["usl"])
-                spec_status_arr = np.where(out_full[WINDOW - 1:], "OUT_OF_SPEC", "OK").astype(object)
-                # 전체 이력에 대해 "연속 run샷 위반"이 막 시작된 시점만 이벤트로 잡는다
-                # (상태형으로 두면 긴 이탈 구간 내내 매 샷 알림이 나감 — episode_id가 있긴
-                #  하지만 진입 시점이 알림의 단위여야 맞다. Type C entered_first와 동일 논리).
-                spec_violation = _sustained_first(out_full, rule["run"])[WINDOW - 1:]
-            else:
-                spec_lsl_arr = np.full(len(current_value), np.nan)
-                spec_usl_arr = np.full(len(current_value), np.nan)
-                spec_status_arr = np.full(len(current_value), "", dtype=object)
-                spec_violation = np.zeros(len(current_value), dtype=bool)
-
-            # --- CUSUM(누적합) — A/B/E유형의 "지속적 편차" 판정에 공통으로 쓴다 ---
-            # rolling_mean 기반 WINDOW+PERSIST_WINDOW 방식보다 반응이 빠르다. target(OPCOND
-            # 공통 baseline)과 안정적인 참조 std(rolling 아닌 스칼라)로 샷 단위 z-score를
-            # 만들고 전체 이력에 누적합을 씌운다 — K/H 튜닝 배경은 위 CUSUM_K/H 주석 참고.
-            ref_std_scalar = np.nan
-            if col_type == "E":
-                ref_std_scalar = e_std_map.get(col, np.nan)
-            if ref_std_scalar is None or (isinstance(ref_std_scalar, float) and np.isnan(ref_std_scalar)) or ref_std_scalar == 0:
-                ref_std_scalar = fallback_std_map.get((product_id, recipe_id, col), np.nan)
-            cusum_pos = cusum_neg = None
-            # (26.08.08) 유형 제한을 풀었다 — 예전엔 A/B/E만 CUSUM을 받고 C는 threshold
-            # 판정만 받았는데, 그건 원리가 아니라 C 컬럼에 baseline을 안 만들어줬던 탓이다
-            # (실제로는 stratum_target_map에 Product×Recipe OK median이 이미 있다).
-            # 전 컬럼 측정 결과 no_trend 장비에서의 CUSUM 오경보율이 0.000~0.364%로
-            # 35개 전부 C_DANGER_ALPHA(1%) 미만이라, 붙여서 해로운 컬럼이 없다.
-            # 유형이 "어떤 경보를 받는지"를 정하지 않게 하는 것이 목적이다(김시우님 지적).
-            #
-            # (26.08.11) **E유형의 CUSUM target을 이론상수가 아니라 reference_OK_mean으로
-            # 바꾼다.** CUSUM은 "지금 있어야 할 자리에서 밀려났나"를 재는 도구인데, E유형만
-            # target이 이론값(Kerf_Angle=90, Package_Size=5)이라 정상 상태에서도 항상 얼마간
-            # 벗어나 있었다. 그 고정 편차는 드리프트가 아닌데 CUSUM은 방향이 안 바뀌는
-            # 편차를 계속 누적하므로, 영원히 끝나지 않는 드리프트로 읽힌다.
-            #
-            # 실측 — Kerf_Angle은 이론값 90 대비 정상 평균이 90.0329로 **+0.317σ 고정
-            # 치우침**이 있다(00_baseline_E.csv). 그 결과:
-            #   · 4대 경보행 457/462/662/654 — 시나리오 없는 정상 장비 DP01에도 똑같이 뜬다
-            #     (진짜 시나리오 컬럼은 CLN_Flow 170배 / Laser_Power 45배로 갈린다)
-            #   · 순수 잡음 시뮬레이션(추세 0)에서 치우침 0.317σ면 경보 샷 2.06%,
-            #     장비당 514건 — 실측 457~662와 일치한다. 즉 신호가 안 들어 있다.
-            #   · 치우침 0σ면 0.15%(장비당 39건)로 떨어진다. **0.317σ 하나로 오경보 14배.**
-            # 0.317σ는 CUSUM_K(0.7)보다 작아 "감지"된 게 아니다 — 누적합이 0으로 되돌아가는
-            # 힘이 약해져서 잡음이 H를 넘는 빈도가 올라간 것이다.
-            #
-            # 다른 E컬럼은 치우침이 0.001~0.036σ라 사실상 안 바뀐다. Kerf_Angle만 고쳐진다.
-            # 이론값은 버리지 않고 baseline_arr(=출력의 baseline/difference/
-            # normalized_deviation)에 그대로 남긴다 — "설계값에서 얼마나 비껴 있나"는
-            # 여전히 볼 값이고, 다만 그건 매일 울릴 경보가 아니라 한 번 보고할 사실이다.
-            cusum_target = baseline
-            if col_type == "E":
-                ok_mean = e_ok_mean_map.get(col, np.nan)
-                if ok_mean is not None and not np.isnan(ok_mean):
-                    cusum_target = ok_mean
-            if not np.isnan(cusum_target) and ref_std_scalar and ref_std_scalar > 0:
-                z_full = (values - cusum_target) / ref_std_scalar
-                s_pos_full, s_neg_full = compute_cusum(z_full)
-                cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
-
-            if col_type == "A":
-                bad_dir = direction_map.get(col)
-                if cusum_pos is not None:
-                    ew = (cusum_pos > CUSUM_H) if bad_dir == "up" else (cusum_neg < -CUSUM_H)
-                else:
-                    ew = np.zeros(len(current_value), dtype=bool)
-                early_warning |= ew
-                trend_direction[ew] = bad_dir  # 경보를 띄운 CUSUM의 방향 = A유형의 나쁜 방향
-                dir_word = "상승" if bad_dir == "up" else "하강"
-                for i in np.where(ew)[0]:
-                    messages[i] = (
-                        f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                        f"정상 Baseline 대비 지속적인 {dir_word} 추세가 감지되었습니다."
-                    )
-
-            elif col_type == "B":
-                if cusum_pos is not None:
-                    ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
-                else:
-                    ew = np.zeros(len(current_value), dtype=bool)
-                early_warning |= ew
-                for i in np.where(ew)[0]:
-                    up_side = cusum_pos[i] > CUSUM_H
-                    trend_direction[i] = "up" if up_side else "down"  # 경보를 띄운 CUSUM 쪽
-                    side = "높은" if up_side else "낮은"
-                    messages[i] = (
-                        f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                        f"정상 Baseline(최적값) 대비 {side} 방향으로 지속적으로 벌어지는 편차가 감지되었습니다."
-                    )
-
-            elif col_type == "C":
-                risky_direction = extra.get("risky_direction") if extra else None
-                valid_threshold = ~np.isnan(threshold_arr)
-                if risky_direction is not None and valid_threshold.any():
-                    if risky_direction == "low_is_risky":
-                        entered_raw = (current_value <= threshold_arr) & valid_threshold
-                        slope_toward_risk = slope < 0
-                        risky_side_raw = values < threshold
+                if col_type == "A":
+                    bad_dir = direction_map.get(col)
+                    if cusum_pos is not None:
+                        ew = (cusum_pos > CUSUM_H) if bad_dir == "up" else (cusum_neg < -CUSUM_H)
                     else:
-                        entered_raw = (current_value >= threshold_arr) & valid_threshold
-                        slope_toward_risk = slope > 0
-                        risky_side_raw = values > threshold
-                    # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고.
-                    # 예전엔 1행만 넘어도 진입으로 잡아서 임계값 근처 노이즈가 계속 "새로 진입"
-                    # 취급됐음(Surface_Roughness 22,948건 중 21,426건이 이 케이스였음).
-                    entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
-                    # (26.08.05) 예전엔 rolling_mean 기준 risk_margin_z(정상 쪽 편차도 다 잡던
-                    # 버그)를 썼다가, 그다음엔 "위험선까지 남은 여유가 Z_THRESHOLD std 미만"으로
-                    # 고쳤는데, CLN_Pressure로 검증해보니 rolling MEAN 자체가 개별 샷 위험 진입을
-                    # 지워버리는 문제가 있었다(개별 샷 6.68%가 threshold 아래인데 rolling mean은
-                    # 356일 중 0번만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN을 쓰면
-                    # 10개 중 1개만 넘어도 걸려 개별샷 확률의 절반(49.47%)까지 과민해진다.
-                    # build_health_index.py의 defect_zone_rate(위험구간 진입 샷 비율)와 같은
-                    # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
-                    # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
-                    windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
-                    danger_count = windows_risky.sum(axis=1)
-                    danger_rate = danger_count / WINDOW
-                    base_rate = c_baseline_rate.get((machine_id, col)) or 0.0
-                    # 평소 진입률에서 WINDOW개 중 몇 개 이상이면 "우연이라 보기 어려운가".
-                    # base_rate=0이어도 이 식이 정의된다(k=1) — 예전의 별도 분기가 필요 없다.
-                    need = binomial_alert_count(base_rate, WINDOW, config.C_DANGER_ALPHA)
-                    rate_exceeded = danger_count >= need
-                    approaching_raw = (
-                        (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
-                    )
-                    # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
-                    # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
-                    approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
-                    ew = entered_first | approaching
+                        ew = np.zeros(len(current_value), dtype=bool)
                     early_warning |= ew
-                    # C유형 경보의 방향 = 위험 threshold 쪽으로 가는 방향(진입했든 접근 중이든).
-                    trend_direction[ew] = "down" if risky_direction == "low_is_risky" else "up"
-                    for i in np.where(entered_first)[0]:
+                    trend_direction[ew] = bad_dir  # 경보를 띄운 CUSUM의 방향 = A유형의 나쁜 방향
+                    dir_word = "상승" if bad_dir == "up" else "하강"
+                    for i in np.where(ew)[0]:
                         messages[i] = (
                             f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                            f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
-                        )
-                    # 경보 근거를 문구에 그대로 싣는다 — "몇 배"가 아니라 "평소라면 이만큼
-                    # 나올 확률이 얼마나 낮은가"가 판정 근거이므로 그걸 읽히게 쓴다.
-                    base_txt = (f"이 장비 평소 {base_rate*100:.2f}%" if base_rate
-                                else "이 장비는 평소 진입 이력 없음")
-                    for i in np.where(approaching)[0]:
-                        messages[i] = (
-                            f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
-                            f"최근 {WINDOW}개 샷 중 {int(danger_count[i])}개가 위험 Threshold"
-                            f"({threshold_arr[i]:.4f}) 구간에 들어감"
-                            f"({base_txt} — 우연이라면 {need}개 이상 나올 확률이 "
-                            f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
-                            f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
+                            f"정상 Baseline 대비 지속적인 {dir_word} 추세가 감지되었습니다."
                         )
 
-                # (26.08.08) C유형에도 CUSUM 경로를 추가한다 — threshold 판정을 대체하는
-                # 게 아니라 더한다. threshold는 "위험구간에 샷이 들어갔나"(꼬리)를 보고
-                # CUSUM은 "평균 수준이 밀렸나"를 보므로 서로 다른 이상을 잡는다.
-                # 실측: CLN_Flow DP04는 CUSUM이 threshold보다 6~9일 빨랐고(2/22 vs 2/28)
-                # 나머지 3대에서는 0건이었다. 방향은 A유형과 같이 위험한 쪽만 본다 —
-                # 반대쪽은 이 컬럼에서 경보와 무관하다.
-                if cusum_pos is not None and risky_direction is not None:
-                    ew_c = ((cusum_neg < -CUSUM_H) if risky_direction == "low_is_risky"
-                            else (cusum_pos > CUSUM_H))
-                    early_warning |= ew_c
-                    trend_direction[ew_c] = "down" if risky_direction == "low_is_risky" else "up"
-                    side = "낮은" if risky_direction == "low_is_risky" else "높은"
-                    for i in np.where(ew_c)[0]:
-                        if not messages[i]:
+                elif col_type == "B":
+                    if cusum_pos is not None:
+                        ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
+                    else:
+                        ew = np.zeros(len(current_value), dtype=bool)
+                    early_warning |= ew
+                    for i in np.where(ew)[0]:
+                        up_side = cusum_pos[i] > CUSUM_H
+                        trend_direction[i] = "up" if up_side else "down"  # 경보를 띄운 CUSUM 쪽
+                        side = "높은" if up_side else "낮은"
+                        messages[i] = (
+                            f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                            f"정상 Baseline(최적값) 대비 {side} 방향으로 지속적으로 벌어지는 편차가 감지되었습니다."
+                        )
+
+                elif col_type == "C":
+                    risky_direction = extra.get("risky_direction") if extra else None
+                    valid_threshold = ~np.isnan(threshold_arr)
+                    if risky_direction is not None and valid_threshold.any():
+                        if risky_direction == "low_is_risky":
+                            entered_raw = (current_value <= threshold_arr) & valid_threshold
+                            slope_toward_risk = slope < 0
+                            risky_side_raw = values < threshold
+                        else:
+                            entered_raw = (current_value >= threshold_arr) & valid_threshold
+                            slope_toward_risk = slope > 0
+                            risky_side_raw = values > threshold
+                        # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고.
+                        # 예전엔 1행만 넘어도 진입으로 잡아서 임계값 근처 노이즈가 계속 "새로 진입"
+                        # 취급됐음(Surface_Roughness 22,948건 중 21,426건이 이 케이스였음).
+                        entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
+                        # (26.08.05) 예전엔 rolling_mean 기준 risk_margin_z(정상 쪽 편차도 다 잡던
+                        # 버그)를 썼다가, 그다음엔 "위험선까지 남은 여유가 Z_THRESHOLD std 미만"으로
+                        # 고쳤는데, CLN_Pressure로 검증해보니 rolling MEAN 자체가 개별 샷 위험 진입을
+                        # 지워버리는 문제가 있었다(개별 샷 6.68%가 threshold 아래인데 rolling mean은
+                        # 356일 중 0번만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN을 쓰면
+                        # 10개 중 1개만 넘어도 걸려 개별샷 확률의 절반(49.47%)까지 과민해진다.
+                        # build_health_index.py의 defect_zone_rate(위험구간 진입 샷 비율)와 같은
+                        # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
+                        # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
+                        windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
+                        danger_count = windows_risky.sum(axis=1)
+                        danger_rate = danger_count / WINDOW
+                        base_rate = c_baseline_rate.get(
+                            (machine_id, col, extra.get("matched_defect"))) or 0.0
+                        # 평소 진입률에서 WINDOW개 중 몇 개 이상이면 "우연이라 보기 어려운가".
+                        # base_rate=0이어도 이 식이 정의된다(k=1) — 예전의 별도 분기가 필요 없다.
+                        need = binomial_alert_count(base_rate, WINDOW, config.C_DANGER_ALPHA)
+                        rate_exceeded = danger_count >= need
+                        approaching_raw = (
+                            (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
+                        )
+                        # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
+                        # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
+                        approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
+                        ew = entered_first | approaching
+                        early_warning |= ew
+                        # C유형 경보의 방향 = 위험 threshold 쪽으로 가는 방향(진입했든 접근 중이든).
+                        trend_direction[ew] = "down" if risky_direction == "low_is_risky" else "up"
+                        for i in np.where(entered_first)[0]:
                             messages[i] = (
                                 f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                                f"정상 Baseline 대비 {side} 방향으로 지속적으로 벌어지는 "
-                                f"편차가 감지되었습니다."
+                                f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
+                            )
+                        # 경보 근거를 문구에 그대로 싣는다 — "몇 배"가 아니라 "평소라면 이만큼
+                        # 나올 확률이 얼마나 낮은가"가 판정 근거이므로 그걸 읽히게 쓴다.
+                        base_txt = (f"이 장비 평소 {base_rate*100:.2f}%" if base_rate
+                                    else "이 장비는 평소 진입 이력 없음")
+                        for i in np.where(approaching)[0]:
+                            messages[i] = (
+                                f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
+                                f"최근 {WINDOW}개 샷 중 {int(danger_count[i])}개가 위험 Threshold"
+                                f"({threshold_arr[i]:.4f}) 구간에 들어감"
+                                f"({base_txt} — 우연이라면 {need}개 이상 나올 확률이 "
+                                f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
+                                f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                             )
 
-            elif col_type == "E":
-                if cusum_pos is not None:
-                    ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
-                else:
-                    ew = np.zeros(len(current_value), dtype=bool)
-                early_warning |= ew
-                for i in np.where(ew)[0]:
-                    trend_direction[i] = "up" if cusum_pos[i] > CUSUM_H else "down"
-                    # (26.08.11) 문구도 target과 맞춘다 — 판정은 정상 수준(cusum_target)
-                    # 대비인데 "이론 기준값 대비"라고 쓰면 근거를 잘못 읽게 된다.
-                    # 이론값은 다를 때만 괄호로 같이 보여준다(Kerf_Angle 90 vs 90.0328).
-                    theo = (f" (이론 기준값 {baseline_arr[i]:.4f})"
-                            if not np.isnan(baseline_arr[i])
-                            and abs(baseline_arr[i] - cusum_target) > 1e-9 else "")
-                    messages[i] = (
-                        f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                        f"정상 수준({cusum_target:.4f}){theo} 대비 지속적으로 벌어지는 "
-                        f"편차가 감지되었습니다."
+                    # (26.08.08) C유형에도 CUSUM 경로를 추가한다 — threshold 판정을 대체하는
+                    # 게 아니라 더한다. threshold는 "위험구간에 샷이 들어갔나"(꼬리)를 보고
+                    # CUSUM은 "평균 수준이 밀렸나"를 보므로 서로 다른 이상을 잡는다.
+                    # 실측: CLN_Flow DP04는 CUSUM이 threshold보다 6~9일 빨랐고(2/22 vs 2/28)
+                    # 나머지 3대에서는 0건이었다. 방향은 A유형과 같이 위험한 쪽만 본다 —
+                    # 반대쪽은 이 컬럼에서 경보와 무관하다.
+                    if cusum_pos is not None and risky_direction is not None:
+                        ew_c = ((cusum_neg < -CUSUM_H) if risky_direction == "low_is_risky"
+                                else (cusum_pos > CUSUM_H))
+                        early_warning |= ew_c
+                        trend_direction[ew_c] = "down" if risky_direction == "low_is_risky" else "up"
+                        side = "낮은" if risky_direction == "low_is_risky" else "높은"
+                        for i in np.where(ew_c)[0]:
+                            if not messages[i]:
+                                messages[i] = (
+                                    f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                                    f"정상 Baseline 대비 {side} 방향으로 지속적으로 벌어지는 "
+                                    f"편차가 감지되었습니다."
+                                )
+
+                elif col_type == "E":
+                    if cusum_pos is not None:
+                        ew = (cusum_pos > CUSUM_H) | (cusum_neg < -CUSUM_H)
+                    else:
+                        ew = np.zeros(len(current_value), dtype=bool)
+                    early_warning |= ew
+                    for i in np.where(ew)[0]:
+                        trend_direction[i] = "up" if cusum_pos[i] > CUSUM_H else "down"
+                        # (26.08.11) 문구도 target과 맞춘다 — 판정은 정상 수준(cusum_target)
+                        # 대비인데 "이론 기준값 대비"라고 쓰면 근거를 잘못 읽게 된다.
+                        # 이론값은 다를 때만 괄호로 같이 보여준다(Kerf_Angle 90 vs 90.0328).
+                        theo = (f" (이론 기준값 {baseline_arr[i]:.4f})"
+                                if not np.isnan(baseline_arr[i])
+                                and abs(baseline_arr[i] - cusum_target) > 1e-9 else "")
+                        messages[i] = (
+                            f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
+                            f"정상 수준({cusum_target:.4f}){theo} 대비 지속적으로 벌어지는 "
+                            f"편차가 감지되었습니다."
+                        )
+                # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
+                # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
+                for i in np.where(variability_warning)[0]:
+                    vmsg = (
+                        f"{machine_id} / {product_id} / {recipe_id}의 {col} 변동성이 "
+                        f"정상 대비 지속적으로 확대되고 있습니다."
                     )
-            # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
-            # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
-            for i in np.where(variability_warning)[0]:
-                vmsg = (
-                    f"{machine_id} / {product_id} / {recipe_id}의 {col} 변동성이 "
-                    f"정상 대비 지속적으로 확대되고 있습니다."
-                )
-                messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
-            # 멘토 스펙 위반도 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
-            # 뜰 수 있으므로(예: CUSUM 드리프트 끝에 실제로 스펙을 벗어남) 메시지를 덧붙인다.
-            # 이게 제일 급한 신호라 앞에 붙인다.
-            for i in np.where(spec_violation)[0]:
-                smsg = (
-                    f"{machine_id} / {product_id} / {recipe_id}의 {col}이(가) 멘토 실측 스펙"
-                    f"(LSL {rule['lsl']} ~ USL {rule['usl']})을 {rule['run']}샷 연속으로 "
-                    f"벗어났습니다(현재 {current_value[i]:.4f}). 평소 위반율 {rule['rate']*100:.3f}%"
-                    f"로는 우연히 나올 수 없는 수준입니다."
-                )
-                messages[i] = f"{smsg} {messages[i]}".strip() if messages[i] else smsg
-            # (26.08.08) 설비 상한 알람(rel_28) — 유형/짝짓기와 무관하게 공통 적용.
-            # "그날 상한 초과 샷이 우연이라 보기 어려울 만큼 몰렸는가"를 (장비, 날짜)로
-            # 판정해두고, 그날의 샷에 표시한다. 문구는 "위험 증가"가 아니라 "관련 가능성"
-            # 이다 — 감시 데이터로는 연결 불량이 둘 다 검증되지 않는다(JHdaimma 회신 ⑤).
-            ext_rule = ext_rules.get(col)
-            external_limit_warning = np.zeros(len(current_value), dtype=bool)
-            if ext_rule is not None:
-                days = gdf["DateTime"].dt.date.to_numpy()[WINDOW - 1:]
-                over = current_value > ext_rule["upper_limit"]
-                external_limit_warning = np.array(
-                    [bool(ext_breach.get((col, machine_id, d))) for d in days]) & over
-                ev = " / ".join(f"{d['defect']} 관련 가능성" for d in ext_rule["defects"])
-                for i in np.where(external_limit_warning)[0]:
-                    emsg = (
-                        f"{machine_id}의 {col}이(가) 설비 상한({ext_rule['upper_limit']})을 "
-                        f"넘었습니다(현재 {current_value[i]:.4f}). 그날 초과 샷이 우연으로 "
-                        f"보기 어려운 수준입니다 — 설비 정비 점검 필요. {ev}."
+                    messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
+                # 멘토 스펙 위반도 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
+                # 뜰 수 있으므로(예: CUSUM 드리프트 끝에 실제로 스펙을 벗어남) 메시지를 덧붙인다.
+                # 이게 제일 급한 신호라 앞에 붙인다.
+                for i in np.where(spec_violation)[0]:
+                    smsg = (
+                        f"{machine_id} / {product_id} / {recipe_id}의 {col}이(가) 멘토 실측 스펙"
+                        f"(LSL {rule['lsl']} ~ USL {rule['usl']})을 {rule['run']}샷 연속으로 "
+                        f"벗어났습니다(현재 {current_value[i]:.4f}). 평소 위반율 {rule['rate']*100:.3f}%"
+                        f"로는 우연히 나올 수 없는 수준입니다."
                     )
-                    messages[i] = f"{emsg} {messages[i]}".strip() if messages[i] else emsg
+                    messages[i] = f"{smsg} {messages[i]}".strip() if messages[i] else smsg
+                # (26.08.08) 설비 상한 알람(rel_28) — 유형/짝짓기와 무관하게 공통 적용.
+                # "그날 상한 초과 샷이 우연이라 보기 어려울 만큼 몰렸는가"를 (장비, 날짜)로
+                # 판정해두고, 그날의 샷에 표시한다. 문구는 "위험 증가"가 아니라 "관련 가능성"
+                # 이다 — 감시 데이터로는 연결 불량이 둘 다 검증되지 않는다(JHdaimma 회신 ⑤).
+                ext_rule = ext_rules.get(col)
+                external_limit_warning = np.zeros(len(current_value), dtype=bool)
+                if ext_rule is not None:
+                    days = gdf["DateTime"].dt.date.to_numpy()[WINDOW - 1:]
+                    over = current_value > ext_rule["upper_limit"]
+                    external_limit_warning = np.array(
+                        [bool(ext_breach.get((col, machine_id, d))) for d in days]) & over
+                    ev = " / ".join(f"{d['defect']} 관련 가능성" for d in ext_rule["defects"])
+                    for i in np.where(external_limit_warning)[0]:
+                        emsg = (
+                            f"{machine_id}의 {col}이(가) 설비 상한({ext_rule['upper_limit']})을 "
+                            f"넘었습니다(현재 {current_value[i]:.4f}). 그날 초과 샷이 우연으로 "
+                            f"보기 어려운 수준입니다 — 설비 정비 점검 필요. {ev}."
+                        )
+                        messages[i] = f"{emsg} {messages[i]}".strip() if messages[i] else emsg
 
-            early_warning = (early_warning | variability_warning | spec_violation
-                             | external_limit_warning)
+                early_warning = (early_warning | variability_warning | spec_violation
+                                 | external_limit_warning)
 
-            matched_defect_val = extra.get("matched_defect", "") if extra else ""
-            matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
+                matched_defect_val = extra.get("matched_defect", "") if extra else ""
+                matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
 
-            frame = pd.DataFrame({
-                "source_file": source_name,
-                "DateTime": datetimes,
-                "Machine_ID": machine_id,
-                "Product_ID": product_id,
-                "Recipe_ID": recipe_id,
-                "column": col,
-                "type": col_type if col_type else "NONE",
-                "matched_defect": matched_defect_arr,
-                "baseline": baseline_arr,
-                "threshold": threshold_arr,
-                "spec_lsl": spec_lsl_arr,
-                "spec_usl": spec_usl_arr,
-                "spec_status": spec_status_arr,
-                "current_value": current_value,
-                "rolling_mean": rolling_mean,
-                "rolling_std": rolling_std,
-                "std_slope": std_slope,
-                "difference": difference,
-                "slope": slope,
-                "normalized_deviation": normalized_deviation,
-                "trend_direction": trend_direction,
-                "variability_warning": variability_warning,
-                "spec_violation_warning": spec_violation,
-                "external_limit_warning": external_limit_warning,
-                "early_warning": early_warning,
-                # (26.08.05 추가) early_warning은 상태형이라 이상이 지속되는 동안 매 샷마다
-                # True로 계속 저장된다 — "몇 건"을 셀 때 샷 행 수를 세면 하나의 지속 사건이
-                # 수천 건처럼 부풀려 보인다(예: CLN_Flow는 10,476행이지만 실제 독립 사건은
-                # 97건뿐). episode_id는 이 그룹×컬럼 안에서 early_warning이 True로 "새로
-                # 시작된" 시점마다 1씩 증가하는 번호 — (Machine_ID,Product_ID,Recipe_ID,
-                # column,episode_id)로 묶으면 "사건 수"를 정확히 셀 수 있다.
-                "episode_id": np.cumsum(
-                    early_warning & ~np.concatenate(([False], early_warning[:-1]))
-                ),
-                "message": messages,
-            })
-            out_frames.append(frame)
+                frame = pd.DataFrame({
+                    "source_file": source_name,
+                    "DateTime": datetimes,
+                    "Machine_ID": machine_id,
+                    "Product_ID": product_id,
+                    "Recipe_ID": recipe_id,
+                    "column": col,
+                    "type": col_type if col_type else "NONE",
+                    "matched_defect": matched_defect_arr,
+                    "baseline": baseline_arr,
+                    "threshold": threshold_arr,
+                    "spec_lsl": spec_lsl_arr,
+                    "spec_usl": spec_usl_arr,
+                    "spec_status": spec_status_arr,
+                    "current_value": current_value,
+                    "rolling_mean": rolling_mean,
+                    "rolling_std": rolling_std,
+                    "std_slope": std_slope,
+                    "difference": difference,
+                    "slope": slope,
+                    "normalized_deviation": normalized_deviation,
+                    "trend_direction": trend_direction,
+                    "variability_warning": variability_warning,
+                    "spec_violation_warning": spec_violation,
+                    "external_limit_warning": external_limit_warning,
+                    "early_warning": early_warning,
+                    # (26.08.05 추가) early_warning은 상태형이라 이상이 지속되는 동안 매 샷마다
+                    # True로 계속 저장된다 — "몇 건"을 셀 때 샷 행 수를 세면 하나의 지속 사건이
+                    # 수천 건처럼 부풀려 보인다(예: CLN_Flow는 10,476행이지만 실제 독립 사건은
+                    # 97건뿐). episode_id는 이 그룹×컬럼 안에서 early_warning이 True로 "새로
+                    # 시작된" 시점마다 1씩 증가하는 번호 — (Machine_ID,Product_ID,Recipe_ID,
+                    # column,episode_id)로 묶으면 "사건 수"를 정확히 셀 수 있다.
+                    "episode_id": np.cumsum(
+                        early_warning & ~np.concatenate(([False], early_warning[:-1]))
+                    ),
+                    "message": messages,
+                })
+                out_frames.append(frame)
 
         if not out_frames:
             continue

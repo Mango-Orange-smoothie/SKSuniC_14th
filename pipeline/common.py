@@ -120,7 +120,7 @@ def zscore_transform(
     return result
 
 
-def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
+def load_defect_pairing_from_db() -> tuple[dict[str, list[str]], pd.DataFrame] | None:
     """Goal2 관계DB에서 "이 인자는 이 defect로 감시한다" 짝짓기를 읽어온다.
 
     (26.08.08 신설) 왜 필요한가 — 이 짝짓기가 config.BASELINE_C_DEFECT_MAP에 손으로
@@ -141,8 +141,15 @@ def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
     rel_20(근거표)의 repro_state가 "통과"인 짝만 쓴다. 지금 데이터에서는 결과가
     현행 하드코딩 3개와 같다(CLN_Pressure/CLN_Flow/Surface_Roughness).
 
-    반환: ({column: defect}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한 컬럼이
-    없으면 None — 호출부가 config 폴백으로 되돌아간다.
+    (26.08.11) **한 인자에 defect가 여럿이면 전부 돌려준다** — 값이 defect 하나가
+    아니라 리스트다. 예전엔 dict(zip(...))으로 컬럼당 하나만 담았는데, 그러면 둘
+    이상 채택된 순간 조용히 하나가 사라졌다. 게다가 경고 문구는 "첫 행만 사용합니다"
+    였지만 dict(zip)은 나중 값이 덮어쓰므로 실제로는 **마지막 행**이 남았다. 순서가
+    tier와 무관하니 확정 T1 짝이 T2 짝에 밀릴 수 있었다(CLN_Flow: Remain_Coat T1이
+    Particle T2에 밀림 — alert_usable 덕에 지금까지 안 터졌을 뿐이다).
+
+    반환: ({column: [defect, ...]}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한
+    컬럼이 없으면 None — 호출부가 config 폴백으로 되돌아간다.
     """
     iface = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
     tiers = config.RELATIONSHIP_DB_DIR / "rel_20_tier_table.csv"
@@ -168,13 +175,14 @@ def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
     adopted = merged.loc[merged["adopted"]]
     if adopted.empty:
         return None
-    # 한 인자가 여러 defect로 통과하면 지금 구조(컬럼당 defect 하나)로는 담을 수 없다.
-    # 그런 경우가 생기면 알아채야 하므로 조용히 첫 행을 쓰지 않고 경고한다.
-    dup = adopted["factor"].duplicated(keep=False)
-    if dup.any():
-        print(f"[관계DB] 경고: 한 인자에 defect가 둘 이상 채택됨 — "
-              f"{sorted(adopted.loc[dup, 'factor'].unique())}. 첫 행만 사용합니다.")
-    pairing = dict(zip(adopted["factor"], adopted["defect"]))
+    # 한 인자에 defect가 여럿이면 전부 담는다. 경고가 아니라 정상 경로다 —
+    # 하류(C유형 경계값·경보·화면)가 defect마다 따로 처리한다.
+    pairing: dict[str, list[str]] = {}
+    for factor, defect in zip(adopted["factor"], adopted["defect"]):
+        pairing.setdefault(str(factor), []).append(str(defect))
+    multi = {f: d for f, d in pairing.items() if len(d) > 1}
+    if multi:
+        print(f"[관계DB] 한 인자에 defect가 둘 이상 채택됨 — {multi}. 전부 감시합니다.")
     return pairing, merged
 
 

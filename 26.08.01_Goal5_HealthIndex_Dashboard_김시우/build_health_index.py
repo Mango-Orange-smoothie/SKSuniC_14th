@@ -603,6 +603,20 @@ def load_target_override_map() -> dict[str, float]:
     return result
 
 
+_TIER_RANK = {"T1": 0, "T2": 1, "T3": 2, "T4": 3, "M1": 4}
+
+
+def _pair_tier_rank(factor: str, defect: str) -> int:
+    """(인자, defect) 짝의 급한 정도 — 낮을수록 급하다. 관계DB의 per_defect tier를 읽는다.
+
+    컬럼당 하나를 골라야 하는 자리에서 파일 행 순서로 고르면 확정 T1 짝이 T2 짝에
+    밀린다. tier가 취급법의 단일 근거이므로 그걸로 고른다.
+    """
+    meta = HEALTH_FACTORS.get(factor, {})
+    pair = (meta.get("per_defect") or {}).get(defect, {})
+    return _TIER_RANK.get(pair.get("tier", meta.get("tier")), 9)
+
+
 def load_defect_threshold_map() -> dict[str, dict]:
     """C유형(CLN_Pressure/Surface_Roughness)의 "불량률이 급변하는 경계값"을 컬럼별 대표값으로 로드.
 
@@ -626,23 +640,39 @@ def load_defect_threshold_map() -> dict[str, dict]:
     Product_ID x Recipe_ID 54개 그룹별로 학습된 값이라 컬럼 대표값은 median을 쓴다
     (compute_spec_values가 baseline_median을 뽑는 방식과 동일 — level_trend는 OPCOND가
     아니라 장비x컬럼 단위라 그룹별 값을 그대로는 못 씀).
+
+    (26.08.11) 한 컬럼이 두 defect의 원인이면 경계값이 defect마다 다르다. 예전엔
+    groupby("column")으로 뭉쳐서 **두 defect의 경계값을 median으로 섞고** matched_defect는
+    첫 행을 집었다 — 조용히 틀린 값이 나온다. 이제 (컬럼, defect)로 묶고, 이 표가
+    장비x컬럼 단위라 컬럼당 하나를 골라야 하는 자리에서는 **가장 급한 tier의 짝**을
+    쓴다(views.py의 사이드바 배지와 같은 규칙). 고른 결과는 로그로 찍어 남긴다.
     """
     path = config.PREPROCESSING_DIR / "00_baseline_C.csv"
     if not path.exists():
         return {}
     c = pd.read_csv(path)
-    result: dict[str, dict] = {}
-    for col, g in c.groupby("column"):
+    per_pair: dict[str, list[dict]] = {}
+    for (col, defect), g in c.groupby(["column", "matched_defect"]):
         directions = g["risky_direction"].unique()
         if len(directions) != 1:
             # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄임 — 임시 percentile로 폴백.
-            print(f"[경고] {col}: risky_direction이 그룹별로 불일치({directions}) — defect_threshold 미적용")
+            print(f"[경고] {col}↔{defect}: risky_direction이 그룹별로 불일치({directions})"
+                  " — defect_threshold 미적용")
             continue
-        result[col] = {
+        per_pair.setdefault(str(col), []).append({
             "threshold": float(g["threshold"].median()),
             "risky_direction": str(directions[0]),
-            "matched_defect": str(g["matched_defect"].iloc[0]),
-        }
+            "matched_defect": str(defect),
+        })
+
+    result: dict[str, dict] = {}
+    for col, entries in per_pair.items():
+        if len(entries) > 1:
+            entries = sorted(entries, key=lambda e: _pair_tier_rank(col, e["matched_defect"]))
+            print(f"[관계DB] {col}: defect가 여럿이라 화면 대표값은 가장 급한 짝을 씁니다 — "
+                  f"{entries[0]['matched_defect']} 채택, "
+                  f"{[e['matched_defect'] for e in entries[1:]]}는 경보에서만 사용.")
+        result[col] = entries[0]
     return result
 
 
@@ -782,8 +812,20 @@ def compute_level_and_trend(
     # 잰 단일 출처를 양쪽이 같이 읽는다(config.py C_BASELINE_MIN_STABLE_DAYS 주석 참고).
     # zone_lookup(날짜별 실제 진입률)은 계속 일별 집계 파일에서 온다 — 이건 "지금 값"이라
     # baseline과 달리 전 구간이 필요하다.
+    #
+    # (26.08.11) 두 산출물 모두 matched_defect 열이 생겼다(컬럼당 defect가 여럿일 수
+    # 있으므로). 이 표는 장비x컬럼 단위라 컬럼당 한 계열만 실을 수 있어서,
+    # defect_threshold_map이 이미 고른 짝(가장 급한 tier)과 **같은 짝**을 쓴다.
+    # 여기서 따로 고르면 화면의 경계값과 진입률이 서로 다른 defect 기준이 된다.
+    def _chosen_defect(col: str) -> str | None:
+        return (defect_threshold_map.get(col) or {}).get("matched_defect")
+
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
+            if "matched_defect" in zg.columns and _chosen_defect(c) is not None:
+                zg = zg.loc[zg["matched_defect"] == _chosen_defect(c)]
+                if zg.empty:
+                    continue
             zg = zg.set_index("date").sort_index()
             zone_lookup[(m, c)] = zg["defect_zone_rate"]
             zone_shots[(m, c)] = zg["n_shots"]
@@ -793,6 +835,11 @@ def compute_level_and_trend(
     entry_path = config.PREPROCESSING_DIR / "00_baseline_C_entry_rate.csv"
     if entry_path.exists():
         entry = pd.read_csv(entry_path)
+        if "matched_defect" in entry.columns:
+            # 위 zone_lookup과 같은 짝만 남긴다 — "지금 값"과 "평소 값"이 서로 다른
+            # defect 기준이면 그 둘을 나눈 배수가 아무 뜻도 없는 수가 된다.
+            keep = entry["column"].map(_chosen_defect)
+            entry = entry.loc[keep.isna() | (entry["matched_defect"] == keep)]
         agg = entry.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
         for (m, c), v in (agg["n_in_zone"] / agg["n_ok_shots"]).items():
             zone_base_rate[(m, c)] = float(v)

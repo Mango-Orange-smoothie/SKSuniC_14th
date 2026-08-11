@@ -42,22 +42,34 @@ from pipeline.common import (
     zscore_transform,
 )
 
-_DEFECT_PAIRING_CACHE: dict[str, str] | None = None
+_DEFECT_PAIRING_CACHE: dict[str, list[str]] | None = None
 
 
-def resolve_defect_pairing() -> dict[str, str]:
+def defect_pairs() -> list[tuple[str, str]]:
+    """짝짓기를 (컬럼, defect) 쌍의 평평한 목록으로 — 한 컬럼에 defect가 둘이면 두 쌍."""
+    return [(col, d) for col, defects in resolve_defect_pairing().items() for d in defects]
+
+
+def resolve_defect_pairing() -> dict[str, list[str]]:
     """인자↔defect 짝짓기의 단일 출처 — Goal2 관계DB 우선, 실패하면 config 폴백.
 
     (26.08.08) 예전엔 config.BASELINE_C_DEFECT_MAP 하드코딩이 유일한 출처였다.
     관계DB(rel_30/rel_20)가 팀 공식 판정이고 rel_30은 아예 추세분석 앞으로 만들어진
     인계 파일인데 파이프라인이 안 읽고 있었다 — 근거는 common.load_defect_pairing_from_db
     주석 참고. 무엇이 왜 제외됐는지 매 실행마다 찍어서, 조용히 바뀌는 일이 없게 한다.
+
+    (26.08.11) 값이 defect 하나가 아니라 **리스트**다. 한 인자가 두 defect의 원인일 수
+    있고(관계DB 티어표에 CLN_Flow/CLN_Pressure/Cooling_Flow 셋), 그때 하나를 골라
+    버리면 경계값·경보·화면이 나머지 하나를 영영 못 본다. 경계값은 (컬럼, defect)마다
+    따로 학습되므로 값도 서로 다르다 — CLN_Flow는 Remain_Coat 기준 9.725 /
+    Particle 기준 9.722다. 쌍 단위로 훑을 때는 defect_pairs()를 쓴다.
     """
     global _DEFECT_PAIRING_CACHE
     if _DEFECT_PAIRING_CACHE is not None:
         return _DEFECT_PAIRING_CACHE
 
-    fallback = dict(config.BASELINE_C_DEFECT_MAP)
+    # config 폴백은 컬럼당 defect 하나로 적혀 있다 — 리스트로 감싸 형태를 맞춘다.
+    fallback = {col: [d] for col, d in config.BASELINE_C_DEFECT_MAP.items()}
     loaded = load_defect_pairing_from_db()
     if loaded is None:
         print("[관계DB] rel_30/rel_20을 읽을 수 없어 config.BASELINE_C_DEFECT_MAP로 진행합니다.")
@@ -65,7 +77,8 @@ def resolve_defect_pairing() -> dict[str, str]:
         return _DEFECT_PAIRING_CACHE
 
     pairing, detail = loaded
-    print(f"[관계DB] 짝짓기 {len(pairing)}건 채택 (alert_usable=True AND repro_state=통과)")
+    n_pairs = sum(len(v) for v in pairing.values())
+    print(f"[관계DB] 짝짓기 {n_pairs}건 채택 (alert_usable=True AND repro_state=통과)")
     for row in detail.itertuples(index=False):
         mark = "채택" if row.adopted else "제외"
         print(f"   {mark} {row.factor} ↔ {row.defect}"
@@ -82,17 +95,21 @@ def resolve_defect_pairing() -> dict[str, str]:
     # 관계DB가 repro_state=판정불가로 남긴 짝 중 감시 데이터 이항검정을 통과한 것.
     # 이건 "경보 전용"이 아니라 진짜 원인 짝이다(관계DB T1, 멘토 확정) — 표본이 없어
     # DB의 재현 검증만 못 한 것이므로 원인 지목도 한다. 근거는 config 주석 참고.
+    # 아래 두 블록은 "관계DB에 그 컬럼 짝이 하나도 없을 때만" 보탠다. 관계DB가 이미
+    # 그 컬럼을 판정했다면 그게 단일 출처이므로 우리 판단을 덧붙이지 않는다 —
+    # defect가 여럿이 된 지금도 규칙은 같다(컬럼 단위로 본다).
     for col, defect in config.DOMAIN_C_PAIRS_VERIFIED_BY_BINOMIAL.items():
         if col in pairing:
             continue
-        pairing[col] = defect
+        pairing[col] = [defect]
         print(f"   이항검정통과 {col} ↔ {defect}  (repro_state=판정불가지만 감시 데이터에서 검정 통과)")
 
     for col, defect in config.ALARM_ONLY_C_COLUMNS.items():
         if col in pairing:
-            print(f"   [경보전용] {col}은 이미 관계DB 짝이 있어 건너뜁니다({pairing[col]}).")
+            print(f"   [경보전용] {col}은 이미 관계DB 짝이 있어 건너뜁니다"
+                  f"({'·'.join(pairing[col])}).")
             continue
-        pairing[col] = defect
+        pairing[col] = [defect]
         print(f"   경보전용 {col} ↔ {defect}  (관계DB 짝 아님 — 경계 진입 경보만, 원인 지목 안 함)")
 
     _DEFECT_PAIRING_CACHE = pairing
@@ -332,21 +349,25 @@ def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -
 
     threshold는 Product_ID x Recipe_ID 그룹마다 다르므로, 샷별로 자기 그룹의
     threshold를 적용한 뒤 장비×날짜로 집계한다(그룹 대표값 하나로 뭉개지 않음).
+
+    (26.08.11) 키에 matched_defect가 들어간다. 한 컬럼이 두 defect의 원인이면 경계값이
+    둘이고 진입률도 둘이다 — 예전엔 (컬럼, 그룹)만 키로 써서 나중 행이 앞 행을 덮었다.
     """
     thr_map = {
-        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        (r.column, r.matched_defect, r.group_key): (r.threshold, r.risky_direction)
         for r in baseline_c.itertuples(index=False)
     }
-    columns = sorted({c for c, _ in thr_map})
+    pairs = sorted({(c, d) for c, d, _ in thr_map})
+    columns = sorted({c for c, _ in pairs})
 
     work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime"] + columns].copy()
     work["date"] = work["DateTime"].dt.date
     work["group_key"] = work["Product_ID"] + "|" + work["Recipe_ID"]
 
     rows = []
-    for col in columns:
-        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
-        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+    for col, defect in pairs:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, defect, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, defect, gk), (np.nan, None))[1])
         in_zone = np.where(
             direction == "low_is_risky", work[col] < thr,
             np.where(direction == "high_is_risky", work[col] > thr, np.nan),
@@ -359,10 +380,13 @@ def compute_daily_defect_zone_rate(df: pd.DataFrame, baseline_c: pd.DataFrame) -
         agg = tmp.groupby(["Machine_ID", "date"])["in_zone"].agg(["size", "sum"])
         agg = agg.reset_index().rename(columns={"size": "n_shots", "sum": "n_in_zone"})
         agg["column"] = col
+        agg["matched_defect"] = defect
         agg["defect_zone_rate"] = agg["n_in_zone"] / agg["n_shots"]
-        rows.append(agg[["Machine_ID", "column", "date", "n_shots", "n_in_zone", "defect_zone_rate"]])
+        rows.append(agg[["Machine_ID", "column", "matched_defect", "date",
+                         "n_shots", "n_in_zone", "defect_zone_rate"]])
 
-    return pd.concat(rows, ignore_index=True).sort_values(["Machine_ID", "column", "date"])
+    return pd.concat(rows, ignore_index=True).sort_values(
+        ["Machine_ID", "column", "matched_defect", "date"])
 
 
 def find_stable_baseline_days(daily_rate: pd.Series) -> int:
@@ -401,15 +425,19 @@ def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) ->
     내는데(같은 안정 구간 안에서), threshold가 그룹마다 다르고 실측 그룹간 편차도
     작지 않기 때문이다(CLN_Pressure 1.2~9.0%, Surface_Roughness 13~33%).
 
-    반환 컬럼: Machine_ID / column / group_key / stable_days / n_ok_shots / n_in_zone /
-    baseline_rate. 장비 단위 대표값이 필요한 소비자는 group_key 축으로 median을 잡는다
-    (기존 trend_analysis.py와 같은 방식).
+    반환 컬럼: Machine_ID / column / matched_defect / group_key / stable_days /
+    n_ok_shots / n_in_zone / baseline_rate. 장비 단위 대표값이 필요한 소비자는
+    group_key 축으로 median을 잡는다 (기존 trend_analysis.py와 같은 방식).
+
+    (26.08.11) 키에 matched_defect가 들어간다 — 같은 컬럼이어도 defect가 다르면 경계값이
+    달라서 "평소 진입률"도 다른 값이다. 안정 구간(Phase I) 판정도 짝마다 따로 한다.
     """
     thr_map = {
-        (r.column, r.group_key): (r.threshold, r.risky_direction)
+        (r.column, r.matched_defect, r.group_key): (r.threshold, r.risky_direction)
         for r in baseline_c.itertuples(index=False)
     }
-    columns = sorted({c for c, _ in thr_map})
+    pairs = sorted({(c, d) for c, d, _ in thr_map})
+    columns = sorted({c for c, _ in pairs})
 
     work = df[["Machine_ID", "Product_ID", "Recipe_ID", "DateTime", "NG_Code"] + columns].copy()
     work["date"] = work["DateTime"].dt.date
@@ -418,9 +446,9 @@ def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) ->
     work = work.loc[work["NG_Code"] == "OK"]
 
     rows = []
-    for col in columns:
-        thr = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[0])
-        direction = work["group_key"].map(lambda gk: thr_map.get((col, gk), (np.nan, None))[1])
+    for col, defect in pairs:
+        thr = work["group_key"].map(lambda gk: thr_map.get((col, defect, gk), (np.nan, None))[0])
+        direction = work["group_key"].map(lambda gk: thr_map.get((col, defect, gk), (np.nan, None))[1])
         in_zone = np.where(
             direction == "low_is_risky", work[col] < thr,
             np.where(direction == "high_is_risky", work[col] > thr, np.nan),
@@ -444,6 +472,7 @@ def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) ->
                 rows.append({
                     "Machine_ID": machine,
                     "column": col,
+                    "matched_defect": defect,
                     "group_key": group_key,
                     "stable_days": stable_days,
                     "n_ok_shots": n,
@@ -451,7 +480,8 @@ def compute_c_entry_rate_baseline(df: pd.DataFrame, baseline_c: pd.DataFrame) ->
                     "baseline_rate": float(gg["in_zone"].mean()),
                 })
 
-    return pd.DataFrame(rows).sort_values(["Machine_ID", "column", "group_key"])
+    return pd.DataFrame(rows).sort_values(
+        ["Machine_ID", "column", "matched_defect", "group_key"])
 
 
 def compute_machine_column_trend(daily_series: pd.DataFrame) -> pd.DataFrame:
@@ -802,20 +832,26 @@ def _find_baseline_c_breakpoint(values: pd.Series, defect_flags: pd.Series) -> d
     }
 
 
-def compute_baseline_type_c(df: pd.DataFrame, pairing: dict[str, str] | None = None) -> pd.DataFrame:
+def compute_baseline_type_c(
+    df: pd.DataFrame, pairs: list[tuple[str, str]] | None = None
+) -> pd.DataFrame:
     """C유형(편측 위험 threshold형): OK+NG 전체 데이터로 그룹별 위험 경계값 학습.
 
     OK 데이터만으로는 위험선을 추정할 수 없다(정상 범위 내부 분포만 보고서는
     어디부터 위험한지 알 수 없음) — 그래서 다른 유형과 달리 df_normal이 아니라
     전체 df를 입력으로 받는다.
 
-    pairing을 따로 받는 이유는 main()에서 짝을 defect별로 나눠 서로 다른 데이터셋으로
+    pairs를 따로 받는 이유는 main()에서 짝을 defect별로 나눠 서로 다른 데이터셋으로
     학습시키기 때문이다 — 아래 C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL 주석 참고.
+
+    (26.08.11) 인자가 dict가 아니라 **(컬럼, defect) 쌍의 목록**이다. 한 컬럼이 두
+    defect의 원인이면 경계값도 둘이라 그룹당 두 행이 나온다 — 같은 컬럼이어도
+    defect가 다르면 별개의 경계다.
     """
     rows = []
-    pairing = resolve_defect_pairing() if pairing is None else pairing
+    pairs = defect_pairs() if pairs is None else pairs
     for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
-        for column, defect_col in pairing.items():
+        for column, defect_col in pairs:
             result = _find_baseline_c_breakpoint(group[column], group[defect_col])
             if result is None:
                 continue
@@ -941,7 +977,7 @@ def scan_type_c_candidates(
                 # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄인다(CLN_Time이 이래서 B유형).
                 "direction_consistency": round(consistency, 3),
                 "has_mentor_spec": col in SPEC,
-                "assigned_type_c": resolve_defect_pairing().get(col) == defect,
+                "assigned_type_c": defect in resolve_defect_pairing().get(col, []),
             })
     return pd.DataFrame(rows).sort_values(["defect", "separation_ratio_median"], ascending=[True, False])
 
@@ -983,7 +1019,7 @@ def warn_type_c_mismatch(candidates: pd.DataFrame) -> None:
                   f"방향 {r.direction_consistency:.3f} [{mark}]")
 
     assigned = candidates[candidates["assigned_type_c"]]
-    missing_rows = set(resolve_defect_pairing().items()) - set(zip(assigned["column"], assigned["defect"]))
+    missing_rows = set(defect_pairs()) - set(zip(assigned["column"], assigned["defect"]))
     weak = assigned[~(assigned["passes_fwer"] & assigned["passes_direction"])]
     for r in weak.itertuples(index=False):
         print(f"  [경고] {r.column}->{r.defect}는 C유형으로 배정돼 있으나 이번 스캔에서 기준 미달"
@@ -1123,15 +1159,22 @@ def main() -> None:
     # 기준: 감시 데이터에 그 defect가 이만큼 있으면 감시 데이터로 배운다. 그룹이 54개고
     # _find_baseline_c_breakpoint가 그룹당 min_samples_leaf(10)를 요구하므로 최소
     # 54x10=540이 필요하고, 여유를 봐서 그 2배를 기준으로 잡는다.
-    common = {c: d for c, d in resolve_defect_pairing().items()
-              if d in df.columns and int(df[d].sum()) >= config.C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL}
-    rare = {c: d for c, d in resolve_defect_pairing().items() if c not in common}
+    # (26.08.11) 어느 데이터셋으로 배울지는 **짝 단위**로 정한다. 표본이 충분한지는
+    # defect마다 다르므로, 같은 컬럼이어도 defect가 다르면 갈릴 수 있다(예: 컬럼 하나가
+    # Remain_Coat 2,332건과 Chipping 4건 둘 다의 원인이면 앞은 감시·뒤는 R1).
+    # 예전엔 컬럼 단위로 갈라서 그런 경우를 표현할 수 없었다.
+    def _label(pairs):
+        return ", ".join(f"{c}↔{d}" for c, d in sorted(pairs))
+
+    common = [(c, d) for c, d in defect_pairs()
+              if d in df.columns and int(df[d].sum()) >= config.C_THRESHOLD_MIN_DEFECTS_FOR_ORIGINAL]
+    rare = [p for p in defect_pairs() if p not in set(common)]
     parts = []
     if common:
-        print(f"[C threshold] 감시 데이터로 학습: {sorted(common)}")
+        print(f"[C threshold] 감시 데이터로 학습: {_label(common)}")
         parts.append(compute_baseline_type_c(df, common))
     if rare:
-        print(f"[C threshold] R1으로 학습(감시 데이터 표본 부족): {sorted(rare)}")
+        print(f"[C threshold] R1으로 학습(감시 데이터 표본 부족): {_label(rare)}")
         parts.append(compute_baseline_type_c(threshold_source, rare))
     baseline_c = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
     save_table(baseline_c, "00_baseline_C.csv", subdir="preprocessing")
