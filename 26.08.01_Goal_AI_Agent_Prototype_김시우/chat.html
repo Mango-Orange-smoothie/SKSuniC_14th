@@ -125,6 +125,70 @@ button#send:disabled{opacity:.5;cursor:default}
 .chart-wrap{margin-top:10px;overflow-x:auto}
 .chart-title{font:600 12px var(--font-ui);color:var(--ink-muted);margin-bottom:4px}
 .chart-wrap svg{display:block;min-width:380px}
+.chart-wrap svg.interactive{cursor:crosshair}
+
+/* ---------- (v3-1) 패널 헤더 · 액션 버튼 ---------- */
+.panel-head{display:flex;align-items:flex-start;gap:10px}
+.panel-head .panel-title{flex:1;min-width:0}
+.panel-actions{display:flex;gap:2px;flex:0 0 auto;opacity:0;transition:opacity .12s}
+.dash-panel:hover .panel-actions,.panel-actions:focus-within{opacity:1}
+.panel-actions button{background:none;border:1px solid transparent;border-radius:7px;
+  padding:4px 7px;font-size:13px;line-height:1;cursor:pointer;color:var(--ink-faint)}
+.panel-actions button:hover{background:var(--surface-2);color:var(--ink)}
+.panel-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.panel-actions button.on{color:var(--accent);background:var(--accent-soft);opacity:1}
+/* 핀이 꽂힌 패널은 hover 없이도 핀 버튼이 보여야 상태가 읽힌다 */
+.dash-panel.pinned .panel-actions{opacity:1}
+.dash-panel.pinned{box-shadow:inset 3px 0 0 var(--accent)}
+
+/* ---------- (v3-1) 기간 프리셋 ---------- */
+.panel-range{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.panel-range button{background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:3px 9px;font:600 11px var(--font-ui);color:var(--ink-muted);cursor:pointer}
+.panel-range button:hover{border-color:var(--accent);color:var(--accent)}
+.panel-range button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel-range .range-hint{font-size:10.5px;color:var(--ink-faint);margin-left:2px}
+
+/* ---------- (v3-1) 그래프 툴팁 — position:fixed라 패널 overflow에 안 잘린다 ---------- */
+#chartTip{position:fixed;z-index:80;pointer-events:none;display:none;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:8px 11px;font:12px var(--font-ui);color:var(--ink);line-height:1.6;
+  box-shadow:0 6px 22px rgba(0,0,0,.22);max-width:290px}
+#chartTip .tip-date{font:700 11.5px var(--font-mono);color:var(--ink-muted);margin-bottom:3px}
+#chartTip .tip-row{display:flex;gap:7px;align-items:baseline;white-space:nowrap}
+#chartTip .tip-key{color:var(--ink-muted);font-size:11px}
+#chartTip .tip-val{font:600 12px var(--font-mono)}
+#chartTip .tip-swatch{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+
+/* ---------- (v3-1) 포커스(확대) 모드 ---------- */
+.dash-panel.focused{padding:26px 34px}
+.focus-hint{font-size:11px;color:var(--ink-faint);margin-left:6px}
+
+/* ---------- (v3-1) 대화 기록 ---------- */
+.history{margin-bottom:12px;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface);overflow:hidden;flex:0 0 auto}
+.history-head{display:flex;gap:6px;align-items:center;padding:7px 9px}
+.history-head button{background:none;border:none;cursor:pointer;color:var(--ink-muted);
+  font:600 12px var(--font-ui);padding:4px 7px;border-radius:6px}
+.history-head button:hover{background:var(--surface-2);color:var(--ink)}
+.history-head input{flex:1;min-width:0;border:1px solid var(--border);border-radius:7px;
+  padding:5px 9px;font:12px var(--font-ui);background:var(--bg);color:var(--ink)}
+.history-head input:focus{outline:none;border-color:var(--accent)}
+.history-list{max-height:190px;overflow-y:auto;border-top:1px solid var(--border);display:none}
+.history.open .history-list{display:block}
+.history-day{font:700 10.5px var(--font-mono);color:var(--ink-faint);padding:7px 11px 3px;
+  letter-spacing:.05em}
+.history-item{padding:6px 11px;font-size:12.5px;color:var(--ink);cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-item:hover{background:var(--surface-2)}
+.history-item .hi-time{color:var(--ink-faint);font:11px var(--font-mono);margin-right:7px}
+.history-empty{padding:14px 11px;font-size:12px;color:var(--ink-faint);text-align:center}
+
+/* ---------- (v3-1) 토스트 ---------- */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;
+  background:var(--ink);color:var(--bg);font:600 12.5px var(--font-ui);
+  padding:9px 18px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
 
 /* ---------- 챗봇 여닫기 토글 ---------- */
 .chat-toggle{position:fixed;top:16px;right:16px;z-index:50;background:var(--accent);color:#fff;
@@ -144,7 +208,7 @@ button#send:disabled{opacity:.5;cursor:default}
   <div class="chat-panel" id="chatPanel">
     <header>
       <div>
-        <p class="eyebrow">Prototype · v3</p>
+        <p class="eyebrow">Prototype · v3-1</p>
         <h1>공정 품질 통합 관리 AI Agent</h1>
       </div>
       <!-- SOP는 아직 수령 전이라 "초안"조차 없다 — 지어내지 않는 게 이 agent의 규칙이므로
@@ -160,6 +224,19 @@ button#send:disabled{opacity:.5;cursor:default}
         <div class="chip" data-q="DP01이랑 DP03 비교해줘.">DP01 vs DP03</div>
         <div class="chip" data-q="DP03 Vibration 추세 그래프로 보여줘.">Vibration 그래프</div>
         <div class="chip" data-q="Vibration을 4개 장비 전부 그래프로 비교해줘.">Vibration 전체 장비 비교</div>
+      </div>
+
+      <!-- (v3-1) 대화 기록 — localStorage에 저장되어 새로고침·서버 재시작에도 남는다.
+           패널 데이터(그래프 원본 시계열 포함)를 통째로 저장하므로, 과거 질문을 클릭하면
+           서버 재호출 없이 그때 화면을 그대로 복원한다. -->
+      <div class="history" id="history">
+        <div class="history-head">
+          <button id="historyToggle" title="과거 대화 기록 열기/닫기">🕘 기록 <span id="historyCount">0</span></button>
+          <input id="historySearch" type="search" placeholder="대화 검색 (질문·답변 전체)">
+          <button id="historyExport" title="세션을 JSON 파일로 내보내기">📥</button>
+          <button id="historyClear" title="저장된 기록 전체 삭제">🗑</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
       </div>
 
       <div class="messages" id="messages"></div>
@@ -178,6 +255,10 @@ button#send:disabled{opacity:.5;cursor:default}
 
 <button class="chat-toggle" id="chatToggle">챗봇 닫기</button>
 
+<!-- (v3-1) 그래프 툴팁 · 토스트 — body 직속이라 패널 스크롤 영역에 잘리지 않는다 -->
+<div id="chartTip"></div>
+<div id="toast"></div>
+
 <script>
 const appEl = document.getElementById('app');
 const messagesEl = document.getElementById('messages');
@@ -190,7 +271,27 @@ const chatToggleBtn = document.getElementById('chatToggle');
 // 화면에 떠 있던 그래프+설명을 그대로 복원하기 위함(우선순위 없는 질문이었으면 그 이전
 // 상태가 그대로 이어져 내려온다). 패널 개수는 조회 결과에 따라 1~4개로 유동적이다.
 let currentPanels = null; // null | [panelData, ...] (길이 1~4)
-const turns = []; // [{el, panels}]
+const turns = []; // [{el, panels, question, answer, isError, ts}]
+
+// ---------- (v3-1) 대시보드 상태 ----------
+const MAX_PANELS = 4;   // 2x2 그리드가 감당하는 최대치(서버의 MAX_PANELS와 같은 값)
+// 핀을 4개까지 허용하면 새 질문의 결과가 들어갈 칸이 없어져서 "물어봤는데 화면이 안 바뀐다"가
+// 된다. 항상 최소 한 칸은 새 결과 몫으로 비워둔다.
+const MAX_PINNED = 3;
+
+// 핀으로 고정한 패널들. renderPanels가 매번 dashboardArea를 비우기 때문에, 고정하지 않으면
+// 다음 질문에서 이전 그래프가 사라진다 — "A를 띄워놓고 B를 불러와 나란히 보는" 실제 조사
+// 흐름이 불가능했다.
+let pinned = [];        // [panelData]
+let focusedKey = null;  // 확대(포커스) 중인 패널의 key — 있으면 그 패널만 전체 화면에 그린다
+
+// 패널별 그래프 보기 구간. 서버가 보내준 시계열을 프런트에서 잘라 쓰기만 하므로
+// 기간 변경에 재질문(LLM 호출)이 필요 없다. {mode:'auto'|'7'|'30'|'alert'|'all'} 또는
+// 드래그 확대 시 {mode:'zoom', from, to} (from/to는 시리즈 인덱스).
+const panelViews = new Map();  // key -> view
+
+// 패널 식별자. 제목에 장비ID·인자·순위가 다 들어있어 한 화면 안에서는 충분히 유일하다.
+const panelKey = p => p.title;
 
 // ---------- 아주 가벼운 markdown -> html (헤더/굵게/코드/표/목록/문단만 지원, 데모용) ----------
 function inline(s){
@@ -332,9 +433,14 @@ function renderChart(cd){
     }
   }
 
+  // (v3-1) 크로스헤어·툴팁·드래그 확대가 마우스 x를 시리즈 인덱스로 되돌리려면 이 좌표계가
+  // 필요하다. 렌더 시점의 값을 svg에 그대로 실어 보내면 상호작용 코드가 계산을 다시
+  // 하지 않아도 되고, 기간이 바뀌어 다시 그려질 때 자동으로 갱신된다.
+  const geom = JSON.stringify({W, H, padL, padR, padT, padB, n, vMin, vMax, kind:'single'});
+
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.machine_id} · ${cd.factor} 추세 (spec_status: ${cd.spec_status})</div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+    <svg class="interactive" data-geom='${geom}' viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
       ${defectArea}
       ${specLines}
       ${alertMark}
@@ -404,9 +510,11 @@ function renderCompareChart(cd){
       + `<text x="${lx + 18}" y="${H - 7}" font-size="9" fill="var(--ink-muted)">${m.machine_id}${m.early_warning_active ? '⚠' : ''}</text>`;
   }).join('');
 
+  const geom = JSON.stringify({W, H, padL, padR, padT, padB, n, vMin, vMax, kind:'compare'});
+
   return `<div class="chart-wrap">
     <div class="chart-title">${cd.factor} · 4대 비교 (기준선은 4대 공통)</div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+    <svg class="interactive" data-geom='${geom}' viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
       ${has(cd.control_usl) ? hline(cd.control_usl, scoresUp ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${has(cd.control_lsl) ? hline(cd.control_lsl, scoresLo ? 'var(--critical)' : 'var(--ink-faint)', true) : ''}
       ${hline(cd.baseline_median, 'var(--ink-faint)', false)}
@@ -437,19 +545,143 @@ function setDashboardGrid(n){
   }
 }
 
+// ---------- (v3-1) 기간 제어 ----------
+// 서버가 이미 넓은 구간(경보 시작 14일 전 ~ 현재)을 통째로 보내주므로, 기간을 좁히는 건
+// 프런트에서 배열을 자르기만 하면 된다 — 재질문(LLM 호출 5초 + 토큰)이 필요 없다.
+// "전체"는 서버가 보내준 구간 전체를 뜻한다(89일 원본 전부가 아니다 — 그건 재질문이 필요).
+const RANGE_PRESETS = [
+  {mode:'all',   label:'전체',     title:'서버가 보내준 구간 전체 (기본값)'},
+  {mode:'30',    label:'30일',     title:'최근 30일'},
+  {mode:'7',     label:'7일',      title:'최근 7일'},
+  {mode:'alert', label:'경보 전후', title:'경보 시작 14일 전 ~ 현재'},
+];
+const ALERT_CONTEXT_DAYS = 14;  // agent.py의 PRE_ALERT_CONTEXT_DAYS와 같은 값
+
+const chartDates = cd => cd.dates || (cd.series || []).map(p => p.date);
+
+// 보기 구간 -> 원본 시리즈의 [시작, 끝] 인덱스(양끝 포함). renderChart가 n>=2를 요구하므로
+// 어떤 경우에도 점 2개는 남긴다.
+function rangeBounds(view, cd){
+  const dates = chartDates(cd);
+  const last = dates.length - 1;
+  if(last < 1) return [0, last];
+  let a = 0, b = last;
+  if(view.mode === 'zoom'){
+    a = Math.max(0, Math.min(view.from, last));
+    b = Math.max(0, Math.min(view.to, last));
+    if(a > b) [a, b] = [b, a];
+  } else if(view.mode === '7' || view.mode === '30'){
+    a = Math.max(0, last - (Number(view.mode) - 1));
+  } else if(view.mode === 'alert'){
+    const since = cd.alert_since
+      || (cd.machines || []).map(m => m.alert_since).filter(Boolean).sort()[0];
+    const ai = since ? dates.findIndex(d => d >= since) : -1;
+    if(ai > 0) a = Math.max(0, ai - ALERT_CONTEXT_DAYS);
+  }
+  if(b - a < 1) a = Math.max(0, b - 1);
+  return [a, b];
+}
+
+function sliceChart(cd, view){
+  const [a, b] = rangeBounds(view, cd);
+  if(a === 0 && b === cd.series.length - 1) return cd;
+  const out = {...cd, series: cd.series.slice(a, b + 1)};
+  if(cd.defect_series) out.defect_series = cd.defect_series.slice(a, b + 1);
+  return out;
+}
+
+function sliceCompare(cd, view){
+  const [a, b] = rangeBounds(view, cd);
+  if(a === 0 && b === cd.dates.length - 1) return cd;
+  return {...cd,
+    dates: cd.dates.slice(a, b + 1),
+    machines: cd.machines.map(m => ({...m, values: m.values.slice(a, b + 1)}))};
+}
+
+const viewOf = key => panelViews.get(key) || {mode: 'all'};
+const slicedOf = (p, view) => p.compare ? sliceCompare(p.compare, view)
+                            : p.chart ? sliceChart(p.chart, view) : null;
+
+function setPanelView(p, view){
+  panelViews.set(panelKey(p), view);
+  rerenderPanels();
+}
+
+// ---------- (v3-1) 패널 조립 ----------
+function rangeBarHTML(p, view){
+  const cd = p.compare || p.chart;
+  if(!cd) return '';
+  const total = chartDates(cd).length;
+  if(total < 3) return '';
+  const hasAlert = !!(cd.alert_since || (cd.machines || []).some(m => m.alert_since));
+  const btns = RANGE_PRESETS
+    .filter(r => r.mode !== 'alert' || hasAlert)
+    .map(r => `<button data-range="${r.mode}" class="${view.mode === r.mode ? 'on' : ''}" title="${r.title}">${r.label}</button>`)
+    .join('');
+  const [a, b] = rangeBounds(view, cd);
+  const hint = view.mode === 'zoom'
+    ? `<span class="range-hint">확대 ${b - a + 1}일 · 그래프 더블클릭으로 복귀</span>`
+    : `<span class="range-hint">${b - a + 1}일 · 그래프를 드래그하면 확대</span>`;
+  return `<div class="panel-range">${btns}${hint}</div>`;
+}
+
 function buildPanelEl(p){
+  const key = panelKey(p);
+  const isPinned = pinned.some(q => panelKey(q) === key);
+  const focused = focusedKey === key;
+  const view = viewOf(key);
+  const hasChart = !!(p.compare || p.chart);
+
   const el = document.createElement('div');
-  el.className = 'dash-panel';
+  el.className = 'dash-panel' + (isPinned ? ' pinned' : '') + (focused ? ' focused' : '');
+  el.dataset.key = key;
   el.innerHTML =
-    `<div class="panel-title">${inline(p.title)}</div>` +
-    (p.compare ? renderCompareChart(p.compare) : p.chart ? renderChart(p.chart) : '') +
+    `<div class="panel-head">` +
+      `<div class="panel-title">${inline(p.title)}` +
+        (focused ? `<span class="focus-hint">확대 중 · Esc로 복귀</span>` : '') +
+      `</div>` +
+      `<div class="panel-actions">` +
+        `<button data-act="pin" class="${isPinned ? 'on' : ''}" title="${isPinned ? '고정 해제' : '고정 — 다음 질문에도 이 패널이 남습니다'}">📌</button>` +
+        (hasChart ? `<button data-act="png" title="그래프+설명을 PNG 한 장으로 저장">⬇</button>` : '') +
+        `<button data-act="copy" title="제목+설명을 마크다운으로 클립보드에 복사">📋</button>` +
+        `<button data-act="focus" class="${focused ? 'on' : ''}" title="${focused ? '원래 크기로' : '이 패널만 크게 보기 (더블클릭도 가능)'}">${focused ? '🗗' : '🗖'}</button>` +
+      `</div>` +
+    `</div>` +
+    rangeBarHTML(p, view) +
+    (p.compare ? renderCompareChart(sliceCompare(p.compare, view))
+     : p.chart ? renderChart(sliceChart(p.chart, view)) : '') +
     `<div class="panel-explain">${renderMarkdown(p.explanation_md)}</div>`;
+  el._panel = p;
   return el;
 }
 
+// 고정된 패널을 앞에, 이번 답변의 패널을 뒤에 놓고 중복은 제거한다. 고정이 우선이지만
+// MAX_PINNED가 MAX_PANELS보다 작아서 새 결과가 들어갈 칸은 항상 최소 하나 남는다.
+function composePanels(panelsArr){
+  const list = [], seen = new Set();
+  for(const p of pinned){ list.push(p); seen.add(panelKey(p)); }
+  for(const p of (panelsArr || [])){
+    const k = panelKey(p);
+    if(seen.has(k)) continue;
+    list.push(p); seen.add(k);
+  }
+  return list.slice(0, MAX_PANELS);
+}
+
+let lastPanelsArr = null;  // 핀/기간/확대가 바뀔 때 서버 재호출 없이 다시 그리기 위해 보관
+
 function renderPanels(panelsArr){
+  lastPanelsArr = panelsArr;
   dashboardAreaEl.innerHTML = '';
-  if(!panelsArr || !panelsArr.length){
+  hideTip();
+
+  let list = composePanels(panelsArr);
+  if(focusedKey){
+    const only = list.find(p => panelKey(p) === focusedKey);
+    if(only) list = [only];
+    else focusedKey = null;  // 확대 중이던 패널이 사라졌으면(다른 턴으로 이동) 확대 해제
+  }
+  if(!list.length){
     setDashboardGrid(1);
     const empty = document.createElement('div');
     empty.className = 'dash-panel';
@@ -457,10 +689,392 @@ function renderPanels(panelsArr){
     dashboardAreaEl.appendChild(empty);
     return;
   }
-  setDashboardGrid(panelsArr.length);
-  for(const p of panelsArr){
-    dashboardAreaEl.appendChild(buildPanelEl(p));
+  setDashboardGrid(list.length);
+  for(const p of list){
+    const el = buildPanelEl(p);
+    dashboardAreaEl.appendChild(el);
+    attachChartInteraction(el, p);
   }
+}
+
+const rerenderPanels = () => renderPanels(lastPanelsArr);
+
+// ---------- (v3-1) 핀 · 확대 ----------
+function togglePin(p){
+  const k = panelKey(p);
+  const i = pinned.findIndex(q => panelKey(q) === k);
+  if(i >= 0){
+    pinned.splice(i, 1);
+    toast('고정 해제됨');
+  } else {
+    if(pinned.length >= MAX_PINNED){
+      toast(`고정은 최대 ${MAX_PINNED}개까지 — 새 질문 결과가 들어갈 칸을 한 개는 남겨둡니다`);
+      return;
+    }
+    pinned.push(JSON.parse(JSON.stringify(p)));  // 원본이 바뀌어도 고정본은 그대로 남게 복제
+    toast('고정됨 — 다음 질문에도 이 패널이 남습니다');
+  }
+  saveSession();
+  rerenderPanels();
+}
+
+function toggleFocus(p){
+  const k = panelKey(p);
+  focusedKey = (focusedKey === k) ? null : k;
+  rerenderPanels();
+}
+
+// ---------- (v3-1) 패널 조작 이벤트(위임) ----------
+dashboardAreaEl.addEventListener('click', (e) => {
+  const panelEl = e.target.closest('.dash-panel');
+  if(!panelEl || !panelEl._panel) return;
+  const p = panelEl._panel;
+  const rangeBtn = e.target.closest('button[data-range]');
+  if(rangeBtn){ setPanelView(p, {mode: rangeBtn.dataset.range}); return; }
+  const actBtn = e.target.closest('button[data-act]');
+  if(!actBtn) return;
+  const act = actBtn.dataset.act;
+  if(act === 'pin')        togglePin(p);
+  else if(act === 'png')   exportPanelPNG(panelEl, p);
+  else if(act === 'copy')  copyPanel(p);
+  else if(act === 'focus') toggleFocus(p);
+});
+
+// 패널 본문 더블클릭 = 확대 토글. 그래프 위 더블클릭은 "확대 구간 복귀"라 제외한다.
+dashboardAreaEl.addEventListener('dblclick', (e) => {
+  if(e.target.closest('button') || e.target.closest('svg')) return;
+  const panelEl = e.target.closest('.dash-panel');
+  if(panelEl && panelEl._panel) toggleFocus(panelEl._panel);
+});
+
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape' && focusedKey){ focusedKey = null; rerenderPanels(); }
+});
+
+// ---------- (v3-1) 크로스헤어 · 툴팁 · 드래그 확대 ----------
+const SVGNS = 'http://www.w3.org/2000/svg';
+const tipEl = document.getElementById('chartTip');
+const hideTip = () => { tipEl.style.display = 'none'; };
+
+function fmtNum(v){
+  if(v === null || v === undefined) return '-';
+  const a = Math.abs(v);
+  return a >= 100 ? v.toFixed(1) : a >= 1 ? v.toFixed(3) : v.toFixed(4);
+}
+
+// 정상값에서 "점수를 내는 쪽" 관리한계까지의 여유를 얼마나 썼는지. agent.py의
+// margin_used_pct와 같은 개념이라 화면 숫자와 점수 기준이 어긋나지 않는다.
+function marginPct(cd, v){
+  const b = cd.baseline_median, side = cd.score_side || 'both';
+  if(b === null || b === undefined || v === null || v === undefined) return null;
+  let bound = side === 'upper' ? cd.control_usl
+            : side === 'lower' ? cd.control_lsl
+            : (v >= b ? cd.control_usl : cd.control_lsl);
+  if(bound === null || bound === undefined || bound === b) return null;
+  return Math.max(0, (v - b) / (bound - b)) * 100;
+}
+
+function tipRow(label, value, color){
+  return `<div class="tip-row">`
+    + (color ? `<span class="tip-swatch" style="background:${color}"></span>` : '')
+    + `<span class="tip-key">${label}</span><span class="tip-val">${value}</span></div>`;
+}
+
+function buildTip(cd, i){
+  const dates = chartDates(cd);
+  let h = `<div class="tip-date">${dates[i]}</div>`;
+  if(cd.machines){
+    for(const m of cd.machines){
+      const color = MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)';
+      h += tipRow(m.machine_id + (m.early_warning_active ? ' ⚠' : ''), fmtNum(m.values[i]), color);
+    }
+  } else {
+    const v = cd.series[i].value;
+    h += tipRow(cd.factor, fmtNum(v), 'var(--accent)');
+    const mp = marginPct(cd, v);
+    if(mp !== null) h += tipRow('여유 사용', mp.toFixed(0) + '%');
+    const ds = cd.defect_series && cd.defect_series[i];
+    if(ds && ds.value !== null && ds.value !== undefined){
+      h += tipRow(cd.defect + ' 불량률', (ds.value * 100).toFixed(2) + '%', 'var(--warning)');
+    }
+  }
+  h += tipRow('정상값', fmtNum(cd.baseline_median));
+  const side = cd.score_side || 'both';
+  if(cd.control_usl !== null && cd.control_usl !== undefined && (side === 'both' || side === 'upper'))
+    h += tipRow('관리상한', fmtNum(cd.control_usl));
+  if(cd.control_lsl !== null && cd.control_lsl !== undefined && (side === 'both' || side === 'lower'))
+    h += tipRow('관리하한', fmtNum(cd.control_lsl));
+  const since = cd.alert_since || (cd.machines || []).map(m => m.alert_since).filter(Boolean).sort()[0];
+  if(since && dates[i] >= since){
+    h += `<div class="tip-row"><span class="tip-key" style="color:var(--critical)">경보 ${since}부터 지속 구간</span></div>`;
+  }
+  return h;
+}
+
+function attachChartInteraction(panelEl, p){
+  const svg = panelEl.querySelector('svg.interactive');
+  if(!svg) return;
+  let geom;
+  try{ geom = JSON.parse(svg.dataset.geom || '{}'); }catch(_){ return; }
+  if(!geom.n || geom.n < 2) return;
+
+  const key = panelKey(p);
+  const view = viewOf(key);
+  const cd = slicedOf(p, view);
+  if(!cd) return;
+
+  const plotW = geom.W - geom.padL - geom.padR;
+  const xOf = i => geom.padL + (i / (geom.n - 1)) * plotW;
+  const yOf = v => geom.padT + (1 - (v - geom.vMin) / (geom.vMax - geom.vMin)) * (geom.H - geom.padT - geom.padB);
+  const idxAt = (clientX) => {
+    const r = svg.getBoundingClientRect();
+    const vx = (clientX - r.left) * (geom.W / r.width);
+    const t = (vx - geom.padL) / plotW;
+    return Math.max(0, Math.min(geom.n - 1, Math.round(t * (geom.n - 1))));
+  };
+
+  // 크로스헤어/선택영역은 렌더 문자열을 건드리지 않고 여기서 붙인다. data-ui 표시를 달아
+  // PNG로 내보낼 때 제외한다(마우스 흔적이 저장 이미지에 남으면 안 된다).
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('data-ui', '1');
+  g.setAttribute('pointer-events', 'none');
+  g.style.display = 'none';
+  const vline = document.createElementNS(SVGNS, 'line');
+  vline.setAttribute('stroke', 'var(--ink-muted)');
+  vline.setAttribute('stroke-width', '1');
+  vline.setAttribute('stroke-dasharray', '3 3');
+  vline.setAttribute('y1', geom.padT);
+  vline.setAttribute('y2', geom.H - geom.padB);
+  g.appendChild(vline);
+
+  const targets = cd.machines || [null];
+  const dots = targets.map((m) => {
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('r', '3.6');
+    c.setAttribute('fill', m ? (MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)') : 'var(--accent)');
+    c.setAttribute('stroke', 'var(--surface)');
+    c.setAttribute('stroke-width', '1.3');
+    g.appendChild(c);
+    return c;
+  });
+  svg.appendChild(g);
+
+  const sel = document.createElementNS(SVGNS, 'rect');
+  sel.setAttribute('data-ui', '1');
+  sel.setAttribute('fill', 'var(--accent)');
+  sel.setAttribute('opacity', '0.16');
+  sel.setAttribute('y', geom.padT);
+  sel.setAttribute('height', geom.H - geom.padT - geom.padB);
+  sel.setAttribute('pointer-events', 'none');
+  sel.style.display = 'none';
+  svg.appendChild(sel);
+
+  svg.style.touchAction = 'none';
+  let dragging = false, dragStart = 0;
+
+  function showAt(clientX, clientY){
+    const i = idxAt(clientX);
+    const px = xOf(i);
+    vline.setAttribute('x1', px); vline.setAttribute('x2', px);
+    targets.forEach((m, k) => {
+      const v = m ? m.values[i] : cd.series[i].value;
+      if(v === null || v === undefined){ dots[k].style.display = 'none'; return; }
+      dots[k].style.display = '';
+      dots[k].setAttribute('cx', px);
+      dots[k].setAttribute('cy', yOf(v));
+    });
+    g.style.display = '';
+    tipEl.innerHTML = buildTip(cd, i);
+    tipEl.style.display = 'block';
+    // 화면 밖으로 넘치지 않게 반대편으로 접는다
+    let left = clientX + 16, top = clientY - tipEl.offsetHeight - 12;
+    if(left + tipEl.offsetWidth > window.innerWidth - 8) left = clientX - tipEl.offsetWidth - 16;
+    if(top < 8) top = clientY + 20;
+    tipEl.style.left = Math.max(8, left) + 'px';
+    tipEl.style.top = top + 'px';
+  }
+
+  svg.addEventListener('pointermove', (e) => {
+    if(dragging){
+      const i = idxAt(e.clientX);
+      const a = Math.min(dragStart, i), b = Math.max(dragStart, i);
+      sel.setAttribute('x', xOf(a));
+      sel.setAttribute('width', Math.max(1, xOf(b) - xOf(a)));
+    } else {
+      showAt(e.clientX, e.clientY);
+    }
+  });
+  svg.addEventListener('pointerleave', () => { g.style.display = 'none'; hideTip(); });
+
+  svg.addEventListener('pointerdown', (e) => {
+    if(e.button !== 0) return;
+    e.preventDefault();
+    dragging = true;
+    dragStart = idxAt(e.clientX);
+    sel.setAttribute('x', xOf(dragStart));
+    sel.setAttribute('width', '0');
+    sel.style.display = '';
+    hideTip();
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  });
+
+  svg.addEventListener('pointerup', (e) => {
+    if(!dragging) return;
+    dragging = false;
+    sel.style.display = 'none';
+    try{ svg.releasePointerCapture(e.pointerId); }catch(_){}
+    const i = idxAt(e.clientX);
+    const a = Math.min(dragStart, i), b = Math.max(dragStart, i);
+    if(b - a < 1) return;  // 그냥 클릭한 것 — 확대하지 않는다
+    // 지금 보이는 구간의 인덱스를 원본 시리즈 인덱스로 되돌린다(이미 확대 중일 수 있다)
+    const [base] = rangeBounds(view, p.compare || p.chart);
+    setPanelView(p, {mode: 'zoom', from: base + a, to: base + b});
+  });
+
+  svg.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    if(viewOf(key).mode === 'zoom') setPanelView(p, {mode: 'all'});
+  });
+}
+
+// ---------- (v3-1) 내보내기 ----------
+const PNG_FONT = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+const stripMd = s => String(s || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/`(.+?)`/g, '$1');
+// 파일명: 윈도우 금지문자 + 제목 앞머리의 상태 이모지(🔴🟡⚪📈📊)를 걷어낸다.
+// 이모지 자체는 유효한 파일명이지만 보고서 첨부물 이름으로는 지저분하다.
+const fileSafe = s => s
+  .replace(/[\p{Extended_Pictographic}️]/gu, '')
+  .replace(/[\\/:*?"<>|]/g, '')
+  .replace(/[·]/g, '-')
+  .replace(/\s+/g, '_')
+  .replace(/^[_\-]+|[_\-]+$/g, '')
+  .slice(0, 80) || 'panel';
+
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+// SVG는 CSS 변수(var(--accent))로 색을 쓰는데, data: URL 이미지로 렌더될 때는 문서의
+// 변수 정의가 따라가지 않아 전부 검정이 된다 — 직렬화 전에 실제 색으로 치환해야 한다.
+function svgToImage(svg, w, h){
+  const clone = svg.cloneNode(true);
+  clone.querySelectorAll('[data-ui="1"]').forEach(n => n.remove());  // 크로스헤어 등 제거
+  const resolve = s => String(s).replace(/var\((--[\w-]+)(?:\s*,\s*([^)]+))?\)/g,
+    (_, name, fb) => cssVar(name, (fb || '').trim() || '#888'));
+  clone.querySelectorAll('*').forEach(n => {
+    for(const attr of ['stroke', 'fill']){
+      const v = n.getAttribute(attr);
+      if(v && v.includes('var(')) n.setAttribute(attr, resolve(v));
+    }
+    const st = n.getAttribute('style');
+    if(st && st.includes('var(')) n.setAttribute('style', resolve(st));
+  });
+  clone.setAttribute('xmlns', SVGNS);
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
+  clone.style.fontFamily = PNG_FONT;
+  // SVG 자체는 투명 배경이라 그대로 PNG로 만들면 어두운 문서에 붙일 때 글자가 안 보인다
+  const bg = document.createElementNS(SVGNS, 'rect');
+  bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+  bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%');
+  bg.setAttribute('fill', cssVar('--bg', '#ffffff'));
+  clone.insertBefore(bg, clone.firstChild);
+  const xml = new XMLSerializer().serializeToString(clone);
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('SVG 렌더 실패'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+  });
+}
+
+function wrapLines(ctx, md, maxW){
+  const out = [];
+  for(const raw of stripMd(md).split('\n')){
+    const line = raw.replace(/^\s*-\s+/, '• ').trim();
+    if(!line) continue;
+    const indent = line.startsWith('•') ? '   ' : '';
+    let cur = '';
+    for(const word of line.split(' ')){
+      const next = cur ? cur + ' ' + word : word;
+      if(ctx.measureText(next).width > maxW && cur){ out.push(cur); cur = indent + word; }
+      else cur = next;
+    }
+    if(cur) out.push(cur);
+  }
+  return out;
+}
+
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function exportPanelPNG(panelEl, p){
+  const svg = panelEl.querySelector('svg');
+  if(!svg){ toast('이 패널에는 그래프가 없습니다'); return; }
+  try{
+    const vb = svg.viewBox.baseVal;
+    const SCALE = 2;                       // 보고서에 붙여도 안 깨지도록 2배로
+    const cw = Math.round(vb.width * SCALE), ch = Math.round(vb.height * SCALE);
+    const padX = 30, titleY = 40, gap = 20, lineH = 27;
+
+    const cv = document.createElement('canvas');
+    const ctx = cv.getContext('2d');
+    ctx.font = '17px ' + PNG_FONT;
+    const lines = wrapLines(ctx, p.explanation_md, cw - 10);
+
+    cv.width = cw + padX * 2;
+    cv.height = titleY + 16 + ch + gap + lines.length * lineH + 24;
+    ctx.fillStyle = cssVar('--bg', '#ffffff');
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = cssVar('--ink', '#000000');
+    ctx.font = 'bold 25px ' + PNG_FONT;
+    ctx.fillText(stripMd(p.title), padX, titleY);
+
+    const img = await svgToImage(svg, cw, ch);
+    ctx.drawImage(img, padX, titleY + 16, cw, ch);
+
+    ctx.font = '17px ' + PNG_FONT;
+    ctx.fillStyle = cssVar('--ink-muted', '#555555');
+    lines.forEach((ln, k) => ctx.fillText(ln, padX, titleY + 16 + ch + gap + 14 + k * lineH));
+
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    downloadBlob(blob, fileSafe(stripMd(p.title)) + '.png');
+    toast('PNG로 저장했습니다');
+  }catch(err){
+    toast('PNG 저장 실패: ' + err.message);
+  }
+}
+
+async function copyPanel(p){
+  const text = `## ${p.title}\n\n${p.explanation_md}\n`;
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('마크다운으로 복사했습니다');
+  }catch(_){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('마크다운으로 복사했습니다'); }
+    catch(__){ toast('복사가 차단되었습니다 — 텍스트를 직접 선택해주세요'); }
+    ta.remove();
+  }
+}
+
+// ---------- (v3-1) 토스트 ----------
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2100);
 }
 
 // ---------- 채팅 턴(질문+답변 한 쌍) ----------
@@ -473,15 +1087,20 @@ function startTurn(question){
   turnDiv.appendChild(userMsg);
   messagesEl.appendChild(turnDiv);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  turnDiv._question = question;   // finishTurn/기록 저장이 질문 원문을 다시 쓴다
   return turnDiv;
 }
 
-function finishTurn(turnDiv, text, isError, panelsFromServer){
+function appendAnswer(turnDiv, text, isError){
   const agentMsg = document.createElement('div');
   agentMsg.className = 'msg agent' + (isError ? ' error' : '');
   agentMsg.innerHTML = renderMarkdown(text);
   turnDiv.appendChild(agentMsg);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function finishTurn(turnDiv, text, isError, panelsFromServer){
+  appendAnswer(turnDiv, text, isError);
 
   if(panelsFromServer){
     currentPanels = panelsFromServer;
@@ -489,15 +1108,21 @@ function finishTurn(turnDiv, text, isError, panelsFromServer){
   }
   // 이번 턴이 끝난 시점의 패널 상태(갱신됐든 이전 그대로든)를 스냅샷으로 저장
   const snapshot = currentPanels ? JSON.parse(JSON.stringify(currentPanels)) : null;
-  turns.push({el: turnDiv, panels: snapshot});
+  turns.push({el: turnDiv, panels: snapshot, question: turnDiv._question || '',
+              answer: text, isError: !!isError, ts: Date.now()});
   const idx = turns.length - 1;
   turnDiv.addEventListener('click', () => selectTurn(idx));
   selectTurn(idx);
+  saveSession();
+  renderHistory();
 }
 
-function selectTurn(idx){
+function selectTurn(idx, scrollTo){
   turns.forEach((t, i) => t.el.classList.toggle('selected', i === idx));
+  // 다른 턴으로 옮기면 확대는 푼다 — 확대 중이던 패널이 그 턴에는 없을 수 있다
+  focusedKey = null;
   renderPanels(turns[idx].panels);
+  if(scrollTo) turns[idx].el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
 }
 
 // showTyping/hideTyping은 각자 자기가 만든 엘리먼트를 직접 들고 있다가 지운다(예전엔
@@ -574,6 +1199,113 @@ chatToggleBtn.addEventListener('click', () => {
   const closed = appEl.classList.toggle('chat-closed');
   chatToggleBtn.textContent = closed ? '챗봇 열기' : '챗봇 닫기';
 });
+
+// ---------- (v3-1) 세션 저장 · 복원 · 검색 ----------
+// 패널에는 그래프 원본 시계열이 통째로 들어있어 그대로 저장하면 서버 없이도 과거 조사를
+// 다시 그릴 수 있다. 대신 턴당 수십 KB라 localStorage 한도(약 5MB)에 걸릴 수 있어서,
+// 최근 것부터 남기고 초과하면 더 줄여서 재시도한다.
+const STORE_KEY = 'sugent.agent.session.v1';
+const MAX_STORED_TURNS = 40;
+
+const historyEl = document.getElementById('history');
+const historyListEl = document.getElementById('historyList');
+const historyCountEl = document.getElementById('historyCount');
+const historySearchEl = document.getElementById('historySearch');
+
+const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const turnRecord = t => ({question: t.question, answer: t.answer,
+                          isError: t.isError, panels: t.panels, ts: t.ts});
+
+function saveSession(){
+  const write = (n) => localStorage.setItem(STORE_KEY, JSON.stringify({
+    v: 1, pinned, turns: turns.slice(-n).map(turnRecord),
+  }));
+  try{ write(MAX_STORED_TURNS); }
+  catch(_){
+    // 용량 초과 — 최근 10건만 남기고 재시도. 그래도 안 되면 저장을 포기한다
+    // (저장 실패가 사용 자체를 막으면 안 된다).
+    try{ write(10); }
+    catch(__){ try{ localStorage.removeItem(STORE_KEY); }catch(___){} }
+  }
+}
+
+function restoreSession(){
+  let data = null;
+  try{ data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); }catch(_){ }
+  if(!data || !Array.isArray(data.turns) || !data.turns.length){ renderHistory(); return; }
+
+  pinned = Array.isArray(data.pinned) ? data.pinned : [];
+  for(const rec of data.turns){
+    const turnDiv = startTurn(rec.question || '');
+    appendAnswer(turnDiv, rec.answer || '', rec.isError);
+    turns.push({el: turnDiv, panels: rec.panels, question: rec.question || '',
+                answer: rec.answer || '', isError: !!rec.isError, ts: rec.ts || Date.now()});
+    const idx = turns.length - 1;
+    turnDiv.addEventListener('click', () => selectTurn(idx));
+  }
+  currentPanels = turns[turns.length - 1].panels;
+  selectTurn(turns.length - 1);
+  renderHistory();
+  toast(`이전 기록 ${turns.length}건을 복원했습니다`);
+}
+
+function renderHistory(){
+  historyCountEl.textContent = turns.length;
+  const q = (historySearchEl.value || '').trim().toLowerCase();
+  const hits = turns.map((t, i) => ({t, i}))
+    .filter(({t}) => !q || (t.question + ' ' + (t.answer || '')).toLowerCase().includes(q));
+
+  if(!hits.length){
+    historyListEl.innerHTML = `<div class="history-empty">${
+      turns.length ? '검색 결과가 없습니다' : '아직 기록이 없습니다'}</div>`;
+    return;
+  }
+  const pad = n => String(n).padStart(2, '0');
+  let html = '', lastDay = '';
+  for(const {t, i} of hits){
+    const d = new Date(t.ts || Date.now());
+    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if(day !== lastDay){ html += `<div class="history-day">${day}</div>`; lastDay = day; }
+    html += `<div class="history-item" data-idx="${i}" title="${escapeHtml(t.question)}">`
+          + `<span class="hi-time">${pad(d.getHours())}:${pad(d.getMinutes())}</span>`
+          + `${escapeHtml(t.question)}</div>`;
+  }
+  historyListEl.innerHTML = html;
+}
+
+document.getElementById('historyToggle').addEventListener('click', () => {
+  historyEl.classList.toggle('open');
+  if(historyEl.classList.contains('open')) renderHistory();
+});
+historySearchEl.addEventListener('input', () => {
+  historyEl.classList.add('open');
+  renderHistory();
+});
+historyListEl.addEventListener('click', (e) => {
+  const item = e.target.closest('.history-item');
+  if(item) selectTurn(Number(item.dataset.idx), true);
+});
+document.getElementById('historyExport').addEventListener('click', () => {
+  if(!turns.length){ toast('내보낼 기록이 없습니다'); return; }
+  const blob = new Blob([JSON.stringify({
+    exported_at: new Date().toISOString(), pinned, turns: turns.map(turnRecord),
+  }, null, 2)], {type: 'application/json'});
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  downloadBlob(blob, `SUGENT_세션_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.json`);
+  toast(`기록 ${turns.length}건을 JSON으로 저장했습니다`);
+});
+document.getElementById('historyClear').addEventListener('click', () => {
+  if(!confirm(`저장된 대화 기록 ${turns.length}건과 고정 패널을 모두 지웁니다. 계속할까요?`)) return;
+  try{ localStorage.removeItem(STORE_KEY); }catch(_){}
+  location.reload();
+});
+
+// ---------- (v3-1) 초기화 ----------
+renderPanels(null);
+restoreSession();
 </script>
 </body>
 </html>
