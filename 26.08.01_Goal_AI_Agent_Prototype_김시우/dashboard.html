@@ -5,10 +5,15 @@
 <title>공정 품질 통합 관리 — 대시보드</title>
 <style>
 :root{
-  --bg:#f5f4f8; --surface:#ffffff; --surface-2:#eeecf5;
+  /* (26.08.12) 배경만 하늘색 파스텔로. 글자·강조·경보색은 건드리지 않는다 —
+     경보 3색(good/warn/critical)이 판정 결과를 나르는 정보라 톤을 맞추려고
+     흐리게 하면 화면이 읽히긴 예뻐도 급한 게 안 급해 보인다.
+     카드(--surface)는 흰색 그대로 둔다. 배경만 색을 입혀야 카드가 떠 보이고,
+     그래프가 얹히는 면이 무채색이라 선 색이 그대로 나온다. */
+  --bg:#e9f4fd; --surface:#ffffff; --surface-2:#daebfa;
   --ink:#171523; --ink-muted:#6b6785; --ink-faint:#a4a0bd;
   --accent:#5b54e8; --accent-soft:#eeecfc;
-  --border:#e1dff0;
+  --border:#c9e0f4;
   --good:#0ca30c; --warn:#d98324; --critical:#d03b3b;
   --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
@@ -16,9 +21,11 @@
 }
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
-    --bg:#0e0c16; --surface:#17142a; --surface-2:#1e1a35;
+    /* 다크도 같은 계열로 옮긴다 — OS가 다크면 이쪽이 뜨는데 라이트만 하늘색이면
+       발표자 PC 설정에 따라 다른 화면이 나온다. */
+    --bg:#0b1523; --surface:#122032; --surface-2:#18293e;
     --ink:#ede9fb; --ink-muted:#a49dc9; --ink-faint:#726c99;
-    --accent:#9089f7; --accent-soft:#242052; --border:#2c2650;
+    --accent:#9089f7; --accent-soft:#242052; --border:#24374f;
     color-scheme: dark;
   }
 }
