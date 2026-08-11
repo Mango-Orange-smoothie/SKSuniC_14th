@@ -394,7 +394,7 @@ def get_sop_for_factor(factor_name: str) -> str:
     (26.08.06) 관계DB agent_rules에 "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것"이
     명시돼 있다 — agent_cause_factors.json의 sop.status가 "SOP 미수령"이기 때문이다. 그래서
     이 도구는 구체적인 점검/조치 "문구"를 만들어내지 않는다. 대신 이미 검정으로 확정된 것만
-    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/급락알람 등 — 이건 SOP 문구가 아니라
+    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/감시(경보) — 이건 SOP 문구가 아니라
     통계 검정 결과로 정해진 긴급도 분류라 지어낸 게 아님), 그리고 실제 위험/정상 구간 값.
 
     Args:

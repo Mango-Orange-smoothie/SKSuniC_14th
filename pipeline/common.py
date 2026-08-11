@@ -132,8 +132,10 @@ def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
       - repro_state: 감시 데이터(원본)에서도 재현되는지에 대한 팀 공식 판정.
         Chipping 짝 인자들은 원본 defect 표본이 3건뿐이라 "판정불가"다 — 이걸 모르고
         C유형에 넣으면 감시 데이터에서 경보가 0건 나온다(실측 확인).
-      - watch_mode: CLN_Pressure만 "spike"(순간 급락). CUSUM은 지속적 수준 이동용이라
-        구조적으로 안 맞는다.
+      - watch_mode: 짝마다 "수준(level)"이냐 "순간 급락(spike)"이냐. CUSUM은 지속적
+        수준 이동용이라 spike와는 구조적으로 안 맞는다. (26.08.11 현재 8행 전부
+        level이다 — CLN_Pressure가 유일한 spike였는데 급락 사건이 실제로 없음이
+        확인돼 level로 정정됐다(554816b). 아래 채택 판정은 이 값을 보지 않는다.)
 
     채택 조건은 두 파일의 AND다 — rel_30(인계 파일)의 alert_usable이 True이고,
     rel_20(근거표)의 repro_state가 "통과"인 짝만 쓴다. 지금 데이터에서는 결과가
