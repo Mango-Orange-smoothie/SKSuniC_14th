@@ -49,7 +49,7 @@ HI 10점 미만 = 관리한계(3σ) 초과이지 스펙아웃이 아닙니다.
 | DP04 Particle 95.0 | 틀린 값. 위 결정이 나야 14.5로 | 같은 문서 |
 | Micro_Crack 감시 | 원본 41건이라 불가. 멘토 SOP 대기 | `.../발견_라벨정의가_MicroCrack을_가렸다.md` |
 | ~~경보 표시가 규모를 안 보여줌~~ | **26.08.11 반영**(`alert_level`) | `docs/점검_원인변수_경보기준.md` §5 |
-| 에이전트 답변 실제 검증 | API 키 필요, 미검증 | `26.08.01_Goal_AI_Agent_Prototype_김시우/README.md` |
+| 에이전트 답변 실제 검증 | 배선 완료(`.env` + `--check`), **유효한 키로는 미검증** | `26.08.01_Goal_AI_Agent_Prototype_김시우/README.md` |
 
 `pure` 라벨 문제의 요약: 다른 불량이 같이 난 샷을 버리기 때문에, **한 원인이 두 불량을
 동시에 일으키면 그 관계를 증명하는 샷만 골라서 삭제됩니다.** 세정 실패(CLN_Flow ↓ →
@@ -75,6 +75,11 @@ python3 "26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py"
 대시보드(그래프·히트맵은 API 키 없이 동작):
 ```bash
 python3 "26.08.01_Goal_AI_Agent_Prototype_김시우/server.py"
+```
+챗봇 키는 저장소 루트 `.env`의 `ANTHROPIC_API_KEY`를 읽습니다(`export`도 그대로 동작하고
+export가 우선). 연결만 확인하려면 — 토큰을 쓰지 않습니다:
+```bash
+python3 "26.08.01_Goal_AI_Agent_Prototype_김시우/agent.py" --check
 ```
 
 ## 토큰 절약

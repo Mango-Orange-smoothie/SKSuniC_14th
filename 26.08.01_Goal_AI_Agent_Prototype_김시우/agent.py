@@ -95,14 +95,16 @@ get_machine_health가 반환하는 구조 핵심:
 get_sop_for_factor만 그걸 읽도록 바꾸면 되고 에이전트 구조 자체는 안 바뀐다.)
 
 실행 전 준비:
-  1. pip install anthropic   (이미 설치됨)
-  2. 터미널에서: export ANTHROPIC_API_KEY="본인 키"
+  1. pip install -r ../requirements.txt   (anthropic 포함)
+  2. 저장소 루트에 .env 파일:  ANTHROPIC_API_KEY=본인 키
+     (또는 터미널에서 export ANTHROPIC_API_KEY="본인 키" — .env는 .gitignore에 있음)
   3. python3 agent.py "DP03 상태 어때?"
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -118,6 +120,59 @@ HEALTH_INDEX_DATA = GOAL5_DIR / "health_index_data.json"
 LEVEL_TREND_CSV = GOAL5_DIR / "01_level_trend_by_machine_column.csv"
 DAILY_SERIES_CSV = HERE.parent / "analysis_outputs" / "preprocessing" / "00_machine_daily_series.csv"
 DAILY_TREND_CSV = HERE.parent / "analysis_outputs" / "05_machine_daily_trend.csv"
+
+# ── API 키 ─────────────────────────────────────────────────────────────────
+# export는 터미널을 닫으면 사라져서, 시연 때마다 "키를 안 넣고 서버를 띄웠다"가
+# 반복됐다. 저장소 루트(또는 이 폴더)의 .env를 읽어 환경변수로 채운다.
+# .env는 .gitignore에 이미 들어 있다 — 키가 커밋되지 않는다.
+# 이미 export된 값이 있으면 그쪽이 이긴다(파일이 export를 덮어쓰지 않음).
+ENV_FILES = (HERE.parent / ".env", HERE / ".env")
+
+
+def _load_env_files() -> None:
+    for path in ENV_FILES:
+        if not path.exists():
+            continue
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip().removeprefix("export ").strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_env_files()
+
+
+def has_api_key() -> bool:
+    """키가 있는지'만' 본다. 값은 절대 로그·화면에 찍지 않는다.
+    import 시점에 한 번 굳히지 않는 이유: 서버를 띄워둔 채 .env를 만드는 흐름이
+    실제로 있었고, 그때 재시작 없이 다음 질문부터 되게 하려는 것."""
+    _load_env_files()
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+
+
+MISSING_KEY_MESSAGE = (
+    "ANTHROPIC_API_KEY가 없습니다. 챗봇 답변만 키가 필요하고 그래프·히트맵은 그대로 동작합니다.\n"
+    "  방법 1) 저장소 루트에 .env 파일을 만들고 한 줄:  ANTHROPIC_API_KEY=본인 키\n"
+    f"          ({ENV_FILES[0]} — .gitignore에 들어 있어 커밋되지 않습니다)\n"
+    '  방법 2) 터미널에서:  export ANTHROPIC_API_KEY="본인 키"'
+)
+
+
+MODEL = "claude-sonnet-5"
+
+
+def _client() -> anthropic.Anthropic:
+    """키가 없으면 SDK의 영문 TypeError 대신 무엇을 해야 하는지 알려주고 멈춘다.
+    (서버는 이 메시지를 그대로 브라우저에 띄운다 — server.py의 /api/ask 참고.)"""
+    if not has_api_key():
+        raise RuntimeError(MISSING_KEY_MESSAGE)
+    return anthropic.Anthropic()
+
 
 with open(HEALTH_INDEX_DATA, encoding="utf-8") as f:
     DATA = json.load(f)
@@ -1061,9 +1116,9 @@ def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dic
 def ask(question: str) -> dict:
     _chart_calls_this_turn.clear()
     _machine_snapshots_this_turn.clear()
-    client = anthropic.Anthropic()
+    client = _client()
     runner = client.beta.messages.tool_runner(
-        model="claude-sonnet-5",
+        model=MODEL,
         max_tokens=3000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
         # 붙다 보니 2000으로 가끔 빠듯했다(26.08.06 티어체계 확장 이후 답변이 길어짐).
         system=SYSTEM_PROMPT,
@@ -1086,10 +1141,36 @@ def ask(question: str) -> dict:
     return {"answer": final_text, "panels": panels}
 
 
+def check_api() -> str:
+    """키가 실제로 통하는지 확인한다. 질문을 한 번 던져보는 것과 달리 토큰을 안 쓴다
+    (모델 조회 엔드포인트라 크레딧이 안 나간다). 인증·모델 접근 권한 두 가지를 본다."""
+    client = _client()
+    model = client.models.retrieve(MODEL)
+    return f"API 연결 확인됨 — 모델 {model.id} 사용 가능"
+
+
 if __name__ == "__main__":
+    if "--check" in sys.argv[1:]:
+        try:
+            print(check_api())
+        except RuntimeError as exc:  # 키 없음
+            sys.exit(str(exc))
+        except anthropic.AuthenticationError:
+            sys.exit("키가 거부됐습니다(401). 값이 잘리거나 폐기된 키인지 확인하세요.")
+        except anthropic.PermissionDeniedError:
+            sys.exit(f"이 키로는 {MODEL}에 접근할 수 없습니다(403). 콘솔에서 권한/크레딧을 확인하세요.")
+        except anthropic.NotFoundError:
+            sys.exit(f"모델 {MODEL}을 찾을 수 없습니다(404). agent.py의 MODEL 값을 확인하세요.")
+        except anthropic.APIConnectionError:
+            sys.exit("api.anthropic.com에 연결하지 못했습니다. 네트워크/프록시를 확인하세요.")
+        sys.exit(0)
+
     q = " ".join(sys.argv[1:]) or "DP03 상태 어때? 오늘 제일 급한 게 뭐야?"
     print(f"질문: {q}\n")
-    result = ask(q)
+    try:
+        result = ask(q)
+    except RuntimeError as exc:  # 키 없음 — 스택트레이스 대신 할 일만 보여준다
+        sys.exit(str(exc))
     print(result["answer"])
     if result["panels"]:
         print(f"\n[대시보드 패널 {len(result['panels'])}개 생성됨: "

@@ -4,7 +4,8 @@ agent.py의 로직(도구/시스템 프롬프트)을 그대로 재사용하고, 
 브라우저 채팅창으로 질문/답변할 수 있게 감싸는 역할만 한다.
 
 실행:
-  export ANTHROPIC_API_KEY="본인 키"   (아직 안 했다면)
+  저장소 루트에 .env 파일 한 줄:  ANTHROPIC_API_KEY=본인 키
+  (또는 export ANTHROPIC_API_KEY="본인 키" — agent.py가 둘 다 읽는다)
   python3 server.py
 그 다음 브라우저에서 http://localhost:5050 접속.
 
@@ -69,6 +70,10 @@ def api_ask():
     question = (body.get("question") or "").strip()
     if not question:
         return jsonify({"error": "질문이 비어있습니다."}), 400
+    if not agent.has_api_key():
+        # 키가 없으면 Claude를 부르기 전에 여기서 끊는다. SDK가 던지는 영문
+        # TypeError가 그대로 말풍선에 뜨던 걸, 무엇을 해야 하는지로 바꾼 것.
+        return jsonify({"error": agent.MISSING_KEY_MESSAGE}), 503
     try:
         result = agent.ask(question)  # {"answer": str, "panels": list | None}
         # 자연어를 "선택 UI의 단축키"로 쓴다 — 답변 문장을 파싱하지 않고, agent가
@@ -86,6 +91,9 @@ if __name__ == "__main__":
     # 안 죽이고 두 번째 인스턴스를 띄울 때 필요하다.
     port = int(os.environ.get("PORT", "5050"))
     print("공정 품질 AI Agent")
+    # 키 유무를 띄울 때 한 번 알려준다 — 없으면 챗만 막히고 나머지는 그대로 돈다.
+    print("  API 키       " + ("연결됨(챗봇 사용 가능)" if agent.has_api_key()
+                               else "없음 — 그래프·히트맵만 동작(.env에 ANTHROPIC_API_KEY)"))
     print(f"  챗봇(기존)   http://localhost:{port}/")
     print(f"  대시보드(신) http://localhost:{port}/dashboard")
     app.run(host="127.0.0.1", port=port, debug=False)
