@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T22:23:48.223443",
+  "generated_at": "2026-08-11T22:41:38.993861",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -1222,20 +1222,20 @@
           "trend_direction": "up",
           "early_warning_active": true,
           "trend_message": "DP02 / PKG_A / RCP_2의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-          "alert_since": "2026-03-11",
-          "alert_active_days": 19.9,
+          "alert_since": "2026-03-09",
+          "alert_active_days": 21.6,
           "alert_strength": 1.0,
           "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_F",
               "recipe_id": "RCP_7",
-              "warning_count": 39
+              "warning_count": 42
             },
             {
               "product_id": "PKG_C",
               "recipe_id": "RCP_5",
-              "warning_count": 27
+              "warning_count": 29
             },
             {
               "product_id": "PKG_E",
@@ -1243,7 +1243,7 @@
               "warning_count": 24
             }
           ],
-          "n_product_recipe_combos_affected": 26.0,
+          "n_product_recipe_combos_affected": 47.0,
           "recipe_hotspot_concentrated": true,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         }
@@ -1689,20 +1689,20 @@
           "trend_direction": "up",
           "early_warning_active": true,
           "trend_message": "DP03 / PKG_D / RCP_1의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
-          "alert_since": "2026-02-18",
-          "alert_active_days": 40.8,
+          "alert_since": "2026-02-13",
+          "alert_active_days": 46.0,
           "alert_strength": 1.0,
           "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_C",
               "recipe_id": "RCP_2",
-              "warning_count": 210
+              "warning_count": 211
             },
             {
               "product_id": "PKG_E",
               "recipe_id": "RCP_8",
-              "warning_count": 206
+              "warning_count": 207
             },
             {
               "product_id": "PKG_F",
