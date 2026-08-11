@@ -403,6 +403,8 @@ async function load(){
     const d = await res.json();
     if(token !== loadToken) return;  // 그 사이 더 최신 요청이 나갔다
     if(d.error){ $('view').innerHTML = `<div class="empty">${esc(d.error)}</div>`; return; }
+    // 새로 받아온 구간이므로 이전 화면의 확대는 푼다(인덱스 기준이 달라진다)
+    chartZoom = null; lastFull = d;
     ({trend:renderTrend, defect:renderDefect, heatmap:renderHeatmap, compare:renderCompare}[d.view])(d);
   }catch(err){
     // 서버가 내려가 있으면 여기로 온다. 안 잡으면 "불러오는 중…"에서 영영 멈춘다.
@@ -434,15 +436,18 @@ function renderTrend(d){
   // 잡는 것(경보 시작 14일 전~, 경보가 없으면 최근 30일)이고, "전체"는 89일 전부다.
   const ranges = [[null,'기본'],[89,'전체'],[30,'30일'],[7,'7일']];
   const picker = ranges.map(([v,label]) =>
-    `<span class="rng ${(state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+    `<span class="rng ${!chartZoom && (state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+  const zc = zoomedChart(c);   // 드래그로 확대 중이면 그 구간만 그린다
 
   $('view').innerHTML = `
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
       ${d.defect ? `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}</div>` : ''}
-      <div class="rngbar">${picker}<span class="rng-n">${c.series.length}일${
-        d.total_days ? ` / 전체 ${d.total_days}일` : ''}</span></div>
+      <div class="rngbar">${picker}<span class="rng-n">${
+        chartZoom ? `확대 ${zc.series.length}일 · 그래프 더블클릭으로 복귀`
+                  : `${c.series.length}일${d.total_days ? ` / 전체 ${d.total_days}일` : ''} · 드래그하면 확대`
+      }</span></div>
     </div>
 
     <div class="card">
@@ -462,7 +467,7 @@ function renderTrend(d){
         <div class="gauge"><div class="gauge-fill" style="width:${Math.min(margin,100)}%;
           background:${margin >= 80 ? 'var(--critical)' : margin >= 40 ? 'var(--warn)' : 'var(--good)'}"></div></div>
         <div class="gauge-ax"><span>0% 정상값</span><span>100% 관리한계</span></div>`}
-      ${renderChart(c, meta.threshold_raw)}
+      ${renderChart(zc, meta.threshold_raw)}
       <div class="meta">
         ${c.early_warning_active && c.alert_since
           ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)` : '추세 경보 없음'}
@@ -477,7 +482,8 @@ function renderTrend(d){
 
   $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
     setState({days: el.dataset.days ? Number(el.dataset.days) : null}));
-  wireChart(d);
+  // 툴팁이 인덱스로 값을 찾으므로, 화면에 실제로 그린 구간(zc)을 넘겨야 어긋나지 않는다
+  wireChart({...d, chart: zc});
 }
 
 // "불량률이 갈리는 경계값"을 보여준다.
@@ -707,6 +713,7 @@ function renderHeatmap(d){
 // 뷰 4 — 장비 비교. 기준선은 4대 공통이다(baseline이 Product×Recipe 층에서 잡히므로).
 // ===================================================================
 function renderCompare(d){
+  d = zoomedCompare(d);   // 드래그로 확대 중이면 그 구간만 — 아래 전부가 이걸 쓴다
   const W=640,H=250,padL=52,padR=16,padT=14,padB=44;
   const n=d.dates.length;
   const has=v=>v!==null&&v!==undefined;
@@ -742,6 +749,8 @@ function renderCompare(d){
     <div class="vhead">
       <div class="vtitle">${d.factor} · 장비 4대 비교</div>
       <div class="vsub">기준선은 4대 공통입니다 — 같은 자로 재서 어느 장비가 벗어났는지 봅니다</div>
+      <div class="rngbar"><span class="rng-n">${
+        chartZoom ? `확대 ${n}일 · 그래프 더블클릭으로 복귀` : `${n}일 · 드래그하면 확대`}</span></div>
     </div>
     <div class="card">
       <div class="chart-acts">
@@ -774,6 +783,32 @@ function renderCompare(d){
 // ===================================================================
 const SVGNS = 'http://www.w3.org/2000/svg';
 const hideTip = () => { $('chartTip').style.display = 'none'; };
+
+// 드래그로 고른 확대 구간 — **이미 받아온 시리즈 안의 인덱스**다. 서버를 다시
+// 부르지 않고 화면에서만 잘라서 즉시 반응한다(기간 버튼은 서버 왕복이라 성격이
+// 다르다 — 버튼은 "얼마나 받아올지", 드래그는 "받아온 것 중 어디를 볼지").
+// 다른 변수/장비를 고르거나 기간 버튼을 누르면 load()에서 풀린다.
+let chartZoom = null;
+let lastFull = null;   // 확대 해제 시 되돌릴 원본 뷰 데이터
+
+const zoomSlice = arr => chartZoom ? arr.slice(chartZoom.from, chartZoom.to + 1) : arr;
+
+function zoomedChart(c){
+  if(!chartZoom) return c;
+  const out = {...c, series: zoomSlice(c.series)};
+  if(c.defect_series) out.defect_series = zoomSlice(c.defect_series);
+  return out;
+}
+function zoomedCompare(d){
+  if(!chartZoom) return d;
+  return {...d, dates: zoomSlice(d.dates),
+          machines: d.machines.map(m => ({...m, values: zoomSlice(m.values)}))};
+}
+function redrawChart(){
+  if(!lastFull) return;
+  ({trend: renderTrend, defect: renderDefect,
+    heatmap: renderHeatmap, compare: renderCompare}[lastFull.view])(lastFull);
+}
 
 function fmtNum(v){
   if(v === null || v === undefined) return '-';
@@ -836,12 +871,26 @@ function attachCrosshair(svg, d){
   const plotW = geom.W - geom.padL - geom.padR;
   const xOf = i => geom.padL + (i / (geom.n - 1)) * plotW;
   const yOf = v => geom.padT + (1 - (v - geom.vMin) / (geom.vMax - geom.vMin)) * (geom.H - geom.padT - geom.padB);
+  // 화면 x -> viewBox x.
+  //
+  // getBoundingClientRect().width로 나누면 안 된다. svg는 CSS width:100%인데
+  // height가 210으로 고정돼 있어서, 카드가 640보다 넓으면 preserveAspectRatio
+  // 기본값(xMidYMid meet)이 배율을 1로 묶고 그림을 **가운데 640px에만** 그린다
+  // (카드 1444px이면 좌우 402px씩이 빈 공간). 요소 폭 기준으로 환산하면 그 빈
+  // 공간에서도 툴팁이 뜨고, 위치도 실제 점과 어긋난다.
+  // getScreenCTM()은 실제로 적용된 변환이라 여백·배율과 무관하게 맞는다.
+  const vbX = cx => {
+    const ctm = svg.getScreenCTM();
+    if(!ctm) return null;                       // 아직 배치 전(폭 0 등)
+    const pt = svg.createSVGPoint();
+    pt.x = cx; pt.y = 0;
+    return pt.matrixTransform(ctm.inverse()).x;
+  };
   const idxAt = cx => {
-    const r = svg.getBoundingClientRect();
-    // 탭 전환 직후처럼 그래프가 아직 배치되지 않았으면 폭이 0이라 좌표 환산이
-    // NaN이 된다 — 그대로 두면 series[NaN]을 읽다가 터진다.
-    if(!r.width) return -1;
-    const vx = (cx - r.left) * (geom.W / r.width);
+    const vx = vbX(cx);
+    if(vx === null) return -1;
+    // 그림 밖(좌우 여백, 축 라벨 영역)에서는 아무것도 띄우지 않는다
+    if(vx < geom.padL - 6 || vx > geom.W - geom.padR + 6) return -1;
     return Math.max(0, Math.min(geom.n - 1, Math.round((vx - geom.padL) / plotW * (geom.n - 1))));
   };
 
@@ -869,9 +918,30 @@ function attachCrosshair(svg, d){
   });
   svg.appendChild(g);
 
+  // 드래그로 고른 구간을 표시할 사각형
+  const sel = document.createElementNS(SVGNS, 'rect');
+  sel.setAttribute('data-ui', '1');
+  sel.setAttribute('fill', 'var(--accent)');
+  sel.setAttribute('opacity', '0.16');
+  sel.setAttribute('y', geom.padT);
+  sel.setAttribute('height', geom.H - geom.padT - geom.padB);
+  sel.setAttribute('pointer-events', 'none');
+  sel.style.display = 'none';
+  svg.appendChild(sel);
+
+  svg.style.touchAction = 'none';
+  let dragging = false, dragStart = 0;
+  const clearHover = () => { g.style.display = 'none'; hideTip(); };
+
   svg.addEventListener('pointermove', e => {
     const i = idxAt(e.clientX);
-    if(i < 0) return;
+    if(i < 0){ if(!dragging) clearHover(); return; }
+    if(dragging){
+      const a = Math.min(dragStart, i), b = Math.max(dragStart, i);
+      sel.setAttribute('x', xOf(a));
+      sel.setAttribute('width', Math.max(1, xOf(b) - xOf(a)));
+      return;
+    }
     const px = xOf(i);
     vline.setAttribute('x1', px); vline.setAttribute('x2', px);
     targets.forEach((m, k) => {
@@ -892,7 +962,39 @@ function attachCrosshair(svg, d){
     tip.style.left = Math.max(8, left) + 'px';
     tip.style.top = top + 'px';
   });
-  svg.addEventListener('pointerleave', () => { g.style.display = 'none'; hideTip(); });
+  svg.addEventListener('pointerleave', () => { if(!dragging) clearHover(); });
+
+  // 드래그 확대 — 서버를 다시 부르지 않고 이미 받은 구간 안에서 잘라 본다.
+  // 포인터 캡처를 걸어서 그래프 밖에서 손을 떼도 확대가 성립하게 한다.
+  svg.addEventListener('pointerdown', e => {
+    if(e.button !== 0) return;
+    const i = idxAt(e.clientX);
+    if(i < 0) return;
+    e.preventDefault();
+    dragging = true; dragStart = i;
+    sel.setAttribute('x', xOf(i)); sel.setAttribute('width', '0');
+    sel.style.display = '';
+    clearHover();
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  svg.addEventListener('pointerup', e => {
+    if(!dragging) return;
+    dragging = false;
+    sel.style.display = 'none';
+    try{ svg.releasePointerCapture(e.pointerId); }catch(_){}
+    const i = idxAt(e.clientX);
+    if(i < 0) return;
+    const a = Math.min(dragStart, i), b = Math.max(dragStart, i);
+    if(b - a < 1) return;                      // 그냥 클릭 — 확대하지 않는다
+    // 지금 보이는 구간의 인덱스를 원본(로드된 시리즈) 인덱스로 되돌린다
+    const base = chartZoom ? chartZoom.from : 0;
+    chartZoom = {from: base + a, to: base + b};
+    redrawChart();
+  });
+  svg.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    if(chartZoom){ chartZoom = null; redrawChart(); }
+  });
 }
 
 // ---------- 내보내기 ----------
