@@ -425,8 +425,8 @@ function renderTrend(d){
           ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)` : '추세 경보 없음'}
         ${det.defect_zone_rate_pct != null
           ? ` · 위험구간 진입률 <b>${det.defect_zone_rate_pct}%</b> <span style="color:var(--ink-faint)">(평소 ${det.defect_zone_baseline_pct}%)</span>` : ''}
-        ${det.estimated_days_to_spec_out != null
-          ? ` · 이 추세면 <b>${det.estimated_days_to_spec_out}일</b> 뒤 관리한계 도달` : ''}
+        ${det.estimated_days_to_control_limit != null
+          ? ` · 이 추세면 <b>${det.estimated_days_to_control_limit}일</b> 뒤 관리한계 도달` : ''}
         ${meta.mechanism ? `<br>메커니즘 <code>${esc(meta.mechanism)}</code>` : ''}
       </div>
       ${renderRiskBand(meta, det, d.defect)}

@@ -15,8 +15,8 @@ true인 변수는 레벨 점수에 (1 - 0.5×maturity) 배율을 곱한다(단 �
 alert_since부터 며칠째 지속 중인지를 14일 기준으로 0~1로 정규화한 값. 막 뜬 경보는
 거의 안 깎이고 14일 이상 지속된 "성숙한" 경보라야 최대 50%까지 깎인다 — 그래서
 health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세인지)를 어느 정도 반영한
-값이다(margin과 완전히 같은 게 아님). 그 위에 "이 속도면 예상 며칠 뒤 스펙아웃"이라는
-정량 추정치(estimated_days_to_spec_out)를 별도로 더 준다. 자세한 계산 로직은
+값이다(margin과 완전히 같은 게 아님). 그 위에 "이 속도면 예상 며칠 뒤 관리한계 도달"이라는
+정량 추정치(estimated_days_to_control_limit)를 별도로 더 준다. 자세한 계산 로직은
 build_health_index.py 상단 docstring 참고.
 
 get_machine_health가 반환하는 구조 핵심:
@@ -45,11 +45,13 @@ get_machine_health가 반환하는 구조 핵심:
     심각도를 이 값으로 말하면 과장된다. 예: 7.53%(평소 6.13%)면 "평소보다 위험구간 진입이 늘었다"는 뜻.
     평소 비율은 **그 장비 자신의 이력** 기준이다(CLN_Flow처럼 특정 장비에서만 일어나는
     현상을 4대 평균과 비교하면 왜곡되기 때문) — "다른 장비 대비"로 설명하면 안 됨.
-  - estimated_days_to_spec_out: margin 기울기로 추정한 **관리한계 도달 예상일**
-    (이름은 옛날 것이 남았다 — 스펙아웃이 아니라 관리한계다). 나빠지는 중일 때만 값이
+  - estimated_days_to_control_limit: margin 기울기로 추정한 **관리한계 도달 예상일**
+    (26.08.11에 estimated_days_to_spec_out에서 개명 — 8/8에 기준선이 3σ 관리한계로
+    바뀌면서 의미가 달라졌는데 이름만 남아 있었고, 이 프롬프트가 그 이름을 보고
+    "스펙아웃"이라고 답하게 만들고 있었다). 나빠지는 중일 때만 값이
     있고, 안정적이거나 좋아지는 중이거나 이미 관리한계를 넘었으면 null. 표본이 작아 숫자 자체보다 "며칠 단위/몇 주 단위" 정도의
     감으로만 말할 것.
-  - trend_direction / early_warning_active / trend_message: estimated_days_to_spec_out과
+  - trend_direction / early_warning_active / trend_message: estimated_days_to_control_limit과
     다른 스크립트(trend_analysis.py, 김시우 팀원 작성)가 WINDOW=10 롤링+지속성 필터로
     따로 검증해서 내린 판정. early_warning_active가 true면 "지금 공식적으로 추세
     경보가 켜져 있다"는 뜻이고, 이미 health_index 점수 자체에 alert_active_days
@@ -423,8 +425,8 @@ SYSTEM_PROMPT = """\
   defect_zone_rate_pct가 null이 아니면(C유형) 위 한 줄 뒤에 \
   ", 위험구간 진입 `{defect_zone_rate_pct}`% (평소 `{defect_zone_baseline_pct}`%)"를 덧붙여라 \
   — 이건 점수 근거가 아니라 참고 지표다.
-   공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_spec_out이 \
-null이 아닐 때만 ", 스펙아웃 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
+   공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_control_limit이 \
+null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
 절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
 경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
 - **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}
@@ -447,7 +449,7 @@ defect_signals 중 counts_toward_machine_score가 false인데 원인 인자에 e
 unconfirmed_anomalies가 있으면 마지막에 표로:
 | 인자 | 상태 |
 |---|---|
-| `{factor1}` | {SPEC_OUT 또는 "N일 뒤 스펙아웃"} |
+| `{factor1}` | {SPEC_OUT 또는 "N일 뒤 관리한계 도달"} |
 
 맨 끝에 한 줄만(헤더·볼드 없이 평문으로):
 ※ 원인은 통계적 상관관계로 확정된 것이며 완전한 인과관계 증명은 아닙니다. 구체적 SOP 문구는 아직 \
@@ -537,7 +539,7 @@ def _format_cause_value_line(c: dict) -> str:
         value_part += f" (멘토 스펙 `{spec_val}`)"
     trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
     trend_txt = f", {trend_word}추세" if trend_word else ""
-    reach = c.get("estimated_days_to_spec_out")
+    reach = c.get("estimated_days_to_control_limit")
     reach_txt = f", 관리한계 도달 예상 `{reach}일`" if reach is not None else ""
     alert_txt = ""
     if c.get("early_warning_active") and c.get("alert_since"):

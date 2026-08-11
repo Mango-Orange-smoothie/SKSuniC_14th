@@ -54,7 +54,9 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 2) 추세는 점수에 안 섞고, 두 가지를 같이 제공 (26.08.05부터)
    (a) margin_used_pct의 최근 14일 기울기(%/일) → 나빠지는 방향이면
        (100 − 지금 margin_used_pct) ÷ 기울기 = 예상 며칠 뒤 **관리한계 도달**
-       (필드명 estimated_days_to_spec_out은 옛 이름이 남은 것 — 스펙아웃이 아니다)
+       (필드명 `estimated_days_to_control_limit` — 26.08.11에 개명했다. 8/8에 기준선이
+        3σ 관리한계로 바뀌면서 의미가 달라졌는데 옛 이름 estimated_days_to_spec_out이
+        그대로 남아, 에이전트 프롬프트가 그 이름을 보고 "스펙아웃"이라고 답하고 있었다)
        (이미 관리한계를 넘었거나 좋아지는 중이면 계산 안 함 — null)
    (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + 지속성 필터, Kendall tau
        교차검증됨)가 판정한 "지금 공식적으로 경보가 켜져 있는가"
@@ -79,7 +81,8 @@ python 26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py
 
 "29.3% 사용" 같은 추상적 숫자 대신, 실제 값(`current_value`/`baseline_median`/`lsl`/`usl`)을
 그대로 줍니다. 스펙아웃이면 `spec_status: "SPEC_OUT"`만 표시하고(퍼센트 안 보여줌),
-아직 스펙 안이고 나빠지는 중이면 `estimated_days_to_spec_out`(예상 며칠 뒤)을 줍니다.
+아직 관리한계 안이고 나빠지는 중이면 `estimated_days_to_control_limit`(예상 며칠 뒤
+관리한계 도달)을 줍니다.
 
 ## 데이터 출처 — 원인 인자는 Goal2 관계DB에서 읽음
 
@@ -142,7 +145,7 @@ defect별 분석)은 이 통합 DB로 흡수됐다.
   `daily_mean_z` 자기 자신의 분포(p0.5~p99.5)로 다시 재계산**(`compute_daily_boundary_z`)
   — 재는 값과 경계가 같은 granularity를 쓰도록 통일했습니다. 단, 정의상 "일평균의
   상위/하위 0.5%"를 경계로 삼다 보니 89일치 데이터에서는 컬럼당 스펙아웃 사례가 1~2건
-  정도로 적습니다 — `estimated_days_to_spec_out` 숫자 자체의 통계적 신뢰도는 낮고,
+  정도로 적습니다 — `estimated_days_to_control_limit` 숫자 자체의 통계적 신뢰도는 낮고,
   "점진적으로 쌓이는 패턴이 있는지" 정성적으로 보는 용도로 쓸 것.
 - **(26.08.05 발견 및 수정) direction="either" 컬럼의 margin이 분포가 한쪽으로 치우친
   경우 터무니없이 커지는 버그가 있었습니다.** `|z|`를 위/아래 중 더 좁은 쪽 경계
@@ -189,7 +192,7 @@ defect별 분석)은 이 통합 DB로 흡수됐다.
   1~2건뿐이라 표본이 매우 작습니다 — "점진적 패턴이 존재한다"는 정성적 결론까지만
   신뢰할 것, 리드타임 숫자를 확정치로 쓰지 말 것.
   **결론: "spec out 되기 전에 위험을 미리 알려준다"는 원래 목표는 여전히 유효합니다**
-  (레벨 1단계 margin_used_pct/estimated_days_to_spec_out으로 이미 반영). "defect 발생을
+  (레벨 1단계 margin_used_pct/estimated_days_to_control_limit으로 이미 반영). "defect 발생을
   N일 전에 정확히 찍어서 예측"하는 건 안 되지만, 그건 이 시스템이 원래 약속한 것도
   아닙니다 — Health Index는 처음부터 "다른 장비 대비 몇 등"이 아니라 "스펙 경계까지
   남은 여유"를 보여주는 설계였고, 그 여유가 다변량 모델의 순간 탐지력(위 문단)과

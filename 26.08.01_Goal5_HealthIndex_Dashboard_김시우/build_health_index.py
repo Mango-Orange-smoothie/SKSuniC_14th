@@ -29,7 +29,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         자기 분포로 경계를 다시 재서 고침.)
   2. **추세는 두 가지를 별도 정보로 계속 제공하면서, 그중 (b)만 점수에도 작게 반영한다.**
        (a) margin_used_pct의 최근 14일 기울기(%/일)로 뽑은 정량적 "예상 며칠 뒤
-           스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out) — 이 스크립트가
+           스펙아웃"(margin_trend_pct_per_day/estimated_days_to_control_limit) — 이 스크립트가
            직접 추정. 이건 여전히 점수에 안 섞고 별도 필드로만 준다(리드타임 추정치라
            "점수"로 만들 단위가 없음).
        (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + PERSIST_WINDOW=5 지속성
@@ -47,7 +47,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         레벨 점수(중 ALARM_BAND 위 몫)에
         (1 - TREND_PENALTY_MAX_CUT × max(maturity, urgency)) 배율을 곱한다.
           maturity = alert_since부터 지속된 일수 ÷ RECENT_WINDOW_DAYS (0~1) — 증거가 쌓였나
-          urgency  = RECENT_WINDOW_DAYS ÷ estimated_days_to_spec_out (0~1) — 곧 터지나
+          urgency  = RECENT_WINDOW_DAYS ÷ estimated_days_to_control_limit (0~1) — 곧 터지나
                      (개선 중이거나 기울기가 0 이하라 est_days가 없으면 0)
         (26.08.08까지는 maturity 하나만 썼는데, 그러면 "방금 뜬 급한 경보"가 거의 안 깎여
         순위가 뒤집혔다 — DP03 CLN_Pressure(17.8일 뒤 도달, 경보 0.1일째)가 66.3점으로
@@ -755,7 +755,7 @@ def compute_level_and_trend(
     점수를 내는 경보선을 그대로 실어서 화면과 점수의 근거가 어긋나지 않게 한다.
 
     추세는 두 가지를 같이 담는다: margin_used_pct의 최근 14일 기울기로 뽑은 정량적
-    "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out)과,
+    "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_control_limit)과,
     trend_analysis.py(load_trend_warning_status)가 판정한 "지금 공식적으로 경보가
     켜져 있는가"(trend_direction/early_warning_active/trend_message) — 전자는 이
     스크립트가 직접 추정한 속도, 후자는 팀이 따로 검증한 판정 로직의 결과다.
@@ -1056,7 +1056,7 @@ def compute_level_and_trend(
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),
             "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
-            "estimated_days_to_spec_out": est_days,
+            "estimated_days_to_control_limit": est_days,
             "trend_direction": ta_status.get("trend_direction"),
             # 1.0에 가까울수록 한 방향으로 확실히 쏠린 것, 0.5에 가까우면 방향이 섞여
             # 있어서 "추세"라고 부르기 어렵다 — 소비자가 구분할 수 있게 같이 낸다.
@@ -1212,7 +1212,7 @@ def build_machine_snapshot(
                     "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
                     "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                     "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
-                    "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                    "estimated_days_to_control_limit": _none_if_nan(row["estimated_days_to_control_limit"]),
                     "trend_direction": _none_if_nan(row["trend_direction"]),
                     "early_warning_active": bool(row["early_warning_active"]),
                     "trend_message": _none_if_nan(row["trend_message"]),
@@ -1273,7 +1273,7 @@ def build_machine_snapshot(
                 "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
                 "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                 "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
-                "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                "estimated_days_to_control_limit": _none_if_nan(row["estimated_days_to_control_limit"]),
                 "trend_direction": _none_if_nan(row["trend_direction"]),
                 "early_warning_active": bool(row["early_warning_active"]),
                 "trend_message": _none_if_nan(row["trend_message"]),

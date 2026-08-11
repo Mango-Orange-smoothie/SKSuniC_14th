@@ -13,9 +13,9 @@ AI가 데이터를 지어내지 않고, 실제 저장된 값을 "조회"해서 �
 2. 시스템 프롬프트로 역할 고정 — "반드시 도구를 호출해서 실제 데이터를 확인한 뒤 답하라"
 3. Claude가 질문 내용에 따라 필요한 도구를 스스로 선택해서 호출
    - `get_machine_health(machine_id)` — 장비/defect/원인변수 3단계 Health Index(0~100,
-     스펙 경계까지 남은 여유 기반), 나쁜 순서 top3(worst_defects/worst_factors), 실제 값
-     (current_value/lsl/usl/spec_status), 나빠지는 중이면 예상 며칠 뒤 스펙아웃
-     (estimated_days_to_spec_out), 실제 불량 발생 여부(최근 7일), 확정 원인 아닌 변수의
+     관리한계(정상값 ± 3σ)까지 남은 여유 기반), 나쁜 순서 top3(worst_defects/worst_factors),
+     실제 값(current_value/lsl/usl/spec_status), 나빠지는 중이면 예상 며칠 뒤 관리한계 도달
+     (estimated_days_to_control_limit), 실제 불량 발생 여부(최근 7일), 확정 원인 아닌 변수의
      미확인 이상(안전망)까지 전부 반환
    - `get_defect_causes(defect_name)` — 팀이 확정한 불량별 원인 변수(유효인자)와 메커니즘
      (Particle→Vibration: daeho, Remain_Coat→CLN_Pressure: 전성재,
