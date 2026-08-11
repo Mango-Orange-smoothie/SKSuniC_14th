@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HI 색 경계 · 알림 기준 정리</title>
+<style>
+:root{
+  --bg:#fbfbfa; --surface:#fff; --line:#e6e4e0; --line-soft:#f1efec;
+  --ink:#1f1e1c; --ink-muted:#6b6862; --ink-faint:#9c9891;
+  --accent:#b8582b; --accent-soft:#fdf1ea;
+  --danger:#c0392b; --danger-soft:#fdedeb;
+  --warn:#c98a1a; --warn-soft:#fdf5e6;
+  --ok:#3f7d5c; --ok-soft:#eef6f1;
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+  --m:"SFMono-Regular",Consolas,"D2Coding",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#191817; --surface:#211f1e; --line:#35322f; --line-soft:#2a2725;
+    --ink:#eceae7; --ink-muted:#a5a09a; --ink-faint:#77726c;
+    --accent:#e08b5c; --accent-soft:#2e2320;
+    --danger:#e07a6c; --danger-soft:#2f201e;
+    --warn:#dfb056; --warn-soft:#2c2519;
+    --ok:#71b391; --ok-soft:#1e2a24;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:14px;line-height:1.65}
+.page{max-width:900px;margin:0 auto;padding:36px 22px 70px}
+h1{font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink-muted);margin:0 0 3px;font-size:14px}
+.meta{color:var(--ink-faint);font-size:12px;font-family:var(--m);margin:0 0 30px}
+section{margin-top:34px}
+.k{font-family:var(--m);font-size:11px;color:var(--accent);letter-spacing:.09em;margin-bottom:5px}
+h2{font-size:17px;font-weight:750;margin:0 0 8px;letter-spacing:-.01em}
+p{margin:0 0 10px;color:var(--ink-muted)}
+p b,li b{color:var(--ink);font-weight:700}
+code{font-family:var(--m);font-size:12px;background:var(--accent-soft);color:var(--accent);padding:1.5px 5px;border-radius:4px}
+
+/* 결론 박스 */
+.rule{border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
+.row{display:grid;grid-template-columns:56px 1fr 1fr;gap:14px;align-items:center;
+  padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.row:last-child{border-bottom:0}
+.dot{font-size:19px;text-align:center}
+.cond{font-weight:750;font-size:14.5px}
+.why{font-size:12.5px;color:var(--ink-muted)}
+.row.g{background:var(--ok-soft)} .row.y{background:var(--warn-soft)} .row.r{background:var(--danger-soft)}
+.tagno{display:inline-block;font-size:11px;font-weight:800;padding:1.5px 7px;border-radius:4px;
+  background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok);margin-left:5px}
+.tagyes{display:inline-block;font-size:11px;font-weight:800;padding:1.5px 7px;border-radius:4px;
+  background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);margin-left:5px}
+.after{margin-top:11px;padding:11px 16px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:13px}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;white-space:nowrap}
+th{background:var(--bg);font-weight:700;font-size:12.5px;color:var(--ink-muted)}
+td.hl{background:var(--danger-soft);font-weight:700}
+td.hl2{background:var(--warn-soft);font-weight:700}
+ul{margin:8px 0 0;padding-left:19px}
+li{margin:6px 0;color:var(--ink-muted)}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;
+  border-radius:0 8px 8px 0;font-size:13px;margin-top:12px}
+.lim{border:1px solid var(--danger);background:var(--danger-soft);border-radius:9px;padding:13px 17px}
+.lim ul{margin:6px 0 0}
+.lim li{color:var(--ink)}
+.big{display:flex;gap:30px;flex-wrap:wrap;margin:12px 0 4px}
+.big .n{font:800 27px/1 var(--m);letter-spacing:-.02em}
+.big .n.bad{color:var(--danger)} .big .n.good{color:var(--ok)}
+.big .l{font-size:12px;color:var(--ink-muted);margin-top:4px}
+.foot{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-faint)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>HI 색 경계 · 알림 기준</h1>
+<p class="sub">지금 <code>50 / 80</code>에는 근거가 없습니다. <b>80은 없애고, 30 하나만 남깁니다.</b></p>
+<p class="meta">전성재 · 2026-08-11 · 수치는 main 41fef6d 감시 데이터 기준</p>
+
+<!-- 결론 -->
+<section>
+  <div class="k">결론</div>
+  <h2>이렇게 하자는 제안</h2>
+  <div class="rule">
+    <div class="row g"><div class="dot">🟢</div>
+      <div><div class="cond">기본값 — 경보 없으면 초록</div></div>
+      <div class="why">경계를 안 잡습니다<span class="tagno">임의 숫자 0개</span></div></div>
+    <div class="row y"><div class="dot">🟡</div>
+      <div><div class="cond">추세 경보 켜짐</div></div>
+      <div class="why">CUSUM 등 4개 경로 판정<span class="tagno">임의 숫자 0개</span></div></div>
+    <div class="row r"><div class="dot">🔴</div>
+      <div><div class="cond">HI 30 미만</div></div>
+      <div class="why">실측 — 불량 급등 6일 전<span class="tagyes">합의 포함</span></div></div>
+  </div>
+  <div class="after">
+    <b>알림</b> — 색이 바뀔 때만 1통 (상태가 아니라 변화에 건다) · 기본 <code>30</code>, 사용자가 조절<br>
+    <b>정렬</b> — 같은 색 안에서는 HI 낮은 순. <b>색이 단계를 나누고, HI가 줄을 세운다</b>
+  </div>
+</section>
+
+<!-- 현재 적용 -->
+<section>
+  <div class="k">적용 결과</div>
+  <h2>지금 4대는 이렇게 됩니다</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>장비</th><th>HI</th><th>추세 경보</th><th>현재(50/80)</th><th>제안</th></tr>
+    <tr><td><code>DP04</code></td><td>14.5</td><td>39.6일째</td><td>🔴</td><td class="hl">🔴</td></tr>
+    <tr><td><code>DP02</code></td><td>47.6</td><td>56.0일째</td><td>🔴</td><td class="hl2">🟡</td></tr>
+    <tr><td><code>DP03</code></td><td>50.8</td><td>41.8일째</td><td>🟡</td><td class="hl2">🟡</td></tr>
+    <tr><td><code>DP01</code></td><td>91.9</td><td>2.7일째</td><td>🟢</td><td class="hl2">🟡</td></tr>
+  </table></div>
+  <div class="note">
+    <b>DP01이 노랑인 건 오류가 아닙니다.</b> <code>3/28</code>에 실제로 새 경보가 켜졌습니다.
+    "DP01 정상"은 멘토 시나리오 기준(89일 전체) 이야기이고, 마지막 3일에 신호가 뜬 건 별개 사실입니다.
+    <b>89일 내내 조용하던 장비에서 마지막에 뭔가 잡혔다</b>고 말하면 오히려 시스템이 살아 있다는 증거가 됩니다.
+  </div>
+</section>
+
+<!-- 30 근거 -->
+<section>
+  <div class="k">근거 ①</div>
+  <h2>30은 실측에서 나왔습니다 — DP04</h2>
+  <p><b>"불량이 늘었다"를 임의로 정하지 않았습니다.</b> 원인 변수를 판정할 때 쓰는 것과
+    <b>같은 CUSUM</b>(K=0.7σ, H=4.5σ)을 Remain_Coat 불량률에도 걸었습니다.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>날짜</th><th>HI</th><th>불량률(평소 대비)</th><th>무슨 일</th></tr>
+    <tr><td><code>2/19</code></td><td>79.6</td><td>1.01배</td><td class="hl2"><b>추세 경보 → 🟡</b></td></tr>
+    <tr><td><code>2/27</code></td><td>29.9</td><td>1.11배</td><td class="hl"><b>HI 30 통과 → 🔴</b></td></tr>
+    <tr><td><code>3/3</code></td><td>17.4</td><td>—</td><td><b>불량률 CUSUM 경보</b> — 실제로 늘었다고 판정된 날</td></tr>
+  </table></div>
+  <div class="big">
+    <div><div class="n good">13일</div><div class="l">🟡 노랑 → 불량 판정</div></div>
+    <div><div class="n good">5일</div><div class="l">🔴 빨강 → 불량 판정</div></div>
+  </div>
+  <p><b>HI 30을 지날 때 불량률은 아직 평소의 1.11배입니다.</b> 조치할 시간이 남아 있는 지점이고,
+    <b>R1 주입 데이터가 아니라 감시 데이터</b>에서 나온 값입니다.</p>
+
+  <h2 style="margin-top:22px;font-size:15px">대조 — 건강한 장비에서는 안 뜹니다</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>장비</th><th>Remain_Coat HI</th><th>불량률 CUSUM</th><th>불량률 변화</th></tr>
+    <tr><td><code>DP04</code></td><td class="hl">14.5</td><td class="hl"><b>3/3 경보</b></td><td>2.18% → 6.12% (2.81배)</td></tr>
+    <tr><td><code>DP02</code></td><td>98.9</td><td>없음</td><td>1.25배</td></tr>
+    <tr><td><code>DP03</code></td><td>99.6</td><td>없음</td><td>1.01배</td></tr>
+    <tr><td><code>DP01</code></td><td>99.0</td><td class="hl2">3/4 경보</td><td>1.10배</td></tr>
+  </table></div>
+  <p style="margin-top:8px"><b>사례 1건이 아니라 4대 대조입니다.</b> HI가 낮은 DP04만 불량률이 2.81배로 올랐고
+    나머지는 1.0~1.25배입니다.<br>
+    <b>단, DP01에서 CUSUM이 하나 떴습니다</b>(HI 99.0). 불량률은 1.10배로 거의 안 올랐는데
+    작은 지속 편차를 CUSUM이 잡은 것입니다 — 대조가 3대 중 2대만 깨끗합니다. 그대로 밝힙니다.</p>
+  <div class="note">
+    <b>Particle은 근거로 쓰지 않습니다.</b> HI 90 이상인 DP02·DP04에서도 불량률 상승이 잡혀
+    점수와 안 맞습니다. <code>Particle / CLN_Flow</code> 짝이 관계DB에서
+    <code>alert_usable=False</code>로 막혀 있는 것과 관련 있어 보입니다 — <b>별도 확인 거리</b>입니다.
+  </div>
+</section>
+
+<!-- 못 만든 것 -->
+<section>
+  <div class="k">근거 ②</div>
+  <h2>데이터로 만들려다 안 된 것</h2>
+  <p>관계DB의 불량 급등선(<code>alert_threshold_raw</code>)을 HI 점수로 환산해봤습니다.
+    "불량이 실제로 뛰는 지점"이니 색 경계로 쓸 수 있을 줄 알았습니다.</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>인자</th><th>위험비</th><th>급등선의 HI</th><th>감시 데이터에서의 위험구간 불량률</th></tr>
+    <tr><td><code>Surface_Roughness</code></td><td>378배</td><td class="hl2"><b>86.0</b></td><td>18.15%</td></tr>
+    <tr><td><code>Cooling_Flow</code></td><td>4.1배</td><td>80.4</td><td class="hl">0.00%</td></tr>
+    <tr><td><code>CLN_Pressure</code></td><td>6.0배</td><td>57.7</td><td>6.71%</td></tr>
+    <tr><td><code>Laser_Power</code></td><td>31.4배</td><td>56.8</td><td class="hl">0.03%</td></tr>
+    <tr><td><code>Power_Efficiency</code></td><td>58.7배</td><td>50.0</td><td class="hl">0.00%</td></tr>
+    <tr><td><code>Head_Temp</code></td><td>94.7배</td><td>36.5</td><td class="hl">0.00%</td></tr>
+    <tr><td><code>CLN_Flow</code></td><td>24.7배</td><td class="hl"><b>9.2</b></td><td>9.07%</td></tr>
+  </table></div>
+  <ul>
+    <li><b>9.2에서 86.0까지 흩어집니다.</b> 어떤 숫자를 골라도 어떤 변수엔 이르고 어떤 변수엔 늦습니다.</li>
+    <li><b>절반은 R1(주입 데이터)에서만 나온 경계입니다.</b> Head_Temp·Power_Efficiency·Cooling_Flow는
+      감시 데이터에서 위험구간 불량률이 <b>0%</b>입니다 — Chipping이 10만 샷 중 4건뿐이라 학습이 안 됩니다.</li>
+    <li><b>결론: 모든 인자에 통하는 하나의 경계는 지금 데이터로 못 만듭니다.</b>
+      50/80에 근거가 없던 건 게을러서가 아니라 원래 못 대는 것이었습니다.</li>
+  </ul>
+</section>
+
+<!-- 알림 -->
+<section>
+  <div class="k">알림</div>
+  <h2>상태가 아니라 변화에 겁니다</h2>
+  <p>DP04로 89일을 돌려봤습니다.</p>
+  <div class="big">
+    <div><div class="n bad">32통</div><div class="l">지금 방식 — HI 30 아래면 매일 발송</div></div>
+    <div><div class="n good">2통</div><div class="l">색 전이 — 바뀔 때만</div></div>
+  </div>
+  <p>DP04는 <b>39일째 같은 상태</b>입니다. 상태로 알림을 걸면 매일 "아직도 나쁩니다"가 오고, 곧 안 읽게 됩니다.
+    전이로 걸면 <code>2/19</code>(초록→노랑)와 <code>2/27</code>(노랑→빨강) 두 통이고,
+    <b>둘 다 불량 나기 전</b>입니다.</p>
+  <div class="note">
+    김시우님이 <code>build_health_index.py:398</code> 주석에 이미 적어두셨습니다 —
+    <b>"early_warning 행이 아니라 이 <code>alert_since</code>가 바뀔 때만 새 알림으로 취급해야 한다."</b><br>
+    계산 쪽은 준비돼 있고 <b>n8n 발송 조건만 상태 기반</b>이라 연결이 안 된 상태입니다.
+  </div>
+</section>
+
+<!-- 타임라인 -->
+<section>
+  <div class="k">89일 타임라인</div>
+  <h2>색이 하나씩 켜지고, 그 다음에 불량이 옵니다</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>날짜</th><th>무슨 일</th><th>메일</th><th>그전까지</th></tr>
+    <tr><td><code>1/1 ~ 2/1</code></td><td>4대 전부 🟢 — 조용함</td><td>—</td><td></td></tr>
+    <tr><td><code>2/2</code></td><td>DP02 🟢 → 🟡</td><td>1통</td><td>32일간 초록</td></tr>
+    <tr><td><code>2/17</code></td><td>DP03 🟢 → 🟡</td><td>1통</td><td>47일간 초록</td></tr>
+    <tr><td><code>2/19</code></td><td>DP04 🟢 → 🟡</td><td>1통</td><td>49일간 초록</td></tr>
+    <tr><td class="hl"><code>2/27</code></td><td class="hl">DP04 🟡 → 🔴</td><td class="hl">1통</td><td>노랑 8일 만에</td></tr>
+    <tr><td><code>3/5</code></td><td><b>DP04 실제 불량률 1.5배 돌파</b></td><td>—</td><td>빨강 메일 6일 뒤</td></tr>
+    <tr><td><code>3/28</code></td><td>DP01 🟢 → 🟡</td><td>1통</td><td><b>86일간 초록</b></td></tr>
+  </table></div>
+  <div class="big">
+    <div><div class="n good">5통</div><div class="l">89일 · 장비 4대 전체 발송량</div></div>
+  </div>
+
+  <h2 style="margin-top:22px;font-size:15px">DP04는 노랑을 8일 거쳐서 빨강이 됐습니다</h2>
+  <p><b>그 8일 동안 추세 경보는 켜진 채 그대로입니다.</b> 그런데 HI는 <code>79.6</code> →
+    <code>29.9</code>로 떨어졌습니다 — 값(CLN_Flow)이 계속 나빠져 여유 소진이 20%에서 70%대로 갔기 때문입니다.</p>
+  <div class="note">
+    <b>여기가 Health Index가 일하는 자리입니다.</b> 경보만 보면 8일 내내 똑같지만,
+    HI는 "점점 급해지고 있다"를 보여줍니다.<br>
+    그래서 메일이 두 통입니다 — <code>2/19</code> <b>"뭔가 시작됐습니다"</b>,
+    <code>2/27</code> <b>"8일째 나빠졌습니다, 이제 급합니다"</b>.
+  </div>
+  <p style="margin-top:10px;font-size:12.5px;color:var(--ink-faint)">
+    ※ 위 날짜는 각 장비의 <b>최악 인자 하나</b> 기준입니다. 실제로는 "그 장비의 어느 인자든 처음 켜진 날"로
+    잡아야 하므로 통수가 조금 늘 수 있습니다 — 확인 필요.</p>
+</section>
+
+<!-- 초록 -->
+<section>
+  <div class="k">예상 질문</div>
+  <h2>"지금 초록이 하나도 없는데요?"</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th></th><th>4대 현황</th></tr>
+    <tr><td>스펙 위반</td><td><b>전부 OK</b> — 89일간 지속 위반 0건</td></tr>
+    <tr><td>추세 경보</td><td><b>전부 켜짐</b></td></tr>
+  </table></div>
+  <p style="margin-top:10px"><b>기존 방식으로 보면 4대 다 정상입니다.</b> 저희 화면에서 4대가 다 노랑 이상인 것,
+    그게 이 프로젝트가 주장하는 바로 그것입니다.</p>
+  <p>그리고 초록이 없는 게 아니라 <b>지금 없는 것</b>입니다 — 89일 중 대부분은 초록이었고
+    (DP01은 86일), 되감기로 색이 실제로 켜지는 과정을 보여줄 수 있습니다.
+    <b>"항상 빨간 대시보드"가 아니라 "조용하다가 잡히는 대시보드"</b>입니다.</p>
+</section>
+
+<!-- 한계 -->
+<section>
+  <div class="k">한계</div>
+  <h2>그대로 말할 것</h2>
+  <div class="lim"><ul>
+    <li><b>검증한 불량이 Remain_Coat 하나입니다.</b> Chipping은 89일에 4건이라 표본이 없고,
+      Particle은 HI와 안 맞아 근거로 못 씁니다.</li>
+    <li><b>대조 3대 중 DP01에서 CUSUM이 하나 떴습니다</b>(HI 99.0인데). 불량률은 1.10배로
+      거의 안 올랐지만, 대조가 완전히 깨끗하지는 않습니다.</li>
+    <li><b>일별 HI는 재계산한 근사입니다</b> — 마지막 날 14.2 vs 공식 14.5(0.3 오차).
+      전이 날짜가 하루이틀 밀릴 수 있습니다.</li>
+  </ul></div>
+  <p style="margin-top:12px">진혁님이 티어 문서에 <b>"0.2는 물리 상수가 아니라 합의된 기준이며 바꾸면 결과가 바뀝니다"</b>라고
+    적어두신 것과 같은 방식입니다. <b>근거를 못 대는 값은 못 댄다고 적는 것</b>이 이 팀이 이미 하는 일입니다.</p>
+</section>
+
+<!-- 근거 등급 -->
+<section>
+  <div class="k">근거 등급</div>
+  <h2>어디까지가 확실한가</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>등급</th><th>내용</th><th>비고</th></tr>
+    <tr><td><b>확실</b></td><td>HI 4개 · 경보 시작일 4개 · 급등선/위험비 · 스펙 위반 0건 ·
+      <code>50/80</code>이 문서에 없다는 것 · 김시우님 주석</td><td>팀 산출물 직독</td></tr>
+    <tr><td><b>검산됨</b></td><td>HI 식 재구성 → 급등선 HI 환산 (9.2~86)</td>
+      <td>4대 모두 공식값과 소수점까지 일치</td></tr>
+    <tr><td><b>근사</b></td><td>일별 HI 시뮬레이션 (전이 날짜)</td>
+      <td class="hl2">마지막 날 14.2 vs 공식 14.5 — <b>0.3 오차</b>. 날짜가 하루이틀 밀릴 수 있음</td></tr>
+    <tr><td><b>정한 값</b></td><td>"불량이 늘었다" 판정 — <b>없앴습니다.</b>
+      팀과 같은 CUSUM(K=0.7σ, H=4.5σ)으로 대체</td>
+      <td>안정 구간을 첫 30일로 잡은 것은 제 선택</td></tr>
+  </table></div>
+  <div class="note">
+    <b>자를 바꿔도 결론이 같습니다.</b> 제가 임의로 정했던 "평소의 1.5배" 기준으로는 15일 / 6일,
+    팀과 같은 CUSUM으로는 <b>13일 / 5일</b>이 나왔습니다.<br>
+    측정 방법에 안 흔들린다는 뜻이라 오히려 더 강한 근거입니다.
+  </div>
+</section>
+
+<!-- 변경 -->
+<section>
+  <div class="k">변경 범위</div>
+  <h2>바꾸는 것 / 안 바꾸는 것</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th></th><th>내용</th></tr>
+    <tr><td><b>바꿈</b></td><td><code>hiColor()</code> — 색 판정에 추세 경보 여부 추가, 빨강 경계 <code>50 → 30</code>
+      <span style="color:var(--ink-faint)">(agent.py:614 · dashboard.html:240)</span></td></tr>
+    <tr><td><b>바꿈</b></td><td>n8n Code 노드 — 상태 기반 → <code>alert_since</code> 전이 기반</td></tr>
+    <tr><td><b>없앰</b></td><td><b>경계 <code>80</code> 제거</b> — 초록/노랑은 경보 유무로 갈리므로 쓸 자리가 없음</td></tr>
+    <tr><td>그대로</td><td>Health Index 계산식</td></tr>
+    <tr><td>그대로</td><td>장비 / 불량 / 인자 3단계 구조</td></tr>
+    <tr><td>그대로</td><td>대시보드 구조 · 멘토 시나리오 4/4 대조</td></tr>
+  </table></div>
+</section>
+
+<p class="foot">
+출처 · health_index_data.json / rel_20_tier_table.csv / 05_machine_daily_trend.csv /
+00_machine_daily_series.csv / n8n README / docs/발표_왜_이_식인가.md
+</p>
+</div>
+</body>
+</html>
