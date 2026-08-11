@@ -17,7 +17,7 @@
 | Particle | `Surface_Roughness` | 증가 → 증가 | level |
 | Particle | `CLN_Flow` | 감소 → 증가 | level |
 | Particle | `CLN_Pressure` | **감소** → 증가 | level |
-| Remain_Coat | `CLN_Pressure` | **감소** → 증가 | **spike**(순간 급락) |
+| Remain_Coat | `CLN_Pressure` | **감소** → 증가 | level |
 | Remain_Coat | `CLN_Flow` | 감소 → 증가 | level |
 | Micro_Crack | `Cooling_Flow` | 감소 → 증가 | level |
 | Micro_Crack | `Cooling_Water_Temp` | 증가 → 증가 | level |
@@ -146,13 +146,35 @@
 
 | 감시방식 | 대상 | 액션 타입 |
 |---|---|---|
-| `spike` | `Remain_Coat`의 `CLN_Pressure` | **급락알람** — 추세가 아니라 순간 급락 |
-| `level` | 그 외 | 티어 기본 액션 |
+| `level` | **전부** | 티어 기본 액션 |
 
-> `CLN_Pressure`(Remain_Coat)는 **추세가 아니라 그 스트립 순간의 급락**이 문제입니다.
-> 다른 인자와 **같은 알람 로직으로는 못 잡습니다.**
+**현재 티어표는 `level` 하나뿐입니다.**
+
+### `spike`(급락)를 뺀 이유 (2026-08-08 정정)
+
+전성재님 검증9의 *"그 스트립 세정 순간의 즉시적 압력 하락"*(선행신호 잔존율 4.1%)을
+**"직전 대비 낙차"**로 읽고 `CLN_Pressure`를 `spike`로 뒀습니다.
+낙차 기준을 만들려고 실제로 재보니 **급락 사건이 없었습니다.**
+
+| | |
+|---|---|
+| 낙차 분포 | p1 **−4.82** ~ p99 **+4.83** — 매 샷 ±5로 흔들림 |
+| 낙차 > 2.0 | 전체의 **16.8%** — 6개 중 1개면 급락이 아님 |
+| **절대값 < 297.272** | 알람 **8.6%** · lift **3.74** ✅ |
+| 낙차 > 2.0 | 알람 16.8% · lift 2.33 |
+| 조합(AND/OR) | 절대값 단독과 거의 동일 — **같은 걸 잡고 있음** |
+| 급상승(반대방향) | lift 0.71~0.74 — **무관** |
+
+> **"선행신호가 없다"는 미리 예고 없이 그 순간 값이 낮다는 뜻**이지,
+> **낙차를 재라는 뜻이 아니었습니다.**
 >
-> `trend`(추세) 유형은 `Vibration`이 유일했는데 티어표에서 빠졌으므로, 현재 티어표에는 없습니다.
+> 절대값 경계가 **알람 절반으로 정확도 1.6배** 높습니다.
+> 근거: `rel_31_cln_pressure_spike_check.csv` · `check_cln_pressure_spike.py`
+
+### `trend`(추세)는 `Vibration` 전용 — 티어표 밖
+
+`Vibration`은 유효인자 티어표가 아니라 **`rel_28_vibration_alarm.csv`** 에서
+CUSUM(`K=0.7σ`, `H=4.5σ`) + Mann-Kendall로 관리합니다. **추세분석 담당 소관**입니다.
 
 ---
 
