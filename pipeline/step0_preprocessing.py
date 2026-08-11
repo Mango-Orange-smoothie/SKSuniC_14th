@@ -37,6 +37,7 @@ from pipeline.mentor import SPEC
 from pipeline.common import (
     compute_stratum_baseline_stats,
     load_defect_pairing_from_db,
+    load_domain_directions,
     mann_kendall,
     save_table,
     zscore_transform,
@@ -847,13 +848,32 @@ def compute_baseline_type_c(
     (26.08.11) 인자가 dict가 아니라 **(컬럼, defect) 쌍의 목록**이다. 한 컬럼이 두
     defect의 원인이면 경계값도 둘이라 그룹당 두 행이 나온다 — 같은 컬럼이어도
     defect가 다르면 별개의 경계다.
+
+    (26.08.11) **도메인 방향과 반대로 학습된 그룹은 버린다.** 스텀프는 그룹 안에서
+    불량률이 가장 잘 갈리는 지점을 찾을 뿐이라, 표본이 적거나 다른 원인이 섞이면
+    도메인과 반대 방향을 짚는다. 실측으로 CLN_Flow↔Particle이 54개 그룹 중 7개에서
+    "높으면 위험"으로 나왔는데, 세정 유량이 높아서 파티클이 는다는 건 물리적으로
+    말이 안 된다 — 그 7개에서 잡힌 건 이 인자가 아니라 다른 원인이다.
+
+    남겨두면 두 가지가 망가진다. (1) 그 그룹에서 정상 구간을 위험으로 찍어 오탐이
+    나간다. (2) build_health_index가 "방향이 그룹별로 불일치"로 그 짝의 경계값을
+    통째로 빼서 화면에 위험구간 선이 안 그려진다(경보는 나가는데 근거 그림이 없는 상태).
+
+    방향의 단일 출처는 관계DB(rel_30.threshold_direction)다 — 여기서 다시 정하지 않는다.
+    DB에 없는 짝(경보전용 컬럼 등)은 비교 대상이 없으므로 그대로 둔다.
     """
     rows = []
     pairs = defect_pairs() if pairs is None else pairs
+    domain = load_domain_directions()
+    dropped: dict[tuple[str, str], int] = {}
     for (product, recipe), group in df.groupby(["Product_ID", "Recipe_ID"]):
         for column, defect_col in pairs:
             result = _find_baseline_c_breakpoint(group[column], group[defect_col])
             if result is None:
+                continue
+            expected = domain.get((column, defect_col))
+            if expected is not None and result["risky_direction"] != expected:
+                dropped[(column, defect_col)] = dropped.get((column, defect_col), 0) + 1
                 continue
             rows.append({
                 "column": column,
@@ -861,6 +881,10 @@ def compute_baseline_type_c(
                 "group_key": f"{product}|{recipe}",
                 **result,
             })
+    for (column, defect_col), n in sorted(dropped.items()):
+        print(f"   [방향불일치] {column}↔{defect_col}: {n}개 그룹이 도메인 방향"
+              f"({domain[(column, defect_col)]})과 반대로 학습돼 제외 — 그 그룹에서 잡힌 건"
+              " 이 인자가 아니라 다른 원인으로 본다.")
     return pd.DataFrame(rows)
 
 

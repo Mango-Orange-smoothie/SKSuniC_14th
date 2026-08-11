@@ -186,6 +186,49 @@ def load_defect_pairing_from_db() -> tuple[dict[str, list[str]], pd.DataFrame] |
     return pairing, merged
 
 
+# rel_30의 threshold_direction 문구 -> 우리 코드의 방향 이름.
+_DIRECTION_WORDS = {
+    "아래로 내려가면 위험": "low_is_risky",
+    "위로 올라가면 위험": "high_is_risky",
+}
+
+
+def load_domain_directions() -> dict[tuple[str, str], str]:
+    """관계DB가 확정한 짝별 위험 방향 — {(인자, defect): 'low_is_risky'|'high_is_risky'}.
+
+    (26.08.11 신설) 왜 필요한가 — C유형 경계값은 그룹(Product×Recipe)마다 결정트리
+    스텀프로 따로 학습하는데, 그때 위험 방향도 같이 나온다. 그 방향이 도메인과 반대로
+    나오는 그룹이 있다. 실측: CLN_Flow↔Particle은 54개 그룹 중 7개가 "높으면 위험"으로
+    나온다(나머지 47개와 rel_30은 "낮으면 위험").
+
+    "세정 유량이 **높아서** 파티클이 생긴다"는 건 물리적으로 말이 안 된다 — 그 7개
+    그룹에서 잡힌 건 이 인자가 아니라 다른 원인일 것이다. 그래서 그런 그룹은 이 짝의
+    근거로 쓰지 않는다(호출부: step0의 compute_baseline_type_c).
+
+    방향의 단일 출처는 rel_30이다. 우리가 데이터에서 다시 정하지 않는다 — 그러면
+    "인자↔불량 관계는 관계DB가 단일 출처"라는 규칙이 방향에서만 깨진다.
+    파일이 없거나 열이 없으면 빈 dict를 돌려주고, 호출부는 필터를 걸지 않는다
+    (조용히 다 버리는 것보다 예전 동작이 낫다).
+    """
+    path = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
+    if not path.exists():
+        return {}
+    try:
+        t = pd.read_csv(path)
+    except Exception:
+        return {}
+    if not {"factor", "defect", "threshold_direction"} <= set(t.columns):
+        print("[관계DB] 경고: rel_30에 threshold_direction 열이 없습니다 — "
+              "도메인 방향 필터를 건너뜁니다.")
+        return {}
+    out: dict[tuple[str, str], str] = {}
+    for row in t.itertuples(index=False):
+        word = _DIRECTION_WORDS.get(str(row.threshold_direction).strip())
+        if word:
+            out[(str(row.factor), str(row.defect))] = word
+    return out
+
+
 def binomial_alert_count(base_rate: float, n_trials: int, alpha: float) -> int:
     """평소 비율 base_rate에서 n_trials 중 k개 이상이 우연히 나올 확률이 alpha 미만이
     되는 최소 k를 돌려준다. 도달 불가능하면 n_trials + 1(= 절대 경보 안 뜸).
