@@ -1,0 +1,382 @@
+{
+  "schema_version": "2.0",
+  "generated_at": "2026-08-06T08:03:59.879926+00:00",
+  "basis": "확정 도메인 11건 × (통계검정 Mann-Whitney U + Cliff's delta + BH-FDR, RandomForest 순열중요도). 원본 10만 + r1 10만 = 20만행.",
+  "cause_factors": {
+    "Power_Efficiency": {
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "Power_Efficiency 감소 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
+      "actionable": true,
+      "cliffs_delta": -0.8789,
+      "rf_rank": "2/39",
+      "threshold_raw": 94.742,
+      "normal_range": "94.78 ~ 95.24",
+      "risky_range": "92.34 ~ 94.71",
+      "risk_ratio": 58.73,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 94.742,
+          "normal_range": "94.78 ~ 95.24",
+          "risky_range": "92.34 ~ 94.71",
+          "risk_ratio": 58.73,
+          "alert_usable": true,
+          "cliffs_delta": -0.8789,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
+    },
+    "Laser_Power": {
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "Laser_Power 감소 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
+      "actionable": true,
+      "cliffs_delta": -0.8523,
+      "rf_rank": "4/39",
+      "threshold_raw": 18.38,
+      "normal_range": "18.39 ~ 18.63",
+      "risky_range": "17.79 ~ 18.37",
+      "risk_ratio": 31.36,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 18.38,
+          "normal_range": "18.39 ~ 18.63",
+          "risky_range": "17.79 ~ 18.37",
+          "risk_ratio": 31.36,
+          "alert_usable": true,
+          "cliffs_delta": -0.8523,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
+    },
+    "Head_Temp": {
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "direction": "up",
+      "mechanism": "Head_Temp 증가 → Chipping 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "즉시조치",
+      "actionable": true,
+      "cliffs_delta": 0.8727,
+      "rf_rank": "8/39",
+      "threshold_raw": 42.646,
+      "normal_range": "41.52 ~ 42.49",
+      "risky_range": "42.75 ~ 46.29",
+      "risk_ratio": 94.67,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 42.646,
+          "normal_range": "41.52 ~ 42.49",
+          "risky_range": "42.75 ~ 46.29",
+          "risk_ratio": 94.67,
+          "alert_usable": true,
+          "cliffs_delta": 0.8727,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
+        }
+      }
+    },
+    "CLN_Pressure": {
+      "defects": [
+        "Remain_Coat"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
+      "tier": "T1",
+      "role": "원인(FDC)",
+      "action_type": "급락알람",
+      "actionable": true,
+      "cliffs_delta": -0.2466,
+      "rf_rank": "3/39",
+      "threshold_raw": 297.272,
+      "normal_range": "297.63 ~ 303.34",
+      "risky_range": "294.65 ~ 297.04",
+      "risk_ratio": 6.0,
+      "alert_usable": true,
+      "testability": "검정력 낮음(극단 이탈 희소)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현",
+      "per_defect": {
+        "Remain_Coat": {
+          "tier": "T1",
+          "action_type": "급락알람",
+          "threshold_raw": 297.272,
+          "normal_range": "297.63 ~ 303.34",
+          "risky_range": "294.65 ~ 297.04",
+          "risk_ratio": 6.0,
+          "alert_usable": true,
+          "cliffs_delta": -0.2466,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        }
+      }
+    },
+    "CLN_Flow": {
+      "defects": [
+        "Remain_Coat",
+        "Particle"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
+      "tier": "T2",
+      "role": "원인(FDC)",
+      "action_type": "조건부조치",
+      "actionable": true,
+      "cliffs_delta": -0.5556,
+      "rf_rank": "1/39",
+      "threshold_raw": 9.725,
+      "normal_range": "9.85 ~ 10.08",
+      "risky_range": "9.00 ~ 9.68",
+      "risk_ratio": 24.67,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현",
+      "per_defect": {
+        "Remain_Coat": {
+          "tier": "T1",
+          "action_type": "즉시조치",
+          "threshold_raw": 9.725,
+          "normal_range": "9.85 ~ 10.08",
+          "risky_range": "9.00 ~ 9.68",
+          "risk_ratio": 24.67,
+          "alert_usable": true,
+          "cliffs_delta": -0.5556,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        },
+        "Particle": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 9.722,
+          "normal_range": "9.85 ~ 10.08",
+          "risky_range": "9.00 ~ 9.67",
+          "risk_ratio": 0.8,
+          "alert_usable": false,
+          "cliffs_delta": -0.0052,
+          "threshold_source_dataset": "r1 주도(원본 기여 미미)",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (RandomForest)"
+        }
+      },
+      "note_multi_defect": "defect마다 티어·경계값이 다르다. per_defect를 반드시 확인할 것."
+    },
+    "Cooling_Flow": {
+      "defects": [
+        "Chipping"
+      ],
+      "owner": "JHdaimma",
+      "direction": "down",
+      "mechanism": "Cooling_Flow 감소 → Chipping 증가",
+      "tier": "T2",
+      "role": "원인(FDC)",
+      "action_type": "조건부조치",
+      "actionable": true,
+      "cliffs_delta": -0.478,
+      "rf_rank": "39/39",
+      "threshold_raw": 9.934,
+      "normal_range": "9.94 ~ 10.17",
+      "risky_range": "9.72 ~ 9.92",
+      "risk_ratio": 4.08,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)",
+      "per_defect": {
+        "Chipping": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 9.934,
+          "normal_range": "9.94 ~ 10.17",
+          "risky_range": "9.72 ~ 9.92",
+          "risk_ratio": 4.08,
+          "alert_usable": true,
+          "cliffs_delta": -0.478,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)"
+        }
+      }
+    }
+  },
+  "monitor_factors": {
+    "Surface_Roughness": {
+      "defects": [
+        "Particle"
+      ],
+      "owner": "JHdaimma",
+      "direction": "up",
+      "mechanism": "Surface_Roughness 증가 → Particle 증가",
+      "tier": "M1",
+      "role": "감시지표(Response)",
+      "action_type": "감시(경보)",
+      "actionable": false,
+      "cliffs_delta": 0.6063,
+      "rf_rank": "1/39",
+      "threshold_raw": 0.598,
+      "normal_range": "0.53 ~ 0.60",
+      "risky_range": "0.60 ~ 0.66",
+      "risk_ratio": 378.38,
+      "alert_usable": true,
+      "testability": "검정 가능(이탈 충분)",
+      "threshold_source_dataset": "양쪽 기여",
+      "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현",
+      "per_defect": {
+        "Particle": {
+          "tier": "M1",
+          "action_type": "감시(경보)",
+          "threshold_raw": 0.598,
+          "normal_range": "0.53 ~ 0.60",
+          "risky_range": "0.60 ~ 0.66",
+          "risk_ratio": 378.38,
+          "alert_usable": true,
+          "cliffs_delta": 0.6063,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        }
+      }
+    }
+  },
+  "defects_without_confirmed_cause": {
+    "Micro_Crack": {
+      "confirmed_cause_count": 0,
+      "answer": "Micro_Crack의 조치 가능한 확정 원인은 현재 0건입니다.",
+      "candidates_below_bar": [
+        {
+          "factor": "Cooling_Flow",
+          "tier": "T3",
+          "reason": "도메인 확정·방향일치하나 통계검정·RF 모두 미달 — 감시만"
+        },
+        {
+          "factor": "Cooling_Water_Temp",
+          "tier": "T4",
+          "reason": "도메인 기대와 데이터 방향이 반대 — 판단 보류"
+        }
+      ]
+    }
+  },
+  "tier_legend": {
+    "T1": "원인 · 즉시조치 — 통계·RF 모두 통과",
+    "T2": "원인 · 조건부조치 — 2개 중 1개 통과 또는 재현 실패",
+    "T3": "원인 후보 · 감시만 — 통계·RF 모두 미달. 원인이라고 답하지 말 것",
+    "T4": "판단보류 — 도메인과 데이터 방향이 반대. 양쪽 병기할 것",
+    "M1": "감시지표 · 경보 전용 — 조치 지시 금지"
+  },
+  "external_owned": {
+    "Vibration": {
+      "defects": [
+        "Chipping",
+        "Micro_Crack"
+      ],
+      "reason": "값 조정이 아닌 설비 정비 대상 — 추세·상하한 급이탈 알람 전용",
+      "owner": "추세분석 담당",
+      "file": "rel_28_vibration_alarm.csv",
+      "note": "티어표에 없음. Vibration 알람이 오면 위 2개 defect와 연결할 것."
+    }
+  },
+  "ng_code_summary": [
+    {
+      "구분": "OK",
+      "NG_Code": "OK",
+      "건수": 149673,
+      "비율_pct": 74.837
+    },
+    {
+      "구분": "Particle",
+      "NG_Code": "PARTICLE",
+      "건수": 11296,
+      "비율_pct": 5.648
+    },
+    {
+      "구분": "Micro_Crack",
+      "NG_Code": "CRACK",
+      "건수": 4921,
+      "비율_pct": 2.46
+    },
+    {
+      "구분": "Remain_Coat",
+      "NG_Code": "REM_COAT",
+      "건수": 9266,
+      "비율_pct": 4.633
+    },
+    {
+      "구분": "Chipping",
+      "NG_Code": "CHIP",
+      "건수": 24175,
+      "비율_pct": 12.088
+    },
+    {
+      "구분": "(기타) BURN",
+      "NG_Code": "BURN",
+      "건수": 608,
+      "비율_pct": 0.304
+    },
+    {
+      "구분": "(기타) LASER",
+      "NG_Code": "LASER",
+      "건수": 61,
+      "비율_pct": 0.03
+    },
+    {
+      "구분": "합계",
+      "NG_Code": "-",
+      "건수": 200000,
+      "비율_pct": 100.0
+    }
+  ],
+  "agent_rules": [
+    "tier가 T3·T4인 인자를 '원인'이라고 답하지 말 것.",
+    "alert_usable=false 인 인자로 경보를 만들지 말 것 (위험구간 불량률이 정상구간보다 낮음).",
+    "testability가 '검정불가'면 '무관하다'가 아니라 '이 데이터로는 확인할 수 없다'고 답할 것.",
+    "threshold_source_dataset이 'r1 주도'면 '열화가 진행된 상황 기준'이라는 단서를 붙일 것.",
+    "Vibration은 이 표에 없다. 추세분석 담당 산출물을 참조할 것.",
+    "role이 감시지표인 인자에 조치를 지시하지 말 것. 경보만.",
+    "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것."
+  ],
+  "known_limitations": [
+    "이 데이터셋은 멘토가 고장 시나리오를 주입해 만든 것이다. 주입되지 않은 시나리오는 검정 자체가 불가능하므로, 신호가 없다고 무관한 것이 아니다.",
+    "Chipping은 원본에 pure 표본이 3건뿐이라 사실상 r1 단독 판정이다.",
+    "Head_Temp 경계값 42.646은 원본에서는 2,099행만 넘고 그 구간 Chipping이 0건이다. r1(열화 주입)에서만 72% 발생한다.",
+    "SOP 미수령 — sop 칸은 비어 있다.",
+    "CLN_Pressure 급락(spike) 판단 기준이 아직 없다."
+  ],
+  "sop": {
+    "status": "SOP 미수령 — 멘토 제공 대기",
+    "entries": []
+  }
+}

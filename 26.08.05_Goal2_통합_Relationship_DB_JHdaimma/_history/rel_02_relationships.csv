@@ -1,0 +1,32 @@
+﻿source,source_role,source_layer,target,target_role,relation,strength,direction,status,confidence,actionable,owner,evidence
+Power_Efficiency,원인(조치가능),FDC,Chipping,불량결과,causes,0.8989,down,confirmed_cause,높음(2개 방법론 일치),True,JHdaimma,담당자=confirmed / Jun대조=confirmed
+Head_Temp,원인(조치가능),FDC,Chipping,불량결과,causes,0.8867,up,confirmed_cause,높음(2개 방법론 일치),True,JHdaimma,담당자=confirmed / Jun대조=confirmed
+Laser_Power,원인(조치가능),FDC,Chipping,불량결과,causes,0.8724,down,confirmed_cause,높음(2개 방법론 일치),True,JHdaimma,담당자=confirmed / Jun대조=confirmed
+Vibration,원인(조치가능),FDC,Chipping,불량결과,causes,0.8443,up,confirmed_cause,높음(2개 방법론 일치),True,JHdaimma,담당자=confirmed / Jun대조=confirmed
+Laser_Centering_Position,원인(조치가능),FDC,Chipping,불량결과,causes,0.6067,up,confirmed_cause,중간(Jun 대조본과 불일치 — rel_03 참조),True,JHdaimma,담당자=confirmed / Jun대조=candidate
+Surface_Roughness,감시지표(결과공변·사후),Response,Chipping,불량결과,co_varies_with,0.3982,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=needs_domain_review
+Kerf_Width_Profile,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.9306,up,confirmed_monitor,높음(2개 방법론 일치),False,JHdaimma,담당자=confirmed / Jun대조=confirmed
+Bottom_Kerf,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.9272,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=needs_domain_review
+Top_Kerf,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.926,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=needs_domain_review
+Laser_Cleaning_Demand,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.8622,down,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=needs_domain_review
+Kerf_Angle,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.7811,up,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=insufficient
+Groove_Depth,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.7504,down,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=candidate
+Package_Size_Asymmetry,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.6005,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=needs_domain_review
+Package_Size_1,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.5988,down,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=insufficient
+Package_Size_4,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.5959,up,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=insufficient
+Package_Size_2,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.5287,down,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=insufficient
+Package_Size_3,감시지표(관찰만),Response,Chipping,불량결과,monitors,0.5253,up,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=insufficient
+Process_Time,원인(조치가능),FDC,Micro_Crack,불량결과,causes,0.0094,down,candidate,-,False,JHdaimma,담당자=candidate / Jun대조=needs_domain_review
+Surface_Roughness,감시지표(결과공변·사후),Response,Micro_Crack,불량결과,co_varies_with,0.4919,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,JHdaimma,담당자=confirmed / Jun대조=monitor_confirmed
+Vibration,원인(조치가능),FDC,Particle,불량결과,causes,0.0865,up,confirmed_cause,중간(Jun 대조본과 불일치 — rel_03 참조),True,daeho,담당자=confirmed / Jun대조=candidate
+Focus,원인(조치가능),FDC,Particle,불량결과,causes,0.0742,down,candidate,-,False,daeho,담당자=candidate / Jun대조=(대조본 없음)
+CLN_Pressure,원인(조치가능),FDC,Particle,불량결과,causes,0.0131,up,candidate,-,False,daeho,담당자=candidate / Jun대조=rejected
+CLN_Flow,원인(조치가능),FDC,Particle,불량결과,causes,0.0076,down,candidate,-,False,daeho,담당자=candidate / Jun대조=rejected
+Cleaning_Capacity,원인(조치가능),FDC,Particle,불량결과,causes,0.0071,up,candidate,-,False,daeho,담당자=candidate / Jun대조=rejected
+Surface_Roughness,감시지표(결과공변·사후),Response,Particle,불량결과,co_varies_with,0.618,up,confirmed_monitor,중간(Jun 대조본과 불일치 — rel_03 참조),False,daeho,담당자=confirmed / Jun대조=monitor_confirmed
+Kerf_Width_Profile,감시지표(관찰만),Response,Particle,불량결과,monitors,0.0692,down,candidate,-,False,daeho,담당자=candidate / Jun대조=insufficient
+Top_Kerf,감시지표(관찰만),Response,Particle,불량결과,monitors,0.0624,down,candidate,-,False,daeho,담당자=candidate / Jun대조=needs_domain_review
+Bottom_Kerf,감시지표(관찰만),Response,Particle,불량결과,monitors,0.059,down,candidate,-,False,daeho,담당자=candidate / Jun대조=insufficient
+Cleaning_Load_Ratio,감시지표(관찰만),Response,Particle,불량결과,monitors,0.0359,up,candidate,-,False,daeho,담당자=candidate / Jun대조=rejected
+CLN_Flow,원인(조치가능·DP04 한정),FDC,Remain_Coat,불량결과,causes,0.5556,down,candidate,-,False,전성재,담당자=candidate / Jun대조=rejected
+CLN_Pressure,원인(조치가능),FDC,Remain_Coat,불량결과,causes,0.2466,down,confirmed_cause,중간(Jun 대조본과 불일치 — rel_03 참조),True,전성재,담당자=confirmed / Jun대조=candidate

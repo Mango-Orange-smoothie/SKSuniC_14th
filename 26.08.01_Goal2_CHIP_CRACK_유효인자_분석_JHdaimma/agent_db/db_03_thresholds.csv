@@ -1,0 +1,17 @@
+﻿target,variable,scope,threshold_z,threshold_raw_approx,risky_direction,defect_rate_below,defect_rate_above,risk_ratio,n_below,n_above,n_defect,note
+Chipping,Kerf_Width_Profile,global_zscore,3.4511,50.50736,high_is_risky,0.29,50.255,173.17,170572,29428,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Top_Kerf,global_zscore,3.9304,50.49521,high_is_risky,0.379,50.22,132.41,170856,29144,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Bottom_Kerf,global_zscore,4.6543,50.57597,high_is_risky,0.39,50.433,129.31,171017,28983,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Head_Temp,global_zscore,2.5796,42.86491,high_is_risky,0.638,47.107,73.88,169854,30146,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Power_Efficiency,global_zscore,-2.2606,94.61268,low_is_risky,47.274,1.252,37.75,27768,172232,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Laser_Power,global_zscore,-2.3866,18.28278,low_is_risky,51.886,2.284,22.71,21603,178397,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Vibration,global_zscore,2.2718,0.20479,high_is_risky,2.557,45.937,17.96,176557,23443,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Laser_Centering_Position,global_zscore,3.4457,0.53319,high_is_risky,3.136,55.912,17.83,182925,17075,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Package_Size_Asymmetry,global_zscore,3.7999,0.00138,high_is_risky,3.417,55.893,16.36,183896,16104,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Chipping,Groove_Depth,global_zscore,-2.4344,44.58904,low_is_risky,52.984,3.564,14.87,16505,183495,15284,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Surface_Roughness,global_zscore,1.5261,0.62946,high_is_risky,2.282,9.69,4.25,173570,26430,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Vibration,global_zscore,0.0593,0.15591,high_is_risky,2.512,3.842,1.53,87384,112616,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Cooling_Flow,global_zscore,-2.7474,9.71394,low_is_risky,4.888,3.237,1.51,2864,197136,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Cooling_Thermal_Load,global_zscore,2.655,2.30122,high_is_risky,3.247,4.843,1.49,198245,1755,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Cooling_Water_Temp,global_zscore,2.8319,22.8501,high_is_risky,3.258,4.656,1.43,199506,494,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.
+Micro_Crack,Feed_Speed,global_zscore,1.3701,251.08891,high_is_risky,3.222,3.67,1.14,182780,17220,6522,pure 라벨(상대 결함 동시발생 제외) 기준. Jun C유형 방식.

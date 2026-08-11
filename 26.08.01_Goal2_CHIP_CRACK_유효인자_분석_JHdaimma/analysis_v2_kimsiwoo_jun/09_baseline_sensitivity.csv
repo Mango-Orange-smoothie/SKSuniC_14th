@@ -1,0 +1,18 @@
+﻿case,column,delta_A_kimsiwoo_committed,delta_B_combined_ok_used_in_v2,delta_C_all_rows_v1
+CHIP (Chipping==1),Kerf_Width_Profile,0.9824,0.9825,0.9825
+CHIP (Chipping==1),Laser_Power,-0.9229,-0.9229,-0.9229
+CHIP (Chipping==1),Power_Efficiency,-0.9506,-0.9506,-0.9506
+CHIP (Chipping==1),Focus,0.9371,0.9372,0.9371
+CHIP (Chipping==1),Vibration,0.9021,0.9022,0.9022
+CHIP (Chipping==1),Groove_Depth,-0.7991,-0.7993,-0.7992
+CRACK broad (Micro_Crack==1),Surface_Roughness,0.575,0.5751,0.5751
+CRACK broad (Micro_Crack==1),Vibration,0.5651,0.5652,0.5652
+CRACK broad (Micro_Crack==1),Frequency,0.0375,0.0374,0.0374
+CRACK broad (Micro_Crack==1),Kerf_Width_Profile,0.5341,0.5342,0.5341
+CRACK broad (Micro_Crack==1),Focus,0.5108,0.5109,0.5108
+CRACK pure (Crack=1 & Chip=0),Surface_Roughness,0.492,0.4919,0.4921
+CRACK pure (Crack=1 & Chip=0),Vibration,0.1242,0.1242,0.1245
+CRACK pure (Crack=1 & Chip=0),Frequency,0.0621,0.062,0.0619
+CRACK pure (Crack=1 & Chip=0),Kerf_Width_Profile,-0.0232,-0.023,-0.0231
+CRACK pure (Crack=1 & Chip=0),Focus,-0.0137,-0.0136,-0.0138
+CRACK pure (Crack=1 & Chip=0),CLN_Flow,-0.1125,-0.1126,-0.1127

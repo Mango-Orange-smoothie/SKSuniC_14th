@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-07-31T19:07:49.394584+00:00",
+  "purpose": "AI Agent(3 Relationship Analyzer / 5 Root Cause Analyzer)용 관계 DB",
+  "datasets": {
+    "original": {
+      "rows": 100000,
+      "chipping": 4,
+      "micro_crack": 41
+    },
+    "r1": {
+      "rows": 100000,
+      "chipping": 24171,
+      "micro_crack": 15372
+    },
+    "combined_rows": 200000,
+    "normal_rows": 149673,
+    "key_overlap_note": "Lot_ID+Strip_ID 기준 8,597건(8.6%)만 중복 — 독립 표본으로 간주해 통합"
+  },
+  "feature_set": {
+    "n_features": 39,
+    "excluded_by_mentor": [
+      "Focus",
+      "Cutting_Offset"
+    ],
+    "pending_mentor_review": [
+      "Bottom_Kerf",
+      "Surface_Roughness",
+      "Cooling_Flow",
+      "Cooling_Water_Temp"
+    ],
+    "new_team_feature": "Package_Size_Asymmetry",
+    "mentor_excluded_defects_not_ours": [
+      "Edge_Burn",
+      "Edge_Burn_Die"
+    ]
+  },
+  "methodology": {
+    "preprocessing": "김시우 pipeline d39bbff — OPCOND층 OK-baseline median/MAD 강건 z-score",
+    "statistics": "Jun Goal2 — Mann-Whitney U + BH-FDR(a=0.05) + Cliffs delta(>=0.2), RandomForest(200,depth8,balanced) permutation importance(AP) top-10",
+    "labels": "primary(NG_Code) / broad(이진컬럼) / pure(상대 결함 동시발생 제외)",
+    "nonlinear": "멘토 U자형 지적 반영 — |z편차| 기준 Mann-Whitney 병행",
+    "thresholds": "Jun C유형 — DecisionTree stump(depth=1)로 위험 경계값 추정",
+    "not_used": "전성재 브랜치 방법론(L1 로지스틱/HistGradientBoosting/Machine 통제 다변량) 미사용"
+  },
+  "domain_constraints": [
+    "Micro_Crack은 레이저 그루빙 공정 문제가 아님(현업) -> 그루빙 단계 컬럼을 후보에서 제외",
+    "HBM DP 공정: 보호코팅 -> 레이저 그루빙(low-k 승화) -> 세정 -> 블레이드 다이싱",
+    "Response 계열은 원인이 아니라 감시지표로 분류 — 조치는 FDC에서"
+  ],
+  "known_limitations": [
+    "Vibration은 장비/스테이지 레벨 단일 값(팀문서+멘토 확정 근거, 블레이드 특정 아님) — 레이저 단계 영향인지 다이싱 단계 영향인지 세분화되지 않음. 다이싱 단계를 직접 나타내는 컬럼이 데이터에 없어 Micro_Crack 모델 성능(AUC 0.803)이 Chipping(0.965)보다 낮은 원인으로 추정되나 확인된 바 아님",
+    "Surface_Roughness는 멘토 drop 여부 미확정 — Micro_Crack 감시지표 결론이 이에 의존",
+    "[해결됨 26.08.01] Edge_Burn/Edge_Burn_Die는 멘토 최종 확인으로 제외 확정. Jun BURN 분석 전체는 무효화되나, 우리 분석은 Edge_Burn을 피처로 쓴 적이 없고 Chipping/Micro_Crack과 동시발생도 0건이라 영향 없음(검증 완료)",
+    "r1은 DP02/DP03에 열화를 주입한 시나리오 데이터 — 실제 라인 재현 여부 별도 확인 필요",
+    "Cooling_Flow/Cooling_Water_Temp 설비-컬럼 매핑 미확정"
+  ],
+  "open_questions_for_mentor": [
+    "Surface_Roughness는 실제 측정값인가, 형식상 컬럼인가?",
+    "Bottom_Kerf가 다른 kerf 컬럼과 값이 중복인가?",
+    "Vibration을 세분화한 데이터(축별/시점별)가 있는가? — 레이저/다이싱 단계 영향 분리 목적"
+  ],
+  "shap_layer": {
+    "added_at": "2026-07-31T19:08:44.256955+00:00",
+    "models": {
+      "Chipping|A_cause_FDConly": {
+        "roc_auc": 0.9649,
+        "pr_auc": 0.5712,
+        "n_features": 23,
+        "scale_pos_weight": 11.66
+      },
+      "Chipping|B_monitor_full": {
+        "roc_auc": 0.9686,
+        "pr_auc": 0.6159,
+        "n_features": 39,
+        "scale_pos_weight": 11.66
+      },
+      "Micro_Crack|A_cause_FDConly": {
+        "roc_auc": 0.8028,
+        "pr_auc": 0.0959,
+        "n_features": 14,
+        "scale_pos_weight": 27.32
+      },
+      "Micro_Crack|B_monitor_full": {
+        "roc_auc": 0.8986,
+        "pr_auc": 0.207,
+        "n_features": 24,
+        "scale_pos_weight": 27.32
+      }
+    },
+    "design": "모델 A(FDC 전용, 원인) / 모델 B(FDC+Response, 감시)로 분리 — Laser_Power<->Kerf_Width_Profile(r=-0.58) 등 다중공선성으로 SHAP 기여도가 하류 Response에 흡수되는 것을 방지",
+    "explainer": "shap.TreeExplainer (TreeSHAP, 트리 모델에 대해 정확해)",
+    "model": "XGBClassifier(n=400, depth=5, lr=0.08, scale_pos_weight=불균형보정)",
+    "label": "pure (상대 결함 동시발생 행 제외)",
+    "controls": "Machine_ID 더미 + source_dataset 더미",
+    "note": "기존 Jun 방법론 결과를 대체하지 않고 3번째 독립 방법으로 병기"
+  },
+  "edge_burn_impact_check_26_08_01": {
+    "source": "김시우 브랜치 커밋 7e2d73c (26.08.01) — 멘토 최종 확인: Edge_Burn 유효한 실패모드 아님, 분석 대상 제외",
+    "affected": "Jun의 Goal2 BURN 분석 전체 (confirmed: Frequency, Thermal_Load_Ratio, Top_Kerf, Kerf_Width_Profile, Surface_Roughness) — 라벨 자체가 무효화됨",
+    "our_analysis_impact": "영향 없음 — Edge_Burn은 우리 39개 피처에 포함된 적 없음. NG_Code==BURN 608건(통합 0.30%) 중 Chipping/Micro_Crack 동시발생 0건 확인 (검증: 원본+r1 200,000행)",
+    "action_taken": "db_04의 Edge_Burn 항목을 멘토_미확정 -> 멘토_확정(제외)으로 갱신. 통계 재계산 불필요."
+  }
+}

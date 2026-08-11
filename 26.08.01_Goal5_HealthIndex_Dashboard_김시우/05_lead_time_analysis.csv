@@ -1,0 +1,13 @@
+﻿factor,defect,spec_source,n_events,n_전조있음,전조비율_pct,평균리드타임_일,최대리드타임_일
+Vibration,Particle,provisional_percentile,7792,783,10.0,0.0,0.028
+Vibration,Micro_Crack,provisional_percentile,41,2,4.9,0.0,0.0
+CLN_Pressure,Remain_Coat,provisional_percentile,2332,0,0.0,,
+Laser_Power,Chipping,mentor_spec,4,0,0.0,,
+Power_Efficiency,Chipping,mentor_spec,4,0,0.0,,
+Head_Temp,Chipping,mentor_spec,4,0,0.0,,
+Laser_Centering_Position,Chipping,mentor_spec,4,0,0.0,,
+Cooling_Flow,Micro_Crack,provisional_percentile,41,0,0.0,,
+Kerf_Width_Profile,Chipping,mentor_spec,4,2,50.0,0.0,0.0
+Top_Kerf,Chipping,provisional_percentile,4,0,0.0,,
+Bottom_Kerf,Chipping,provisional_percentile,4,2,50.0,0.0,0.0
+Groove_Depth,Chipping,provisional_percentile,4,0,0.0,,

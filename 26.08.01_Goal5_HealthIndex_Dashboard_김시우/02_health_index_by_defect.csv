@@ -1,0 +1,13 @@
+﻿Machine_ID,defect,health_index,worst_factor,scored,worst_factors
+DP01,Particle,91.9,Surface_Roughness,True,"[{'factor': 'Surface_Roughness', 'health_index': 91.9, 'spec_status': 'OK'}]"
+DP01,Remain_Coat,99.0,CLN_Pressure,True,"[{'factor': 'CLN_Pressure', 'health_index': 99.0, 'spec_status': 'OK'}, {'factor': 'CLN_Flow', 'health_index': 100.0, 'spec_status': 'OK'}]"
+DP01,Chipping,96.5,Head_Temp,True,"[{'factor': 'Head_Temp', 'health_index': 96.5, 'spec_status': 'OK'}, {'factor': 'Laser_Power', 'health_index': 99.1, 'spec_status': 'OK'}, {'factor': 'Cooling_Flow', 'health_index': 99.8, 'spec_status': 'OK'}]"
+DP02,Particle,90.9,Surface_Roughness,True,"[{'factor': 'Surface_Roughness', 'health_index': 90.9, 'spec_status': 'OK'}]"
+DP02,Remain_Coat,98.9,CLN_Pressure,True,"[{'factor': 'CLN_Pressure', 'health_index': 98.9, 'spec_status': 'OK'}, {'factor': 'CLN_Flow', 'health_index': 99.4, 'spec_status': 'OK'}]"
+DP02,Chipping,47.6,Laser_Power,True,"[{'factor': 'Laser_Power', 'health_index': 47.6, 'spec_status': 'OK'}, {'factor': 'Power_Efficiency', 'health_index': 48.0, 'spec_status': 'OK'}, {'factor': 'Head_Temp', 'health_index': 97.9, 'spec_status': 'OK'}]"
+DP03,Particle,54.8,Surface_Roughness,True,"[{'factor': 'Surface_Roughness', 'health_index': 54.8, 'spec_status': 'OK'}]"
+DP03,Remain_Coat,99.6,CLN_Pressure,True,"[{'factor': 'CLN_Pressure', 'health_index': 99.6, 'spec_status': 'OK'}, {'factor': 'CLN_Flow', 'health_index': 100.0, 'spec_status': 'OK'}]"
+DP03,Chipping,50.8,Head_Temp,True,"[{'factor': 'Head_Temp', 'health_index': 50.8, 'spec_status': 'OK'}, {'factor': 'Laser_Power', 'health_index': 78.0, 'spec_status': 'OK'}, {'factor': 'Power_Efficiency', 'health_index': 88.3, 'spec_status': 'OK'}]"
+DP04,Particle,95.0,Surface_Roughness,True,"[{'factor': 'Surface_Roughness', 'health_index': 95.0, 'spec_status': 'OK'}]"
+DP04,Remain_Coat,14.5,CLN_Flow,True,"[{'factor': 'CLN_Flow', 'health_index': 14.5, 'spec_status': 'OK'}, {'factor': 'CLN_Pressure', 'health_index': 80.5, 'spec_status': 'OK'}]"
+DP04,Chipping,96.8,Power_Efficiency,True,"[{'factor': 'Power_Efficiency', 'health_index': 96.8, 'spec_status': 'OK'}, {'factor': 'Head_Temp', 'health_index': 98.2, 'spec_status': 'OK'}, {'factor': 'Cooling_Flow', 'health_index': 100.0, 'spec_status': 'OK'}]"

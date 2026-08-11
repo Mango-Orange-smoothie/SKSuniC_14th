@@ -2,6 +2,15 @@
 
 기존 analysis_step_by_step.py의 save_table 규약(utf-8-sig CSV, analysis_outputs/ 하위)을
 그대로 따르되, 서브폴더 저장을 지원하도록 확장한다.
+
+(26.08.07) 이 파일의 함수는 성격이 두 가지인데 섞여 있으면 오해를 부른다 — 실제로
+"아무도 안 쓰니 죽은 코드"로 잘못 진단된 적이 있다. 아래 두 구역으로 나눠서 표시한다.
+
+  [파이프라인 연결] step0/Goal 스크립트가 실제로 호출하는 함수. 시그니처를 바꾸면
+      호출부가 깨진다.
+  [제공 도구] 강제 적용하지 않고 "Goal 담당자가 필요할 때 갖다 쓰라"고 만들어 둔 것
+      (pipeline/README.md "추가 피처 엔지니어링 도구" 참고). 지금 호출부가 없는 건
+      정상이며, 미사용이라고 지우면 안 된다 — 동작 검증까지 마치고 문서화해 둔 팀 자산이다.
 """
 
 from __future__ import annotations
@@ -45,18 +54,9 @@ def spearman(x: pd.Series, y: pd.Series) -> float:
     return float(r)
 
 
-def robust_stats(series: pd.Series) -> dict:
-    """단일 시리즈의 median/MAD 기반 강건 통계."""
-    values = series.dropna()
-    if len(values) == 0:
-        return {"median": np.nan, "mad": np.nan, "mean": np.nan, "std": np.nan, "cv": np.nan}
-    median = values.median()
-    mad = (values - median).abs().median()
-    mean = values.mean()
-    std = values.std()
-    cv = std / mean if mean not in (0,) and abs(mean) > 1e-9 else np.nan
-    return {"median": median, "mad": mad, "mean": mean, "std": std, "cv": cv}
-
+# ---------------------------------------------------------------------------
+# [파이프라인 연결] step0/Goal 스크립트가 실제로 호출하는 함수
+# ---------------------------------------------------------------------------
 
 def mann_kendall(time_index: pd.Series, values: pd.Series) -> tuple[float, float]:
     """Mann-Kendall 단조추세 검정과 수학적으로 동일한 결과를 주는 Kendall's tau.
@@ -118,6 +118,161 @@ def zscore_transform(
         result[f"{col}_z"] = (result[col] - result["__median"]) / scale
         result = result.drop(columns=["__median", "__scale"])
     return result
+
+
+def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
+    """Goal2 관계DB에서 "이 인자는 이 defect로 감시한다" 짝짓기를 읽어온다.
+
+    (26.08.08 신설) 왜 필요한가 — 이 짝짓기가 config.BASELINE_C_DEFECT_MAP에 손으로
+    적혀 있었다. 지금은 DB 판정과 일치하지만 수동 사본이라 DB가 갱신되면 조용히
+    어긋난다. 실제로 이번에 확인해보니 우리가 안 읽고 있던 정보가 세 가지 있었다:
+
+      - alert_usable=False: "위험구간 불량률이 정상구간보다 낮음 — 이 경계값으로
+        경보를 걸면 안 됨". 우리 코드엔 이 개념 자체가 없었다.
+      - repro_state: 감시 데이터(원본)에서도 재현되는지에 대한 팀 공식 판정.
+        Chipping 짝 인자들은 원본 defect 표본이 3건뿐이라 "판정불가"다 — 이걸 모르고
+        C유형에 넣으면 감시 데이터에서 경보가 0건 나온다(실측 확인).
+      - watch_mode: CLN_Pressure만 "spike"(순간 급락). CUSUM은 지속적 수준 이동용이라
+        구조적으로 안 맞는다.
+
+    채택 조건은 두 파일의 AND다 — rel_30(인계 파일)의 alert_usable이 True이고,
+    rel_20(근거표)의 repro_state가 "통과"인 짝만 쓴다. 지금 데이터에서는 결과가
+    현행 하드코딩 3개와 같다(CLN_Pressure/CLN_Flow/Surface_Roughness).
+
+    반환: ({column: defect}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한 컬럼이
+    없으면 None — 호출부가 config 폴백으로 되돌아간다.
+    """
+    iface = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
+    tiers = config.RELATIONSHIP_DB_DIR / "rel_20_tier_table.csv"
+    if not iface.exists() or not tiers.exists():
+        return None
+    need_iface = {"factor", "defect", "alert_usable"}
+    need_tiers = {"factor", "defect", "repro_state", "watch_mode"}
+    try:
+        i_df = pd.read_csv(iface)
+        t_df = pd.read_csv(tiers)
+    except Exception:
+        return None
+    if not need_iface <= set(i_df.columns) or not need_tiers <= set(t_df.columns):
+        return None
+
+    merged = i_df[list(need_iface)].merge(
+        t_df[list(need_tiers)], on=["factor", "defect"], how="left"
+    )
+    merged["adopted"] = (
+        merged["alert_usable"].astype(str).str.lower().eq("true")
+        & merged["repro_state"].astype(str).str.strip().eq("통과")
+    )
+    adopted = merged.loc[merged["adopted"]]
+    if adopted.empty:
+        return None
+    # 한 인자가 여러 defect로 통과하면 지금 구조(컬럼당 defect 하나)로는 담을 수 없다.
+    # 그런 경우가 생기면 알아채야 하므로 조용히 첫 행을 쓰지 않고 경고한다.
+    dup = adopted["factor"].duplicated(keep=False)
+    if dup.any():
+        print(f"[관계DB] 경고: 한 인자에 defect가 둘 이상 채택됨 — "
+              f"{sorted(adopted.loc[dup, 'factor'].unique())}. 첫 행만 사용합니다.")
+    pairing = dict(zip(adopted["factor"], adopted["defect"]))
+    return pairing, merged
+
+
+def binomial_alert_count(base_rate: float, n_trials: int, alpha: float) -> int:
+    """평소 비율 base_rate에서 n_trials 중 k개 이상이 우연히 나올 확률이 alpha 미만이
+    되는 최소 k를 돌려준다. 도달 불가능하면 n_trials + 1(= 절대 경보 안 뜸).
+
+    (26.08.08 신설) 왜 "평소의 몇 배" 대신 이걸 쓰는가 — 고정 배수는 평소 비율에 따라
+    엄격도가 제멋대로 달라진다. 10샷 창 기준 실측(2.0배일 때 평소에도 우연히 통과할 확률):
+        CLN_Flow      평소  0.5% -> 10샷 중 1개면 통과 ->  4.7%
+        CLN_Pressure  평소  6.4% -> 10샷 중 2개면 통과 -> 13.0%
+        Surface_Rough 평소 32.0% -> 10샷 중 7개면 통과 ->  1.5%
+    같은 "2배"가 컬럼마다 8.7배 차이 나는 기준이 된다(김시우님 지적). 배수를 고정하지
+    말고 **오탐 확률을 고정**해야 컬럼 간에 비교 가능한 기준이 된다.
+
+    base_rate=0이어도 정의된다(k=1) — 예전엔 "비율이 정의 안 됨"이라 별도 분기로
+    빠졌는데, 이 식은 같은 공식이 자연히 그 답을 준다.
+    """
+    if not np.isfinite(base_rate) or base_rate < 0 or n_trials < 1:
+        return n_trials + 1
+    p = min(max(float(base_rate), 0.0), 1.0)
+    for k in range(1, n_trials + 1):
+        # sf(k-1) = P(X >= k)
+        if scipy_stats.binom.sf(k - 1, n_trials, p) < alpha:
+            return k
+    return n_trials + 1
+
+
+# ---------------------------------------------------------------------------
+# [제공 도구] 강제 적용 안 함 — 필요할 때 갖다 쓰는 용도. 호출부가 없는 게 정상이며
+# 미사용이라고 지우면 안 된다(pipeline/README.md "추가 피처 엔지니어링 도구" 참고).
+# ---------------------------------------------------------------------------
+
+def add_spec_deviation_features(
+    df: pd.DataFrame, baseline_long: pd.DataFrame, stratum_keys: list[str], columns: list[str]
+) -> pd.DataFrame:
+    """OK군 층별 0.5~99.5 분위수를 임시 USL/LSL로 삼아 스펙이탈량 피처를 만든다.
+
+    공식 SPEC 컬럼이 없는 데이터셋이라(04_provisional_control_limits.csv와 동일 철학),
+    compute_stratum_baseline_stats가 이미 만들어둔 p0_5/p99_5를 대체 스펙 상하한으로 쓴다.
+    Power_Efficiency처럼 "너무 높아도 너무 낮아도 위험"한 U자형(either) 변수는 부호 있는
+    z-score로 평균을 내면 양/음이 서로 상쇄돼 사라지므로, 항상 0 이상인 이탈량으로 바꿔야
+    선형/트리 모델이 바로 잡아낸다.
+
+    exceedance = max(0, X - USL) + max(0, LSL - X)  (스펙 안이면 0)
+    """
+    result = df.copy()
+    for col in columns:
+        sub = baseline_long.loc[baseline_long["column"] == col, stratum_keys + ["p0_5", "p99_5"]]
+        sub = sub.rename(columns={"p0_5": "__lsl", "p99_5": "__usl"})
+        result = result.merge(sub, on=stratum_keys, how="left")
+        over = (result[col] - result["__usl"]).clip(lower=0)
+        under = (result["__lsl"] - result[col]).clip(lower=0)
+        result[f"{col}_spec_exceedance"] = over + under
+        result = result.drop(columns=["__usl", "__lsl"])
+    return result
+
+
+def add_ratio_features(df: pd.DataFrame, ratios: dict[str, tuple[str, str]]) -> pd.DataFrame:
+    """두 컬럼의 비율/상호작용 피처를 0나눔 방지하며 추가한다.
+
+    단일 변수 하나로는 신호가 약해도 두 변수의 비율이 핵심 원인인 경우가 있다
+    (예: Bottom_Kerf/Top_Kerf로 절단면 기울기 경향 포착). ratios는
+    {새_컬럼명: (분자_컬럼, 분모_컬럼)} 형태 — 어떤 조합을 쓸지는 도메인 판단이라
+    여기서 임의로 정하지 않고 호출부(Goal 담당자)가 결정한다.
+    """
+    result = df.copy()
+    for name, (numer, denom) in ratios.items():
+        safe_denom = result[denom].where(result[denom].abs() > 1e-9)
+        result[name] = result[numer] / safe_denom
+    return result
+
+
+def add_rolling_trend_features(
+    df: pd.DataFrame, group_col: str, time_col: str, columns: list[str], window: int = 5
+) -> pd.DataFrame:
+    """장비(group_col)별 시간순 정렬 후 최근 window개 샷의 rolling mean/std와 직전값 대비
+    변화량(delta)을 붙인다.
+
+    Cooling_Water_Temp/Laser_Head_Remain_Time처럼 단발성 수치 1개는 정상이어도 누적
+    변동(drift)이 서서히 진행되며 불량으로 이어지는 경우, 그 시점 z-score만으로는 못
+    잡는 신호를 잡기 위함. window는 팀 공용 상수로 승격하지 않고 인자로 노출한다 —
+    Goal마다 적정 길이가 다를 수 있어(Machine_ID 그루핑) 실험적으로 바꿔볼 여지를 남긴다.
+
+    주의: 원본 행(샷) 단위 df에 바로 쓰면 Machine×Product×Recipe 조합당 하루 평균
+    샷 수가 적어(이 데이터셋 기준 ~5개) window=5~10이 실제로는 1~2일치밖에 안 될 수
+    있다 — 여러 날에 걸친 추세를 보려면 `00_machine_daily_series.csv`(Step0 산출물,
+    이미 날짜 단위로 집계됨)를 df로 넘길 것.
+    """
+    result = df.sort_values([group_col, time_col]).copy()
+    for col in columns:
+        grouped = result.groupby(group_col)[col]
+        result[f"{col}_roll{window}_mean"] = grouped.transform(
+            lambda s: s.rolling(window, min_periods=2).mean()
+        )
+        result[f"{col}_roll{window}_std"] = grouped.transform(
+            lambda s: s.rolling(window, min_periods=2).std()
+        )
+        result[f"{col}_delta"] = grouped.diff()
+    return result.sort_index()
 
 
 def stratified_split_by_defect(

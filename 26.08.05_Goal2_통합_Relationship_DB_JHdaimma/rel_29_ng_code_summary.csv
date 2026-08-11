@@ -1,0 +1,9 @@
+﻿구분,NG_Code,건수,비율_pct
+OK,OK,149673,74.837
+Particle,PARTICLE,11296,5.648
+Micro_Crack,CRACK,4921,2.46
+Remain_Coat,REM_COAT,9266,4.633
+Chipping,CHIP,24175,12.088
+(기타) BURN,BURN,608,0.304
+(기타) LASER,LASER,61,0.03
+합계,-,200000,100.0

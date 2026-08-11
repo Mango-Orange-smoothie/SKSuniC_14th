@@ -1,0 +1,5 @@
+﻿defect,source,n_candidates,shap_only_pass,shap_only_missed,shap_only_pass_list
+Chipping,JHdaimma,23,5,0,"CLN_Flow, Coating_Flow, Cooling_Flow, Feed_Speed, Frequency"
+Micro_Crack,JHdaimma,14,6,0,"CLN_Time, Coating_Flow, Cooling_Thermal_Load, Cooling_Water_Temp, Cutting_X_Index, Cutting_Y_Index"
+Particle,Jun,39,7,1,"CLN_Pressure, Cleaning_Capacity, Coating_Flow, Frequency, Head_Temp, Laser_Centering_Position, Laser_Voltage"
+Remain_Coat,Jun,39,6,0,"Coating_Flow, Cutting_X_Index, Cutting_Y_Index, Feed_Speed, Laser_Centering_Position, Laser_Power"

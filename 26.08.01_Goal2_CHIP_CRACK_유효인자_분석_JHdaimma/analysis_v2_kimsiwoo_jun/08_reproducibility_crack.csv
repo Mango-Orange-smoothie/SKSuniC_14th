@@ -1,0 +1,6 @@
+﻿target,column,delta_original,delta_r1,delta_combined
+CRACK,Surface_Roughness,0.4443,0.5396,0.5751
+CRACK,Vibration,0.1515,0.4533,0.5652
+CRACK,Frequency,0.7827,0.0398,0.0374
+CRACK,Focus,-0.0549,0.3756,0.5109
+CRACK,Kerf_Width_Profile,0.3299,0.4214,0.5342
