@@ -36,8 +36,39 @@ ROOT = PROJ  # exec가 덮어쓴 ROOT 복원
 
 RNG = 42
 ALPHA = 0.05
-EFFECT_MIN = 0.2       # Cliff's delta 하한 (교과서 관례: 0.15 미만 = 무시할 수준)
-RF_TOP_PCT = 0.25      # 후보 수 비례 상위 25% (고정 top-10은 defect마다 엄격함이 달라짐)
+
+# ---------------------------------------------------------------------------
+# 판정 상수 — 근거가 있는 것과 임의로 정한 것을 구분해서 적는다 (26.08.08)
+# ---------------------------------------------------------------------------
+# 이 파일에는 판정을 가르는 숫자가 4개 있는데, 근거의 강도가 서로 다르다.
+# 예전엔 구분 없이 적어놔서 "왜 10이냐"는 질문에 답할 수 없었다. 아래처럼 나눈다.
+#
+#   [근거 있음]  EFFECT_MIN = 0.2
+#   [임의값]     RF_TOP_PCT = 0.25 · MIN_N_DATASET = 10 · MIN_N_MACHINE = 50
+#
+# 임의값 3개는 **바꿔도 지금 티어표 결과가 바뀌지 않는다**(수치가 경계에서 멀다).
+# 그래도 근거가 없다는 사실 자체는 남겨둔다 — 다음 사람이 근거가 있다고 오해하면
+# 이 값들을 그대로 다른 데이터에 적용하게 된다.
+
+EFFECT_MIN = 0.2       # [근거 있음] Cliff's delta 하한. 팀 합의값이고 교과서 관례
+                       #   (Romano 2006: |d| 0.147 미만 negligible / 0.33 미만 small)와도 맞다.
+
+RF_TOP_PCT = 0.25      # [임의값] 후보 수 비례 상위 25%. 통계적 근거 없이 정했다.
+                       #   고정 top-10을 쓰면 defect마다 엄격함이 달라져서 비율로 바꾼 것까지가
+                       #   근거이고, "왜 25%인가"는 근거가 없다. 39개 기준 상위 10위.
+
+MIN_N_DATASET = 10     # [임의값] 데이터셋별 재현성 검사를 시도할 최소 불량 표본 수.
+                       #   Cliff's delta 자체는 최소 표본 요건이 없어서(2건이어도 계산됨)
+                       #   의미 없는 값이 나오는 걸 손으로 막은 것이다. 통계적 근거 없음.
+                       #   ⚠️ 이 선 하나로 라벨의 뜻이 뒤집힌다:
+                       #      Chipping    원본 3건  → 선 아래 → "판정불가"(못 쟀다)
+                       #      Micro_Crack 원본 34건 → 선 위   → "실패"(재봤는데 어긋났다)
+                       #   34건도 신뢰할 양은 아닌데 유죄 판결을 받는 구조다. 기준선을
+                       #   올릴지는 결정_대기_사항.md 참고 — 올리면 채택 결과가 바뀐다.
+
+MIN_N_MACHINE = 50     # [임의값] 장비별 재현성 검사를 시도할 최소 불량 표본 수. 근거 없음.
+                       #   지금 데이터에서는 4개 defect × 4대가 전부 이 선을 넘어(최소 69건)
+                       #   값을 바꿔도 n_machines_pass가 안 변한다.
 
 # ==================================================================== 확정 도메인 지식 13건
 # (defect, factor, 기대방향, 감시방식, 근거)
@@ -50,7 +81,13 @@ DOMAIN = [
     # 이전에는 "증가 -> Particle 증가"로 두어 Remain_Coat와 상충(트레이드오프)했으나,
     # 정정 후 두 defect 모두 "압력을 올리면 좋아지는" 같은 방향이 되어 상충이 사라진다.
     ("Particle",    "CLN_Pressure",       "down", "level", "멘토 확정 (26.08.06 방향 정정)"),
-    ("Remain_Coat", "CLN_Pressure",       "down", "spike", "멘토 확정 (순간적 급락)"),
+    # 2026-08-08 watch_mode 정정: spike -> level.
+    #   전성재 검증9의 "즉시적 압력 하락"을 "직전 대비 낙차"로 읽고 spike로 뒀으나,
+    #   낙차를 실제로 재보니 급락 사건이 없었다(rel_31 참조).
+    #   압력이 매 샷 ±5로 흔들려 낙차 자체가 노이즈이고, 낙차>2.0이 전체의 16.8%나 된다.
+    #   절대값 경계(lift 3.74, 알람 8.6%)가 낙차 기준(lift 2.33, 알람 16.8%)보다 낫다.
+    #   "선행신호가 없다"는 미리 예고 없이 그 순간 값이 낮다는 뜻이지 낙차를 재라는 뜻이 아니었다.
+    ("Remain_Coat", "CLN_Pressure",       "down", "level", "멘토 확정 (그 순간 값이 낮을 때 위험)"),
     ("Remain_Coat", "CLN_Flow",           "down", "level", "멘토 확정"),
     ("Micro_Crack", "Cooling_Flow",       "down", "level", "멘토 확정"),
     ("Micro_Crack", "Cooling_Water_Temp", "up",   "level", "멘토 확정"),
@@ -87,11 +124,39 @@ BASELINE_DEF = (f"OPCOND({'×'.join(OPCOND)}) 층별 정상군 median 기준, "
                 f"산포는 MAD×{MAD_SCALE} (강건 z-score)")
 print(f"    {len(df):,}행 · 정상군 {df.is_normal.sum():,} · 피처 {len(FEATURES)}개")
 
-# pure 라벨: 다른 3개 defect가 하나도 없는 순수 케이스
+# ---------------------------------------------------------------------------
+# 라벨 정의 (26.08.11 개정 — 안 '다')
+# ---------------------------------------------------------------------------
+# NG_Code는 한 행에 이름을 하나만 붙인다. 그래서 두 불량이 같이 난 행은 우선순위가
+# 높은 쪽 이름만 남고, 밀린 defect는 표본에서 사라진다. 밀리는 정도가 defect마다 다르다.
+#
+#   Chipping     NG_Code 24,175 vs 이진 24,175   1.00x   안 밀림
+#   Remain_Coat           9,266 vs      9,774    1.05x
+#   Particle             11,296 vs     21,371    1.89x
+#   Micro_Crack           4,921 vs     15,413    3.13x   ← 3분의 2가 밀림
+#
+# 게다가 pure 라벨은 "다른 defect가 같이 난 행"을 불량군에서 뺀다. 그런데 한 원인이
+# 두 불량을 동시에 일으키면(멘토 확정: Cooling Failure -> Crack+Chipping,
+# Cleaning Failure -> Particle+Remain_Coat) 그 관계를 증명하는 행이 정확히 "같이 난 행"이라
+# 증거만 골라서 지워진다. 실측으로 위험구간 안 해당 불량 샷 중 다른 불량 동반 비율이
+# CLN_Flow↔Particle 88% / Cooling_Flow↔Micro_Crack 85% / CLN_Pressure↔Particle 77%인데,
+# 버리는 몫이 큰 순서와 강등된 순서가 같았다(김시우님 전수조사 132be03).
+#
+# 기준: **단일 라벨이 그 defect를 대표로 잡아주지 못하는 경우에만 이진 컬럼을 쓴다.**
+# Chipping은 항상 대표로 잡히므로(1.00x) 바꾸지 않는다 — 바꾸면 Head_Temp가 RF 상위
+# 25%에서 밀려 T1에서 내려간다(실측 확인).
+BINARY_LABEL_DEFECTS = ("Micro_Crack", "Particle")
+
 for d in DEFECTS:
     others = [x for x in DEFECTS if x != d]
-    df[f"__pure_{d}"] = ((df[d] == 1) & (df[others].sum(axis=1) == 0)).astype(int)
-LABEL_DEF = "pure 라벨 — 나머지 3개 defect가 동시 발생한 행을 비교군·불량군 양쪽에서 제외"
+    if d in BINARY_LABEL_DEFECTS:
+        df[f"__pure_{d}"] = (df[d] == 1).astype(int)
+    else:
+        df[f"__pure_{d}"] = ((df[d] == 1) & (df[others].sum(axis=1) == 0)).astype(int)
+
+LABEL_DEF = ("혼합 라벨 — Micro_Crack/Particle은 이진(해당 컬럼이 1이면 전부 불량), "
+             "Chipping/Remain_Coat는 pure(나머지 3개 defect 동시 발생 행 제외). "
+             "비교군은 전 defect 공통으로 '확실한 정상품(is_normal)'만 쓴다.")
 
 
 def cliffs_delta(a, b):
@@ -107,8 +172,13 @@ uni, rf = {}, {}
 for d in DEFECTS:
     y = df[f"__pure_{d}"].values
     rows = []
+    # (26.08.11) 비교군을 '확실한 정상품'으로 좁힌다.
+    #   전에는 y==0 전부를 비교군으로 썼는데, 그러면 불량군에서 뺀 행이 비교군으로 넘어간다.
+    #   예: 크랙이 있는 15,413행 중 10,552행이 "크랙 없음" 쪽에 들어가 있었다.
+    #   n_defect + n_normal 이 정확히 200,000이었던 게 그 증거다(아무것도 안 빠짐).
+    ctl = (y == 0) & df.is_normal.values
     for c in FEATURES:
-        dl, p, n1, n0 = cliffs_delta(df.loc[y == 1, f"{c}_z"], df.loc[y == 0, f"{c}_z"])
+        dl, p, n1, n0 = cliffs_delta(df.loc[y == 1, f"{c}_z"], df.loc[ctl, f"{c}_z"])
         rows.append(dict(factor=c, delta=dl, p_raw=p, n_defect=n1, n_normal=n0))
     t = pd.DataFrame(rows)
     t["p_fdr"] = multipletests(t.p_raw, alpha=ALPHA, method="fdr_bh")[1]
@@ -172,18 +242,24 @@ def repro(d: str, c: str) -> dict:
     for ds in ["original", "r1"]:
         s = (df.source_dataset == ds).values
         y = df[f"__pure_{d}"].values
-        if (y[s] == 1).sum() < 10:
+        if (y[s] == 1).sum() < MIN_N_DATASET:
             out[ds] = np.nan
             continue
-        dl, _, _, _ = cliffs_delta(df.loc[s & (y == 1), f"{c}_z"], df.loc[s & (y == 0), f"{c}_z"])
+        # 비교군은 본 검정과 동일하게 '확실한 정상품'만 (26.08.11)
+        dl, _, _, _ = cliffs_delta(df.loc[s & (y == 1), f"{c}_z"],
+                                   df.loc[s & (y == 0) & df.is_normal.values, f"{c}_z"])
         out[ds] = round(dl, 4)
     n_ok = 0
     for mid in sorted(df.Machine_ID.dropna().unique()):
         s = (df.Machine_ID == mid).values
         y = df[f"__pure_{d}"].values
-        if (y[s] == 1).sum() < 50:
+        if (y[s] == 1).sum() < MIN_N_MACHINE:
             continue
-        dl, _, _, _ = cliffs_delta(df.loc[s & (y == 1), f"{c}_z"], df.loc[s & (y == 0), f"{c}_z"])
+        dl, _, _, _ = cliffs_delta(df.loc[s & (y == 1), f"{c}_z"],
+                                   df.loc[s & (y == 0) & df.is_normal.values, f"{c}_z"])
+        # ⚠️ 알려진 한계 — 방향을 안 본다. abs()라서 도메인 기대와 **반대 방향**으로
+        #   커도 "재현"으로 센다. 방향 체크를 넣으면 값이 바뀌므로 별도 결정 사항으로
+        #   남겨뒀다(결정_대기_사항.md). 지금은 이 필드를 게이트로 쓰지 않는다.
         n_ok += int(abs(dl) >= EFFECT_MIN)
     # 원본 데이터의 해당 defect 표본 수 — '재현 실패'와 '표본 부족으로 판정 불가'를 구분하기 위함
     n_orig = int((df[f"__pure_{d}"].values[(df.source_dataset == "original").values] == 1).sum())
@@ -210,14 +286,26 @@ for d, c, exp_dir, watch, ev in DOMAIN:
     rf_pass = bool(t["rank"] <= t.rank_cut and t.imp > 0)
     rp = repro(d, c)
     both = [rp["delta_original"], rp["delta_r1"]]
-    # 재현성은 3값이다. '실패'와 '표본이 없어 검사 자체를 못 함'은 다르게 취급해야 한다.
-    # Chipping은 원본 데이터에 pure 표본이 4건뿐이라 원본측 계산이 불가능하다.
+    # 재현성은 4값이다. '실패'와 '표본이 없어 검사 자체를 못 함'은 다르게 취급해야 한다.
+    # Chipping은 원본 데이터에 pure 표본이 3건뿐이라 원본측 계산이 불가능하다.
+    #
+    # (26.08.08 정정) '실패'를 두 값으로 쪼갰다. 예전엔 else 하나로 뭉쳐서 전부
+    #   "실패(데이터셋간 방향 불일치)"라고 적었는데, 실제 해당 3건을 열어보니
+    #   원본과 r1이 **서로는 일치**하고 도메인 기대와만 어긋나는 경우였다.
+    #     Micro_Crack/Cooling_Flow        원본 +0.069 · r1 +0.065  (일치, 기대는 음수)
+    #     Micro_Crack/Cooling_Water_Temp  원본 -0.100 · r1 -0.013  (일치, 기대는 양수)
+    #     Particle/CLN_Pressure           원본 +0.012 · r1 +0.012  (일치, 기대는 음수)
+    #   즉 "두 데이터셋이 서로 다르다"가 아니라 "둘 다 도메인과 반대"다. 사유가 다르면
+    #   받는 쪽 판단도 달라지므로 이름을 나눈다. 두 값 모두 "실패"로 시작하므로
+    #   김시우님 build_health_index.py의 `~startswith("실패")` 필터 동작은 그대로다.
     if any(pd.isna(x) for x in both):
         repro_state = "판정불가(원본 표본부족)"
     elif np.sign(both[0]) == np.sign(both[1]) == exp_sign:
         repro_state = "통과"
-    else:
+    elif np.sign(both[0]) != np.sign(both[1]):
         repro_state = "실패(데이터셋간 방향 불일치)"
+    else:
+        repro_state = "실패(도메인 방향과 불일치)"
     repro_pass = repro_state == "통과"
 
     layer = LAYER[c]

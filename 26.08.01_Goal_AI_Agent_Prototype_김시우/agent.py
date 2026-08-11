@@ -556,6 +556,40 @@ def _format_action_line(factor: str) -> str:
         return "확정 조치 유형 없음(감시지표 또는 원인 미확정) `[SOP 미수령]`"
 
 
+def _defect_rate_context(machine_id: str, defect: str) -> str:
+    """"이 장비의 불량률이 4대 중 어느 위치인가"를 한 구절로 만든다.
+
+    (26.08.10) "발생: 최근 7일 내내(7/7)"만 보면 심각해 보이는데, Particle은 이 공정에서
+    4대 전부 매일 나는 상시 불량이다(89일 평균 6.96~8.16%). DP01은 그중 **제일 낮은데도**
+    화면상 제일 위험해 보였다. 비교 기준 없이 발생 사실만 쓰면 오해를 만든다.
+    """
+    rate_col = DEFECT_RATE_COLS.get(defect)
+    if not rate_col or rate_col not in DAILY_TREND.columns:
+        return ""
+    per_machine = DAILY_TREND.groupby("Machine_ID")[rate_col].mean()
+    if machine_id not in per_machine.index or not len(per_machine):
+        return ""
+
+    # 상시 불량(Particle/Remain_Coat)과 희귀 불량(Chipping/Micro_Crack)은 다르게 말해야
+    # 한다. Chipping은 89일 10만 샷에 4건이라 평균이 0.00%로 찍혀서, 비율로 비교하면
+    # "4대 평균 0.00%, 이 장비 0.00%"라는 무의미한 문장이 된다. 그런 불량은 비율이
+    # 아니라 **건수**가 정보다.
+    RARE_RATE_PCT = 0.5
+    n = len(per_machine)
+    if per_machine.mean() * 100 < RARE_RATE_PCT:
+        if "samples" not in DAILY_TREND.columns:
+            return ""
+        cnt = (DAILY_TREND[rate_col] * DAILY_TREND["samples"]).groupby(
+            DAILY_TREND["Machine_ID"]).sum().round()
+        return (f"희귀 불량 — 89일 동안 {n}대 합쳐 `{int(cnt.sum())}건`, "
+                f"이 장비 `{int(cnt.get(machine_id, 0))}건`")
+
+    mine, avg = per_machine[machine_id] * 100, per_machine.mean() * 100
+    rank = int((per_machine > per_machine[machine_id]).sum()) + 1  # 1등 = 가장 나쁨
+    where = "최고" if rank == 1 else ("최저" if rank == n else f"{rank}위")
+    return f"이 공정 상시 발생(4대 평균 `{avg:.2f}%`), 이 장비 `{mine:.2f}%`로 {n}대 중 {where}"
+
+
 def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | None:
     """장비 스냅샷 하나에서 defect/factor 하나를 골라 패널 하나(제목/그래프/설명)를 만든다.
     Claude 답변 문장을 파싱하지 않고 원본 JSON에서 직접, 결정론적으로 구성한다 — Claude의
@@ -567,12 +601,31 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
         return None  # 이 인자는 원인 상세 정보가 없음(안전망 항목 등) — 패널에서 생략
 
     occurred = sig.get("actual_occurred_recent_7d", False)
-    icon = "🔴" if occurred else ("🟡" if c.get("early_warning_active") else "⚪")
+    hi = sig.get("health_index")
+
+    # (26.08.10) 아이콘을 "최근 7일에 한 번이라도 났는가"가 아니라 **점수**로 정한다.
+    #
+    # 예전 규칙(occurred면 무조건 빨강)은 Particle처럼 매일 나는 불량에서 4대가 전부
+    # 항상 7/7이라 무조건 빨강이 됐다 — DP01은 HI 91.9로 제일 건강한데 화면은
+    # "🔴 DP01 Particle"이었다(김시우님 지적). 반대로 Chipping은 89일에 4건뿐이라
+    # 실제로 나빠도 하얗게 떴다. 발생 빈도는 그 불량의 성질이지 심각도가 아니다.
+    if hi is None:
+        icon = "⚪"
+    elif hi < 50:
+        icon = "🔴"
+    elif hi < 80:
+        icon = "🟡"
+    else:
+        icon = "🟢"
+
+    # 발생 줄도 마찬가지다. "7/7"은 상시 발생 불량에서 정보가 없다 — 4대 평균과
+    # 비교해야 "많은 건지"를 알 수 있다. rate가 있으면 그 비교를 같이 실어준다.
     occ_txt = ("최근 7일 내내(7/7)" if sig.get("occurred_days_recent_7d") == 7
                else (f"{sig.get('occurred_days_recent_7d', 0)}/7일" if occurred
                      else "없음(조짐 단계)"))
-
-    hi = sig.get("health_index")
+    ctx = _defect_rate_context(machine_id, defect)
+    if ctx:
+        occ_txt += f" · {ctx}"
     title = f"{icon} {machine_id} · {rank}순위 - {defect} (HI `{hi}`)"
     # (26.08.08) 관계DB agent_rules 6번 "role이 감시지표인 인자에 조치를 지시하지 말 것.
     # 경보만." — Surface_Roughness처럼 actionable=false인 인자를 "원인"이라 부르면 틀린
