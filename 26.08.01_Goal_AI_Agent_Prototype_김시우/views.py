@@ -226,10 +226,19 @@ def bootstrap() -> dict:
 
 # ---------------------------------------------------------------- 뷰 1: 추세
 
-def view_trend(machine_id: str, factor: str) -> dict:
-    chart = _chart(machine_id, factor)
+def view_trend(machine_id: str, factor: str, days: int | None = None) -> dict:
+    """days=None이면 agent가 창을 자동으로 잡는다(경보 시작 14일 전 ~ 현재, 경보가
+    없으면 최근 30일). 화면에서 기간을 바꾸면 그 값이 그대로 여기로 온다 — 불량 뷰가
+    이미 쓰던 state.days와 같은 통로다."""
+    chart = _chart(machine_id, factor, days)
     if chart is None:
         return {"error": f"{machine_id} / {factor} 시계열을 찾을 수 없습니다."}
+
+    # 기간 선택기가 "N일 / 전체 M일"을 표시하려면 이 장비×변수의 전체 일수가 필요하다.
+    # 시계열을 다시 조회하지 않고 원본 프레임에서 행 수만 센다.
+    _all = agent.DAILY_SERIES[(agent.DAILY_SERIES["Machine_ID"] == machine_id)
+                              & (agent.DAILY_SERIES["column"] == factor)]
+    total_days = int(len(_all))
 
     # 카드에 실을 숫자는 health_index_data.json 쪽(원인 상세)에서 가져온다 — 여유 소진률,
     # 위험구간 진입률, tier/조치 긴급도는 시계열에 없다.
@@ -261,6 +270,8 @@ def view_trend(machine_id: str, factor: str) -> dict:
         "machine": machine_id,
         "factor": factor,
         "defect": defect_name,
+        "days": days,
+        "total_days": total_days,
         "chart": chart,
         "detail": detail,
         "meta": {
@@ -425,7 +436,7 @@ def build(state: dict) -> dict:
     factor = (state or {}).get("factor")
 
     if view == "trend":
-        return view_trend(machine, factor)
+        return view_trend(machine, factor, state.get("days"))
     if view == "defect":
         return view_defect(machine, state.get("defects"), state.get("days"))
     if view == "heatmap":

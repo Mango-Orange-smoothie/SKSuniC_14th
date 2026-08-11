@@ -141,7 +141,34 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   background:linear-gradient(to right, var(--surface-2), var(--critical))}
 
 .chart svg{display:block;width:100%}
+.chart svg.ix{cursor:crosshair}
 .chart-t{font-size:12px;color:var(--ink-muted);margin-bottom:5px}
+
+/* ---------- 그래프 위 값 읽기(크로스헤어 툴팁) ----------
+   position:fixed라 카드의 overflow에 잘리지 않는다. */
+#chartTip{position:fixed;z-index:80;pointer-events:none;display:none;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  padding:8px 11px;font-size:12px;color:var(--ink);line-height:1.6;
+  box-shadow:0 6px 22px rgba(0,0,0,.45);max-width:290px}
+#chartTip .tp-d{font:700 11.5px var(--font-mono);color:var(--ink-muted);margin-bottom:3px}
+#chartTip .tp-r{display:flex;gap:7px;align-items:baseline;white-space:nowrap}
+#chartTip .tp-k{color:var(--ink-muted);font-size:11px}
+#chartTip .tp-v{font:600 12px var(--font-mono);margin-left:auto}
+#chartTip .tp-s{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+
+/* ---------- 내보내기 버튼 — 카드에 마우스를 올렸을 때만 보인다 ---------- */
+.chart-acts{display:flex;gap:3px;justify-content:flex-end;margin-bottom:-4px;
+  opacity:0;transition:opacity .12s}
+.card:hover .chart-acts,.chart-acts:focus-within{opacity:1}
+.chart-acts button{background:none;border:1px solid transparent;border-radius:7px;
+  padding:3px 8px;font-size:12px;line-height:1.4;cursor:pointer;color:var(--ink-faint)}
+.chart-acts button:hover{background:var(--surface-2,rgba(255,255,255,.06));color:var(--ink)}
+.chart-acts button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;
+  background:var(--ink);color:var(--bg);font:600 12.5px var(--font-ui);
+  padding:9px 18px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
 
 /* ---------- 에이전트 패널 ---------- */
 .agent{flex:0 0 316px;border-left:1px solid var(--border);display:flex;flex-direction:column;
@@ -212,6 +239,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   </div>
 </div>
 <button class="reopen" id="reopenAgent">AI Agent</button>
+
+<!-- 그래프 툴팁·토스트 — body 직속이라 카드 스크롤 영역에 잘리지 않는다 -->
+<div id="chartTip"></div>
+<div id="toast"></div>
 
 <script>
 // ===================================================================
@@ -399,14 +430,26 @@ function renderTrend(d){
   const num = (l, v, color) => v == null ? '' :
     `<div><div class="num-l">${l}</div><div class="num-v" ${color ? `style="color:${color}"` : ''}>${v}</div></div>`;
 
+  // 기간 선택 — 불량 뷰와 같은 state.days 통로를 쓴다. "기본"은 서버가 창을 자동으로
+  // 잡는 것(경보 시작 14일 전~, 경보가 없으면 최근 30일)이고, "전체"는 89일 전부다.
+  const ranges = [[null,'기본'],[89,'전체'],[30,'30일'],[7,'7일']];
+  const picker = ranges.map(([v,label]) =>
+    `<span class="rng ${(state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+
   $('view').innerHTML = `
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
       ${d.defect ? `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}</div>` : ''}
+      <div class="rngbar">${picker}<span class="rng-n">${c.series.length}일${
+        d.total_days ? ` / 전체 ${d.total_days}일` : ''}</span></div>
     </div>
 
     <div class="card">
+      <div class="chart-acts">
+        <button data-png title="그래프+현재값을 PNG로 저장">⬇ PNG</button>
+        <button data-copy title="현재값을 텍스트로 복사">📋 복사</button>
+      </div>
       <div class="nums">
         ${num('현재값', det.current_value ?? c.series.at(-1).value)}
         ${num('정상값', c.baseline_median, 'var(--ink-muted)')}
@@ -431,6 +474,10 @@ function renderTrend(d){
       </div>
       ${renderRiskBand(meta, det, d.defect)}
     </div>`;
+
+  $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
+    setState({days: el.dataset.days ? Number(el.dataset.days) : null}));
+  wireChart(d);
 }
 
 // "불량률이 갈리는 경계값"을 보여준다.
@@ -531,7 +578,12 @@ function renderChart(cd, threshold){
         +`<text x="${(x(ai)+3).toFixed(1)}" y="${padT+9}" font-size="8.5" fill="var(--critical)">경보 ${cd.alert_since}</text>`;
     }
   }
-  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+  // 크로스헤어·툴팁이 마우스 x를 시리즈 인덱스로 되돌리려면 이 좌표계가 필요하다.
+  // 렌더 시점의 값을 그대로 실어 보내면 상호작용 코드가 계산을 다시 하지 않아도 되고,
+  // 기간이 바뀌어 다시 그려질 때 자동으로 갱신된다.
+  const geom = JSON.stringify({W,H,padL,padR,padT,padB,n,vMin,vMax,kind:'single'});
+
+  return `<div class="chart"><svg class="ix" data-geom='${geom}' viewBox="0 0 ${W} ${H}" height="${H}">
     ${defectArea}${specLines}${alertMark}
     ${hasUsl?hline(cd.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
     ${hasLsl?hline(cd.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
@@ -692,7 +744,11 @@ function renderCompare(d){
       <div class="vsub">기준선은 4대 공통입니다 — 같은 자로 재서 어느 장비가 벗어났는지 봅니다</div>
     </div>
     <div class="card">
-      <div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+      <div class="chart-acts">
+        <button data-png title="그래프를 PNG로 저장">⬇ PNG</button>
+        <button data-copy title="현재값을 텍스트로 복사">📋 복사</button>
+      </div>
+      <div class="chart"><svg class="ix" data-geom='${JSON.stringify({W,H,padL,padR,padT,padB,n,vMin,vMax,kind:'compare'})}' viewBox="0 0 ${W} ${H}" height="${H}">
         ${has(d.control_usl)?hline(d.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
         ${has(d.control_lsl)?hline(d.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
         ${hline(d.baseline_median,'var(--ink-faint)',false)}
@@ -705,6 +761,300 @@ function renderCompare(d){
         ${legend}
       </svg></div>
     </div>`;
+
+  wireChart(d);
+}
+
+// ===================================================================
+// 그래프 위에서 값 읽기 + 내보내기
+//
+// 그래프는 SVG 문자열로 만들어지므로, 렌더가 끝난 뒤 여기서 상호작용 레이어를
+// 얹는다. 좌표계는 renderChart/renderCompare가 svg의 data-geom에 실어 보낸 값을
+// 그대로 쓴다 — 같은 계산을 두 곳에서 하면 기간이 바뀔 때 어긋난다.
+// ===================================================================
+const SVGNS = 'http://www.w3.org/2000/svg';
+const hideTip = () => { $('chartTip').style.display = 'none'; };
+
+function fmtNum(v){
+  if(v === null || v === undefined) return '-';
+  const a = Math.abs(v);
+  return a >= 100 ? v.toFixed(1) : a >= 1 ? v.toFixed(3) : v.toFixed(4);
+}
+
+// 정상값에서 "점수를 내는 쪽" 관리한계까지 여유를 얼마나 썼는지. 카드의 게이지와
+// 같은 개념(margin_used_pct)이라 툴팁 숫자와 게이지가 어긋나지 않는다.
+function marginPct(cd, v){
+  const b = cd.baseline_median, side = cd.score_side || 'both';
+  if(b == null || v == null) return null;
+  const bound = side === 'upper' ? cd.control_usl
+              : side === 'lower' ? cd.control_lsl
+              : (v >= b ? cd.control_usl : cd.control_lsl);
+  if(bound == null || bound === b) return null;
+  return Math.max(0, (v - b) / (bound - b)) * 100;
+}
+
+const tpRow = (k, v, color) =>
+  `<div class="tp-r">${color ? `<span class="tp-s" style="background:${color}"></span>` : ''}` +
+  `<span class="tp-k">${k}</span><span class="tp-v">${v}</span></div>`;
+
+function buildTip(d, i){
+  const cmp = d.view === 'compare';
+  const cd = cmp ? d : d.chart;
+  const dates = cmp ? d.dates : cd.series.map(p => p.date);
+  let h = `<div class="tp-d">${dates[i]}</div>`;
+  if(cmp){
+    for(const m of d.machines){
+      const color = MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)';
+      h += tpRow(m.machine_id + (m.alert_active_days != null ? ' ⚠' : ''), fmtNum(m.values[i]), color);
+    }
+  } else {
+    const v = cd.series[i].value;
+    h += tpRow(d.factor, fmtNum(v), 'var(--accent)');
+    const mp = marginPct(cd, v);
+    if(mp !== null) h += tpRow('여유 소진', mp.toFixed(0) + '%');
+    const ds = cd.defect_series && cd.defect_series[i];
+    if(ds && ds.value != null) h += tpRow(cd.defect + ' 불량률', (ds.value * 100).toFixed(2) + '%', 'var(--warn)');
+  }
+  h += tpRow('정상값', fmtNum(cd.baseline_median));
+  const side = cd.score_side || 'both';
+  if(cd.control_usl != null && (side === 'both' || side === 'upper')) h += tpRow('관리상한', fmtNum(cd.control_usl));
+  if(cd.control_lsl != null && (side === 'both' || side === 'lower')) h += tpRow('관리하한', fmtNum(cd.control_lsl));
+  const since = cmp ? d.machines.map(m => m.alert_since).filter(Boolean).sort()[0] : cd.alert_since;
+  if(since && dates[i] >= since){
+    h += `<div class="tp-r"><span class="tp-k" style="color:var(--critical)">경보 ${since}부터 지속 구간</span></div>`;
+  }
+  return h;
+}
+
+function attachCrosshair(svg, d){
+  let geom;
+  try{ geom = JSON.parse(svg.dataset.geom || '{}'); }catch(_){ return; }
+  if(!geom.n || geom.n < 2) return;
+
+  const cmp = d.view === 'compare', cd = cmp ? d : d.chart;
+  const targets = cmp ? d.machines : [null];
+  const plotW = geom.W - geom.padL - geom.padR;
+  const xOf = i => geom.padL + (i / (geom.n - 1)) * plotW;
+  const yOf = v => geom.padT + (1 - (v - geom.vMin) / (geom.vMax - geom.vMin)) * (geom.H - geom.padT - geom.padB);
+  const idxAt = cx => {
+    const r = svg.getBoundingClientRect();
+    // 탭 전환 직후처럼 그래프가 아직 배치되지 않았으면 폭이 0이라 좌표 환산이
+    // NaN이 된다 — 그대로 두면 series[NaN]을 읽다가 터진다.
+    if(!r.width) return -1;
+    const vx = (cx - r.left) * (geom.W / r.width);
+    return Math.max(0, Math.min(geom.n - 1, Math.round((vx - geom.padL) / plotW * (geom.n - 1))));
+  };
+
+  // data-ui 표시를 달아둔다 — PNG로 내보낼 때 골라서 빼기 위함(마우스 흔적이
+  // 저장 이미지에 남으면 안 된다).
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('data-ui', '1');
+  g.setAttribute('pointer-events', 'none');
+  g.style.display = 'none';
+  const vline = document.createElementNS(SVGNS, 'line');
+  vline.setAttribute('stroke', 'var(--ink-muted)');
+  vline.setAttribute('stroke-width', '1');
+  vline.setAttribute('stroke-dasharray', '3 3');
+  vline.setAttribute('y1', geom.padT);
+  vline.setAttribute('y2', geom.H - geom.padB);
+  g.appendChild(vline);
+  const dots = targets.map(m => {
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('r', '3.6');
+    c.setAttribute('fill', m ? (MACHINE_COLORS[m.machine_id] || 'var(--ink-muted)') : 'var(--accent)');
+    c.setAttribute('stroke', 'var(--surface)');
+    c.setAttribute('stroke-width', '1.3');
+    g.appendChild(c);
+    return c;
+  });
+  svg.appendChild(g);
+
+  svg.addEventListener('pointermove', e => {
+    const i = idxAt(e.clientX);
+    if(i < 0) return;
+    const px = xOf(i);
+    vline.setAttribute('x1', px); vline.setAttribute('x2', px);
+    targets.forEach((m, k) => {
+      const v = m ? m.values[i] : cd.series[i].value;
+      if(v == null){ dots[k].style.display = 'none'; return; }
+      dots[k].style.display = '';
+      dots[k].setAttribute('cx', px);
+      dots[k].setAttribute('cy', yOf(v));
+    });
+    g.style.display = '';
+    const tip = $('chartTip');
+    tip.innerHTML = buildTip(d, i);
+    tip.style.display = 'block';
+    // 화면 밖으로 넘치면 반대편으로 접는다
+    let left = e.clientX + 16, top = e.clientY - tip.offsetHeight - 12;
+    if(left + tip.offsetWidth > window.innerWidth - 8) left = e.clientX - tip.offsetWidth - 16;
+    if(top < 8) top = e.clientY + 20;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = top + 'px';
+  });
+  svg.addEventListener('pointerleave', () => { g.style.display = 'none'; hideTip(); });
+}
+
+// ---------- 내보내기 ----------
+const PNG_FONT = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+const cssVar = (n, fb) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb;
+const fileSafe = s => String(s).replace(/[\p{Extended_Pictographic}️]/gu, '')
+  .replace(/[\\/:*?"<>|]/g, '').replace(/[·]/g, '-').replace(/\s+/g, '_')
+  .replace(/^[_\-]+|[_\-]+$/g, '').slice(0, 80) || 'chart';
+
+function chartSummaryText(d){
+  if(d.view === 'compare'){
+    const rows = d.machines.map(m => {
+      const v = [...m.values].reverse().find(x => x != null);
+      return `- ${m.machine_id}: ${fmtNum(v)}` +
+             (m.alert_active_days != null ? ` (경보 ${m.alert_active_days}일째)` : '');
+    }).join('\n');
+    return `## ${d.factor} · 장비 4대 비교\n\n`
+      + `- 정상값: ${d.baseline_median}\n- 관리한계: ${d.control_lsl} ~ ${d.control_usl}\n${rows}\n\n`
+      + `기간: ${d.dates[0]} ~ ${d.dates.at(-1)} (${d.dates.length}일)\n`;
+  }
+  const c = d.chart, det = d.detail || {}, meta = d.meta || {};
+  const L = [`## ${d.machine} · ${d.factor}`, ''];
+  if(d.defect) L.push(`- ${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}`);
+  L.push(`- 현재값: ${det.current_value ?? c.series.at(-1).value} (정상값 ${c.baseline_median})`);
+  if(c.control_lsl != null || c.control_usl != null) L.push(`- 관리한계: ${c.control_lsl} ~ ${c.control_usl}`);
+  if(det.health_index != null) L.push(`- Health Index: ${det.health_index}`);
+  if(det.margin_used_pct != null) L.push(`- 여유 소진: ${det.margin_used_pct}%`);
+  if(meta.action_type) L.push(`- 조치 긴급도: ${meta.action_type} (tier ${meta.tier ?? '-'}) [SOP 미수령]`);
+  if(c.early_warning_active && c.alert_since) L.push(`- 경보: ${c.alert_since}부터 ${c.alert_active_days}일째 지속`);
+  if(det.estimated_days_to_spec_out != null) L.push(`- 이 추세면 ${det.estimated_days_to_spec_out}일 뒤 관리한계 도달`);
+  if(meta.mechanism) L.push(`- 메커니즘: ${meta.mechanism}`);
+  L.push('', `기간: ${c.series[0].date} ~ ${c.series.at(-1).date} (${c.series.length}일)`);
+  return L.join('\n');
+}
+
+// SVG는 색을 CSS 변수로 쓰는데, data: URL 이미지로 렌더될 때는 문서의 변수 정의가
+// 따라가지 않아 전부 검정이 된다 — 직렬화 전에 실제 색으로 치환해야 한다.
+function svgToImage(svg, w, h){
+  const clone = svg.cloneNode(true);
+  clone.querySelectorAll('[data-ui="1"]').forEach(n => n.remove());
+  const resolve = s => String(s).replace(/var\((--[\w-]+)(?:\s*,\s*([^)]+))?\)/g,
+    (_, name, fb) => cssVar(name, (fb || '').trim() || '#888'));
+  clone.querySelectorAll('*').forEach(n => {
+    for(const attr of ['stroke', 'fill']){
+      const v = n.getAttribute(attr);
+      if(v && v.includes('var(')) n.setAttribute(attr, resolve(v));
+    }
+    const st = n.getAttribute('style');
+    if(st && st.includes('var(')) n.setAttribute('style', resolve(st));
+  });
+  clone.setAttribute('xmlns', SVGNS);
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
+  clone.style.fontFamily = PNG_FONT;
+  // SVG 자체는 투명이라 그대로 저장하면 밝은 문서에 붙일 때 글자가 안 보인다
+  const bg = document.createElementNS(SVGNS, 'rect');
+  bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+  bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%');
+  bg.setAttribute('fill', cssVar('--surface', '#ffffff'));
+  clone.insertBefore(bg, clone.firstChild);
+  const xml = new XMLSerializer().serializeToString(clone);
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('SVG 렌더 실패'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+  });
+}
+
+function wrapLines(ctx, text, maxW){
+  const out = [];
+  for(const raw of String(text).split('\n')){
+    const line = raw.replace(/^##\s+/, '').replace(/^\s*-\s+/, '• ').trim();
+    if(!line) continue;
+    const indent = line.startsWith('•') ? '   ' : '';
+    let cur = '';
+    for(const word of line.split(' ')){
+      const next = cur ? cur + ' ' + word : word;
+      if(ctx.measureText(next).width > maxW && cur){ out.push(cur); cur = indent + word; }
+      else cur = next;
+    }
+    if(cur) out.push(cur);
+  }
+  return out;
+}
+
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function exportPNG(svg, d, title){
+  if(!svg){ toast('그래프가 없습니다'); return; }
+  try{
+    const vb = svg.viewBox.baseVal;
+    const SCALE = 2;                       // 보고서에 붙여도 안 깨지게
+    const cw = Math.round(vb.width * SCALE), ch = Math.round(vb.height * SCALE);
+    const padX = 30, titleY = 40, gap = 18, lineH = 27;
+
+    const cv = document.createElement('canvas');
+    const ctx = cv.getContext('2d');
+    ctx.font = '17px ' + PNG_FONT;
+    const lines = wrapLines(ctx, chartSummaryText(d).split('\n').slice(2).join('\n'), cw - 10);
+
+    cv.width = cw + padX * 2;
+    cv.height = titleY + 16 + ch + gap + lines.length * lineH + 24;
+    ctx.fillStyle = cssVar('--bg', '#ffffff');
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = cssVar('--ink', '#000000');
+    ctx.font = 'bold 25px ' + PNG_FONT;
+    ctx.fillText(title, padX, titleY);
+
+    const img = await svgToImage(svg, cw, ch);
+    ctx.drawImage(img, padX, titleY + 16, cw, ch);
+
+    ctx.font = '17px ' + PNG_FONT;
+    ctx.fillStyle = cssVar('--ink-muted', '#555555');
+    lines.forEach((ln, k) => ctx.fillText(ln, padX, titleY + 16 + ch + gap + 14 + k * lineH));
+
+    downloadBlob(await new Promise(r => cv.toBlob(r, 'image/png')), fileSafe(title) + '.png');
+    toast('PNG로 저장했습니다');
+  }catch(err){
+    toast('PNG 저장 실패: ' + err.message);
+  }
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('클립보드에 복사했습니다');
+  }catch(_){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('클립보드에 복사했습니다'); }
+    catch(__){ toast('복사가 차단되었습니다'); }
+    ta.remove();
+  }
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2100);
+}
+
+// 뷰를 그린 뒤 한 번 호출 — 크로스헤어와 내보내기 버튼을 연결한다.
+function wireChart(d){
+  hideTip();
+  const svg = $('view').querySelector('svg.ix');
+  if(svg) attachCrosshair(svg, d);
+  const acts = $('view').querySelector('.chart-acts');
+  if(!acts) return;
+  const title = d.view === 'compare' ? `${d.factor} · 장비 4대 비교` : `${d.machine} · ${d.factor}`;
+  acts.querySelector('[data-png]').onclick = () => exportPNG(svg, d, title);
+  acts.querySelector('[data-copy]').onclick = () => copyText(chartSummaryText(d));
 }
 
 // ===================================================================
