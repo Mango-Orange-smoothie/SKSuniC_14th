@@ -167,17 +167,36 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .m h3:first-child{margin-top:0}
 .m ul{margin:5px 0;padding-left:17px}
 .m p{margin:5px 0}
-.m table{border-collapse:collapse;width:100%;font-size:11.5px;margin:6px 0}
+/* 표는 316px 패널보다 넓어질 수 있다(레시피 조합 이름이 길다). 셀을 줄여서 읽기를
+   포기하는 대신 표만 가로로 굴린다 — 말풍선 자체는 안 넘친다. */
+.m .tw{overflow-x:auto;margin:6px 0}
+.m table{border-collapse:collapse;width:100%;font-size:11.5px}
 .m th,.m td{border:1px solid var(--border);padding:3px 6px;text-align:left}
+.m th{color:var(--ink-muted);font-weight:600;white-space:nowrap}
+.m td{font-family:var(--font-mono)}
+
+/* 첫 화면 안내. **말풍선으로 그리지 않는다** — 모델이 한 말과 화면이 만든 말이 같은
+   모양이면, 부팅 시점에 이미 LLM이 뭔가 판단한 것처럼 보인다. 이 문단은 /api/bootstrap
+   숫자를 그대로 쓴 정적 안내다. */
+.intro{font-size:12px;color:var(--ink-muted);line-height:1.7;padding-bottom:4px;
+  border-bottom:1px solid var(--border)}
+.intro b{color:var(--ink)}
+.intro code{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+.intro .hi{font:600 13px var(--font-mono)}
+.intro-t{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
 .jump{align-self:flex-start;font-size:11.5px;color:var(--accent);background:var(--accent-soft);
   padding:5px 10px;border-radius:6px}
 .hints{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px}
 .hint{font-size:11.5px;background:var(--bg);border:1px solid var(--border);padding:5px 9px;
   border-radius:14px;color:var(--ink-muted);cursor:pointer}
 .hint:hover{border-color:var(--accent);color:var(--accent)}
-.inbar{display:flex;gap:7px;padding:11px 14px;border-top:1px solid var(--border)}
+/* flex-end: 입력창이 커질 때 전송 버튼은 아래(마지막 줄 옆)에 붙어 있어야 한다 */
+.inbar{display:flex;align-items:flex-end;gap:7px;padding:11px 14px;border-top:1px solid var(--border)}
+/* 높이 38px 고정이라 두 줄짜리 질문이 한 줄 안에 갇혀 앞부분이 안 보였다. 내용만큼
+   늘리고 120px(약 5줄)에서 멈춰 스크롤 — 대화 로그가 입력창에 먹히지 않게 한다. */
 .inbar textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:8px;
-  padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);height:38px}
+  padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);
+  height:38px;min-height:38px;max-height:120px;overflow-y:auto;line-height:1.5}
 .inbar textarea:focus{outline:none;border-color:var(--accent)}
 .inbar button{background:var(--accent);color:#fff;border:none;border-radius:8px;
   padding:0 14px;font:600 12.5px var(--font-ui);cursor:pointer}
@@ -274,7 +293,7 @@ async function boot(){
   }
   if(BOOT.error){ $('view').innerHTML = `<div class="empty">${esc(BOOT.error)}</div>`; return; }
   Object.assign(state, BOOT.default_state);
-  renderTabs(); renderStrip(); renderSide(); renderHints();
+  renderTabs(); renderStrip(); renderSide(); renderHints(); renderIntro();
   load();
 }
 
@@ -376,6 +395,26 @@ function renderHints(){
   const hints = ['DP04 왜 그렇게 낮아?', 'DP01이랑 DP03 비교해줘', 'Particle 불량 원인이 뭐야?'];
   $('hints').innerHTML = hints.map(h => `<div class="hint">${esc(h)}</div>`).join('');
   $('hints').querySelectorAll('.hint').forEach(el => el.onclick = () => ask(el.textContent));
+}
+
+// 첫 화면 안내. 예전엔 대화창이 완전히 비어 있어서 힌트 칩 3개만 떠 있었고, 그 3개가
+// 이 패널이 할 수 있는 일의 전부처럼 보였다.
+// **숫자는 여기서 다시 세지 않고 사이드바가 쓰는 것과 같은 트리에서 센다** — 안내문이
+// "지속 경보 N개"라고 말한 뒤 사이드바에서 빨간 배지를 세면 N이 나와야 한다.
+function renderIntro(){
+  let full = 0, early = 0;
+  for(const tree of Object.values(BOOT.variables))
+    for(const g of tree){ full += g.alert_count_full; early += g.alert_count - g.alert_count_full; }
+
+  const worst = BOOT.machines[0];   // views.py가 나쁜 순으로 정렬해 보낸다
+  $('msgs').innerHTML = `<div class="intro">
+      <div class="intro-t">장비·변수·불량에 대해 물어보세요</div>
+      가장 낮은 장비는 <b>${worst.machine_id}</b>
+      <span class="hi" style="color:${hiColor(worst.health_index)}">${worst.health_index ?? '—'}</span>
+      (${esc(worst.worst_defect ?? '—')} · <code>${esc(worst.worst_factor ?? '')}</code>).
+      4대 합쳐 지속 경보 <b>${full}개</b>, 초기 경보 ${early}개.<br>
+      답변에는 근거 숫자가 같이 나오고, 관련 화면으로 함께 이동합니다.
+    </div>`;
 }
 
 // ---------- 상태 전이 ----------
@@ -788,15 +827,44 @@ function renderCompare(d){
 // 에이전트 — 자연어를 "선택 UI의 단축키"로 쓴다. 답변에 딸려온 view_state로
 // 화면을 옮기므로, 질문이 갈 수 있는 곳은 여전히 위 4개 뷰뿐이다.
 // ===================================================================
+// 지원 문법은 agent.py 프롬프트가 모델에게 약속한 5개와 **정확히 같아야 한다**
+// (`### 헤더`, `**볼드**`, `` `코드` ``, `- 목록`, `| 표 |`). 표는 빠져 있었는데,
+// 프롬프트는 미확정 이상치와 recipe_hotspots를 표로 답하라고 지시한다 — 그래서 그
+// 답변들은 화면에 파이프 문자가 그대로 찍히고 있었다.
 function md(s){
   const inline=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
-  let html='',inList=false;
-  for(const line of String(s).split('\n')){
-    if(/^#{1,3}\s+/.test(line)){ if(inList){html+='</ul>';inList=false;} html+=`<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`; }
+  // 양끝 파이프는 있어도 없어도 받는다(모델이 `|a|b|`와 `a | b` 사이를 오간다).
+  const cells=l=>l.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  const isRow=l=>l.includes('|');
+  const isSep=l=>isRow(l)&&/^[\s|:-]+$/.test(l)&&l.includes('-');
+
+  const lines=String(s).split('\n');
+  let html='',inList=false,i=0;
+  const closeList=()=>{ if(inList){html+='</ul>';inList=false;} };
+
+  while(i<lines.length){
+    const line=lines[i];
+    // 구분선(`|---|---|`)이 뒤따를 때만 표로 본다. 문장 속 파이프 하나를 표로 오인하면
+    // 답변이 통째로 깨지므로, 헤더+구분선 두 줄이 다 맞아야 표를 시작한다.
+    if(isRow(line)&&isSep(lines[i+1]||'')){
+      closeList();
+      const head=cells(line);
+      const body=[];
+      for(i+=2;i<lines.length&&isRow(lines[i])&&lines[i].trim();i++) body.push(cells(lines[i]));
+      html+='<div class="tw"><table><thead><tr>'
+          + head.map(c=>`<th>${inline(c)}</th>`).join('') + '</tr></thead>'
+          + (body.length ? '<tbody>' + body.map(r=>'<tr>'
+              + r.map(c=>`<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody>' : '')
+          + '</table></div>';
+      continue;
+    }
+    if(/^#{1,3}\s+/.test(line)){ closeList(); html+=`<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`; }
     else if(/^\s*-\s+/.test(line)){ if(!inList){html+='<ul>';inList=true;} html+=`<li>${inline(line.replace(/^\s*-\s+/,''))}</li>`; }
-    else { if(inList){html+='</ul>';inList=false;} if(line.trim()) html+=`<p>${inline(line)}</p>`; }
+    else { closeList(); if(line.trim()) html+=`<p>${inline(line)}</p>`; }
+    i++;
   }
-  return html + (inList?'</ul>':'');
+  closeList();
+  return html;
 }
 
 let sending=false;
@@ -805,7 +873,7 @@ async function ask(question){
   sending=true; $('send').disabled=true;
   const msgs=$('msgs');
   msgs.insertAdjacentHTML('beforeend', `<div class="m u">${esc(question)}</div>`);
-  $('q').value='';
+  $('q').value=''; fitInput();
   const typing=document.createElement('div');
   typing.className='m a'; typing.textContent='…';
   msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
@@ -833,7 +901,15 @@ async function ask(question){
   }
 }
 
+// 입력창 높이를 내용에 맞춘다. 38px로 되돌릴 때 scrollHeight를 먼저 재면 이전 높이가
+// 남아 계속 커지므로, auto로 접었다가 다시 잰다.
+function fitInput(){
+  const q=$('q');
+  q.style.height='auto';
+  q.style.height=Math.min(q.scrollHeight,120)+'px';
+}
 $('send').onclick=()=>ask($('q').value);
+$('q').oninput=fitInput;
 $('q').onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); ask($('q').value); } };
 $('closeAgent').onclick=()=>$('app').classList.add('agent-closed');
 $('reopenAgent').onclick=()=>$('app').classList.remove('agent-closed');
