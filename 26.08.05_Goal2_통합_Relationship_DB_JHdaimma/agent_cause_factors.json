@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "generated_at": "2026-08-08T12:49:12.458034+00:00",
+  "generated_at": "2026-08-11T13:46:29.582578+00:00",
   "basis": "확정 도메인 11건 × (통계검정 Mann-Whitney U + Cliff's delta + BH-FDR, RandomForest 순열중요도). 원본 10만 + r1 10만 = 20만행.",
   "cause_factors": {
     "Power_Efficiency": {
@@ -14,7 +14,7 @@
       "role": "원인(FDC)",
       "action_type": "즉시조치",
       "actionable": true,
-      "cliffs_delta": -0.8789,
+      "cliffs_delta": -0.9486,
       "rf_rank": "2/39",
       "threshold_raw": 94.742,
       "normal_range": "94.78 ~ 95.24",
@@ -33,7 +33,7 @@
           "risky_range": "92.34 ~ 94.71",
           "risk_ratio": 58.73,
           "alert_usable": true,
-          "cliffs_delta": -0.8789,
+          "cliffs_delta": -0.9486,
           "threshold_source_dataset": "r1 주도(원본 기여 미미)",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
         }
@@ -50,7 +50,7 @@
       "role": "원인(FDC)",
       "action_type": "즉시조치",
       "actionable": true,
-      "cliffs_delta": -0.8523,
+      "cliffs_delta": -0.9186,
       "rf_rank": "4/39",
       "threshold_raw": 18.38,
       "normal_range": "18.39 ~ 18.63",
@@ -69,7 +69,7 @@
           "risky_range": "17.79 ~ 18.37",
           "risk_ratio": 31.36,
           "alert_usable": true,
-          "cliffs_delta": -0.8523,
+          "cliffs_delta": -0.9186,
           "threshold_source_dataset": "양쪽 기여",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
         }
@@ -86,7 +86,7 @@
       "role": "원인(FDC)",
       "action_type": "즉시조치",
       "actionable": true,
-      "cliffs_delta": 0.8727,
+      "cliffs_delta": 0.9355,
       "rf_rank": "8/39",
       "threshold_raw": 42.646,
       "normal_range": "41.52 ~ 42.49",
@@ -105,7 +105,7 @@
           "risky_range": "42.75 ~ 46.29",
           "risk_ratio": 94.67,
           "alert_usable": true,
-          "cliffs_delta": 0.8727,
+          "cliffs_delta": 0.9355,
           "threshold_source_dataset": "r1 주도(원본 기여 미미)",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과. 재현성은 원본 표본 부족(pure 3건)으로 판정불가 — 실패 아님"
         }
@@ -113,16 +113,17 @@
     },
     "CLN_Pressure": {
       "defects": [
-        "Remain_Coat"
+        "Remain_Coat",
+        "Particle"
       ],
       "owner": "JHdaimma",
       "direction": "down",
       "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
-      "tier": "T1",
+      "tier": "T2",
       "role": "원인(FDC)",
-      "action_type": "즉시조치",
+      "action_type": "조건부조치",
       "actionable": true,
-      "cliffs_delta": -0.2466,
+      "cliffs_delta": -0.2548,
       "rf_rank": "3/39",
       "threshold_raw": 297.272,
       "normal_range": "297.63 ~ 303.34",
@@ -141,11 +142,24 @@
           "risky_range": "294.65 ~ 297.04",
           "risk_ratio": 6.0,
           "alert_usable": true,
-          "cliffs_delta": -0.2466,
+          "cliffs_delta": -0.2548,
           "threshold_source_dataset": "양쪽 기여",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
+        },
+        "Particle": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 297.22,
+          "normal_range": "297.59 ~ 303.33",
+          "risky_range": "294.61 ~ 296.98",
+          "risk_ratio": 1.99,
+          "alert_usable": true,
+          "cliffs_delta": -0.069,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (RandomForest)"
         }
-      }
+      },
+      "note_multi_defect": "defect마다 티어·경계값이 다르다. per_defect를 반드시 확인할 것."
     },
     "CLN_Flow": {
       "defects": [
@@ -159,7 +173,7 @@
       "role": "원인(FDC)",
       "action_type": "조건부조치",
       "actionable": true,
-      "cliffs_delta": -0.5556,
+      "cliffs_delta": -0.5702,
       "rf_rank": "1/39",
       "threshold_raw": 9.725,
       "normal_range": "9.85 ~ 10.08",
@@ -178,7 +192,7 @@
           "risky_range": "9.00 ~ 9.68",
           "risk_ratio": 24.67,
           "alert_usable": true,
-          "cliffs_delta": -0.5556,
+          "cliffs_delta": -0.5702,
           "threshold_source_dataset": "r1 주도(원본 기여 미미)",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
         },
@@ -188,9 +202,9 @@
           "threshold_raw": 9.722,
           "normal_range": "9.85 ~ 10.08",
           "risky_range": "9.00 ~ 9.67",
-          "risk_ratio": 0.8,
-          "alert_usable": false,
-          "cliffs_delta": -0.0052,
+          "risk_ratio": 3.92,
+          "alert_usable": true,
+          "cliffs_delta": -0.1497,
           "threshold_source_dataset": "r1 주도(원본 기여 미미)",
           "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (RandomForest)"
         }
@@ -199,7 +213,8 @@
     },
     "Cooling_Flow": {
       "defects": [
-        "Chipping"
+        "Chipping",
+        "Micro_Crack"
       ],
       "owner": "JHdaimma",
       "direction": "down",
@@ -208,7 +223,7 @@
       "role": "원인(FDC)",
       "action_type": "조건부조치",
       "actionable": true,
-      "cliffs_delta": -0.478,
+      "cliffs_delta": -0.5117,
       "rf_rank": "39/39",
       "threshold_raw": 9.934,
       "normal_range": "9.94 ~ 10.17",
@@ -227,11 +242,24 @@
           "risky_range": "9.72 ~ 9.92",
           "risk_ratio": 4.08,
           "alert_usable": true,
-          "cliffs_delta": -0.478,
+          "cliffs_delta": -0.5117,
+          "threshold_source_dataset": "양쪽 기여",
+          "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)"
+        },
+        "Micro_Crack": {
+          "tier": "T2",
+          "action_type": "조건부조치",
+          "threshold_raw": 9.936,
+          "normal_range": "9.94 ~ 10.17",
+          "risky_range": "9.72 ~ 9.92",
+          "risk_ratio": 2.24,
+          "alert_usable": true,
+          "cliffs_delta": -0.3205,
           "threshold_source_dataset": "양쪽 기여",
           "tier_reason": "방향일치 + 2개 검정 중 1개만 통과 (통계검정)"
         }
-      }
+      },
+      "note_multi_defect": "defect마다 티어·경계값이 다르다. per_defect를 반드시 확인할 것."
     }
   },
   "monitor_factors": {
@@ -246,12 +274,12 @@
       "role": "감시지표(Response)",
       "action_type": "감시(경보)",
       "actionable": false,
-      "cliffs_delta": 0.6063,
+      "cliffs_delta": 0.6275,
       "rf_rank": "1/39",
       "threshold_raw": 0.598,
       "normal_range": "0.53 ~ 0.60",
       "risky_range": "0.60 ~ 0.66",
-      "risk_ratio": 378.38,
+      "risk_ratio": 9.83,
       "alert_usable": true,
       "testability": "검정 가능(이탈 충분)",
       "threshold_source_dataset": "양쪽 기여",
@@ -263,33 +291,16 @@
           "threshold_raw": 0.598,
           "normal_range": "0.53 ~ 0.60",
           "risky_range": "0.60 ~ 0.66",
-          "risk_ratio": 378.38,
+          "risk_ratio": 9.83,
           "alert_usable": true,
-          "cliffs_delta": 0.6063,
+          "cliffs_delta": 0.6275,
           "threshold_source_dataset": "양쪽 기여",
           "tier_reason": "방향일치 + 통계검정·RF 모두 통과 + 두 데이터셋 재현"
         }
       }
     }
   },
-  "defects_without_confirmed_cause": {
-    "Micro_Crack": {
-      "confirmed_cause_count": 0,
-      "answer": "Micro_Crack의 조치 가능한 확정 원인은 현재 0건입니다.",
-      "candidates_below_bar": [
-        {
-          "factor": "Cooling_Flow",
-          "tier": "T3",
-          "reason": "도메인 확정·방향일치하나 통계검정·RF 모두 미달 — 감시만"
-        },
-        {
-          "factor": "Cooling_Water_Temp",
-          "tier": "T4",
-          "reason": "도메인 기대와 데이터 방향이 반대 — 판단 보류"
-        }
-      ]
-    }
-  },
+  "defects_without_confirmed_cause": {},
   "tier_legend": {
     "T1": "원인 · 즉시조치 — 통계·RF 모두 통과",
     "T2": "원인 · 조건부조치 — 2개 중 1개 통과 또는 재현 실패",
