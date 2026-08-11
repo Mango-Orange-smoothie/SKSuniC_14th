@@ -44,11 +44,17 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         지속적 이상을 확정한 변수가 점수만 보면 100점(완전 건강)으로 나오는 사각지대가
         생겼다(예: 막 CUSUM 경보가 뜬 DP01 Head_Temp). "Health Index는 장비 상태를
         보라고 만든 것"이라는 목적에 안 맞아서, early_warning_active가 true인 변수는
-        레벨 점수(중 ALARM_BAND 위 몫)에 (1 - TREND_PENALTY_MAX_CUT × maturity)
-        배율을 곱한다 — maturity는
-        alert_since부터 지속된 일수를 RECENT_WINDOW_DAYS로 나눈 값(0~1). 막 뜬 경보는
-        거의 안 깎이고, RECENT_WINDOW_DAYS 이상 지속된 "성숙한" 경보라야 최대폭
-        (TREND_PENALTY_MAX_CUT)을 다 받는다 — 자세한 근거는 TREND_PENALTY_MAX_CUT
+        레벨 점수(중 ALARM_BAND 위 몫)에
+        (1 - TREND_PENALTY_MAX_CUT × max(maturity, urgency)) 배율을 곱한다.
+          maturity = alert_since부터 지속된 일수 ÷ RECENT_WINDOW_DAYS (0~1) — 증거가 쌓였나
+          urgency  = RECENT_WINDOW_DAYS ÷ estimated_days_to_spec_out (0~1) — 곧 터지나
+                     (개선 중이거나 기울기가 0 이하라 est_days가 없으면 0)
+        (26.08.08까지는 maturity 하나만 썼는데, 그러면 "방금 뜬 급한 경보"가 거의 안 깎여
+        순위가 뒤집혔다 — DP03 CLN_Pressure(17.8일 뒤 도달, 경보 0.1일째)가 66.3점으로
+        Head_Temp(41.8일째지만 개선 중)의 53.6점보다 건강하게 나왔다. 두 축의 순위상관은
+        0.077로 사실상 무관해서 어느 쪽으로도 대체가 안 되므로 둘 중 큰 쪽을 쓴다.)
+        막 뜬 경보는 거의 안 깎이고, RECENT_WINDOW_DAYS 이상 지속된 "성숙한" 경보라야
+        최대폭(TREND_PENALTY_MAX_CUT)을 다 받는다 — 자세한 근거는 TREND_PENALTY_MAX_CUT
         정의부 주석 참고. v1의 "근거 없는 가중치로 여러 페널티를 섞는" 방식으로 돌아가지
         않도록, (a)는 여전히 안 섞고 (b) 하나만, 그것도 "레벨 70%+추세 30%" 식 평균이
         아니라 레벨에 곱하는 배율로만 반영한다 — 평균이면 "추세 미확인=100점"이 되어
@@ -304,12 +310,20 @@ RECIPE_HOTSPOT_CONCENTRATION_RATIO = 2.0
 # 다 받는다. 이건 이 프로젝트 전체에서 반복된 원칙과 같다 — PERSIST_WINDOW/episode_id/
 # CUSUM 누적합 모두 "순간 튐"보다 "계속 유지되는 신호"를 신뢰하는 방향으로 만들어졌다.
 #
-# TREND_PENALTY_MAX_CUT=0.5로 잡은 근거: 이미 있는 ANOMALY_MARGIN_THRESHOLD_PCT(50) —
-# "margin만으로도 이 정도면 눈여겨봐야 한다"는 팀의 기존 기준선 — 과 맞춘 것이다.
-# 즉 레벨이 100(margin 전혀 안 씀)이어도 성숙한 추세 경보 하나만으로 그 기존 기준선
-# (50점)까지는 끌어내릴 수 있게 했다. 실제 데이터(75건의 활성 경보)로 검증한 결과
-# 30점(n8n 위험장비 기준)을 새로 넘는 경우는 1건뿐이었다 — 대부분이 아직 신선한
-# 경보라 이 정도 상한으로는 위험장비 알림이 쏟아지지 않는다.
+# 값 선정 근거 (26.08.09 cfe4acd에서 0.5 -> 0.45로 확정).
+#
+# 처음엔 ANOMALY_MARGIN_THRESHOLD_PCT(50)에 맞춰 0.5로 잡았다 — "레벨이 100점이어도
+# 성숙한 추세 경보 하나로 팀의 기존 기준선(50점)까지 끌어내린다"는 뜻이었다. 그런데
+# 멘토 정답으로 재검증하면서 바꿨다:
+#
+#   0.0~1.0 어느 값을 써도 장비 순위는 안 바뀐다(전부 DP04 < DP02 < DP03 < DP01).
+#   그래서 순위로는 고를 수 없고, 대신 "정답에서 정상으로 확정된 DP01의 대표 점수를
+#   건드리지 않는 최대값"을 쓴다 — 0.30~0.45는 DP01 90.70으로 동일하고, 0.50부터
+#   90.30으로 깎이기 시작한다.
+#
+# 즉 지금 값은 "정상 장비를 정상으로 유지하는 선에서 추세를 최대한 반영"이 근거다.
+# 0.45에서 레벨 100점짜리의 하한은 50점이 아니라 ALARM_BAND + 90×0.55 = **59.5점**이다
+# (예전 주석이 0.5 기준의 "50점"을 그대로 두고 있어 코드와 어긋났다 — 26.08.11 정정).
 TREND_PENALTY_MAX_CUT = 0.45
 
 # (26.08.06 개정 2) Health Index를 다시 0~100 안에 가두되, "이미 스펙아웃"끼리의 우선순위는
@@ -412,8 +426,24 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
         times = g["DateTime"].sort_values()
         gap_breaks = times.diff() > pd.Timedelta(days=TREND_WARNING_ACTIVE_WITHIN_DAYS)
         run_id = gap_breaks.cumsum()
-        alert_since = times[run_id == run_id.iloc[-1]].min()
+        current_run = run_id == run_id.iloc[-1]
+        alert_since = times[current_run].min()
         alert_active_days = (dataset_latest - alert_since) / pd.Timedelta(days=1)
+
+        # (26.08.11) 방향은 **현재 경보 구간의 우세 방향**을 쓴다. 예전엔 가장 최근 1행의
+        # trend_direction을 그대로 썼는데, 노이즈성 컬럼은 방향이 행마다 뒤집혀서 마지막
+        # 하나가 대표성이 없었다 — DP03 Kerf_Angle은 경보 662건 중 630건(95%)이 "up"인데
+        # 마지막 행이 "down"이라 화면·에이전트 답변에 계속 "down"으로 나갔다.
+        # 구간은 alert_since를 잡을 때 쓴 것과 같은 창(current_run)이라 새 기준이 아니다.
+        # 얼마나 한쪽으로 쏠렸는지(share)도 같이 내보내서, 0.5에 가까우면 "방향이 섞여
+        # 있다 = 추세라고 부르기 어렵다"를 소비자가 판단할 수 있게 한다.
+        run_dirs = g.loc[current_run[current_run].index, "trend_direction"].dropna()
+        if len(run_dirs):
+            counts = run_dirs.value_counts()
+            trend_direction = str(counts.index[0])
+            trend_direction_share = round(float(counts.iloc[0] / counts.sum()), 3)
+        else:
+            trend_direction, trend_direction_share = None, None
 
         combo_counts = g.groupby(["Product_ID", "Recipe_ID"]).size().sort_values(ascending=False)
         n_combos_affected = int(combo_counts.size)
@@ -425,7 +455,8 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
         ]
 
         status[(machine, col)] = {
-            "trend_direction": latest_row["trend_direction"],
+            "trend_direction": trend_direction,
+            "trend_direction_share": trend_direction_share,
             "early_warning_active": bool(days_since <= TREND_WARNING_ACTIVE_WITHIN_DAYS),
             "trend_message": latest_row["message"],
             "days_since_last_warning": round(float(days_since), 1),
@@ -1027,6 +1058,9 @@ def compute_level_and_trend(
             "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
             "estimated_days_to_spec_out": est_days,
             "trend_direction": ta_status.get("trend_direction"),
+            # 1.0에 가까울수록 한 방향으로 확실히 쏠린 것, 0.5에 가까우면 방향이 섞여
+            # 있어서 "추세"라고 부르기 어렵다 — 소비자가 구분할 수 있게 같이 낸다.
+            "trend_direction_share": ta_status.get("trend_direction_share"),
             "early_warning_active": ta_status.get("early_warning_active", False),
             "trend_message": ta_status.get("trend_message"),
             "alert_since": ta_status.get("alert_since"),
