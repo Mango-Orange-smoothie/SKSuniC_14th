@@ -13,9 +13,9 @@ AI가 데이터를 지어내지 않고, 실제 저장된 값을 "조회"해서 �
 2. 시스템 프롬프트로 역할 고정 — "반드시 도구를 호출해서 실제 데이터를 확인한 뒤 답하라"
 3. Claude가 질문 내용에 따라 필요한 도구를 스스로 선택해서 호출
    - `get_machine_health(machine_id)` — 장비/defect/원인변수 3단계 Health Index(0~100,
-     스펙 경계까지 남은 여유 기반), 나쁜 순서 top3(worst_defects/worst_factors), 실제 값
-     (current_value/lsl/usl/spec_status), 나빠지는 중이면 예상 며칠 뒤 스펙아웃
-     (estimated_days_to_spec_out), 실제 불량 발생 여부(최근 7일), 확정 원인 아닌 변수의
+     관리한계(정상값 ± 3σ)까지 남은 여유 기반), 나쁜 순서 top3(worst_defects/worst_factors),
+     실제 값(current_value/lsl/usl/spec_status), 나빠지는 중이면 예상 며칠 뒤 관리한계 도달
+     (estimated_days_to_control_limit), 실제 불량 발생 여부(최근 7일), 확정 원인 아닌 변수의
      미확인 이상(안전망)까지 전부 반환
    - `get_defect_causes(defect_name)` — 팀이 확정한 불량별 원인 변수(유효인자)와 메커니즘
      (Particle→Vibration: daeho, Remain_Coat→CLN_Pressure: 전성재,
@@ -36,38 +36,56 @@ AI가 데이터를 지어내지 않고, 실제 저장된 값을 "조회"해서 �
 
 ### 1. 필요한 패키지 설치
 ```bash
-pip install anthropic flask
+pip install -r ../requirements.txt
 ```
 
 ### 2. 본인 Anthropic API 키 발급
 [console.anthropic.com](https://console.anthropic.com)에서 가입 → 결제 정보 등록(최소 크레딧 구매,
 $5~10 정도면 데모용으로 충분) → API Keys 메뉴에서 키 생성.
 
-**주의: 키는 절대 코드에 직접 쓰거나 캡처/공유하지 마세요.** 터미널 환경변수로만 설정합니다.
+**주의: 키는 절대 코드에 직접 쓰거나 캡처/공유하지 마세요.**
 
-### 3. 터미널에서 키 설정 + 서버 실행
+### 3. 키 연결 — 저장소 루트의 `.env` (권장)
+`export`는 터미널을 닫으면 사라져서, 시연 때마다 키 없이 서버를 띄우는 일이 반복됐습니다.
+저장소 루트에 `.env` 파일을 만들어 두면 `agent.py`가 매번 읽습니다.
 ```bash
-export ANTHROPIC_API_KEY="본인 키 값"
+cp .env.example .env      # 저장소 루트에서. 그 다음 .env를 열어 본인 키로 채웁니다
 ```
+`.env`는 `.gitignore`에 들어 있어 **커밋되지 않습니다.** 터미널 `export`를 쓰던 방식도
+그대로 동작하고, export한 값이 있으면 그쪽이 `.env`보다 우선합니다.
+
+### 4. 서버 실행
 ```bash
 cd 26.08.01_Goal_AI_Agent_Prototype_김시우
 python3 server.py
 ```
 터미널에 `http://localhost:5050 에서 열어보세요`가 뜨면 브라우저에서 그 주소를 엽니다.
+시작할 때 `API 키  연결됨(챗봇 사용 가능)`이 같이 찍힙니다 — 여기가 `없음`이면 키가
+안 잡힌 것이고, 그 상태로도 그래프·히트맵은 정상 동작합니다(챗 질문만 안내문이 뜹니다).
+
+키가 제대로 연결됐는지만 먼저 확인하려면(토큰을 쓰지 않습니다 — 모델 조회만 합니다):
+```bash
+python3 agent.py --check
+```
+`API 연결 확인됨 — 모델 claude-sonnet-5 사용 가능`이 나오면 끝입니다. 실패하면 401(키 거부)·
+403(권한/크레딧)·404(모델명) 중 무엇인지 한 줄로 알려줍니다.
 
 CLI로만 테스트하고 싶으면:
 ```bash
 python3 agent.py "DP03 상태 어때?"
 ```
 
-## 화면이 두 개입니다
+## 화면
 
-| 경로 | 파일 | 성격 |
-|---|---|---|
-| `/` | `chat.html` | **기존 챗봇** — 질문하면 답변 + 패널. 시연 촬영용으로 그대로 둡니다 |
-| `/dashboard` | `dashboard.html` | **신규 대시보드** — 선택으로 화면을 만들고, 챗봇은 그 선택의 단축키 |
+`/`(또는 `/dashboard`, 같은 화면) 하나입니다 — `dashboard.html`. 선택으로 화면을 만들고,
+챗봇은 그 선택의 단축키로 오른쪽 패널에 들어가 있습니다.
 
-### 왜 새로 만들었나
+26.08.11까지는 예전 챗봇 화면(`chat.html`)이 `/`에 같이 붙어 있었습니다. 시연 촬영용으로
+남겨둔 것이었는데, 촬영 전에 대시보드로 확정돼서 지웠습니다. 그래프 렌더러가 두 벌
+존재하던 상태(축 계산을 한 번 고치면 두 군데를 고쳐야 하고, 한 쪽만 고치면 조용히
+어긋남)도 같이 해소됐습니다. 필요하면 `git show 41fef6d:.../chat.html`로 꺼내볼 수 있습니다.
+
+### 왜 대시보드로 갔나
 
 챗봇은 자유도가 너무 높았습니다. 무엇을 물어볼 수 있는지 화면에 안 나오고, 질문 전에는
 아무 상태도 안 보이며, 같은 질문이 같은 화면에 도착한다는 보장도 없었습니다. 대시보드는
@@ -116,6 +134,44 @@ python3 server.py
 
 **대시보드의 그래프·히트맵은 API 키 없이도 동작합니다** — 키가 필요한 건 챗봇 답변뿐입니다.
 
+### 한 원인이 두 불량을 미는 경우 (26.08.11)
+
+원인 변수 그래프의 헤더가 `원인 → Remain_Coat · Particle (경계값 미검증)`처럼 **하류 defect를
+전부** 적고, 실제 불량률도 둘 다 겹쳐 그립니다. 우축 스케일은 공유합니다 — 각자 최댓값으로
+정규화하면 둘 다 같은 높이로 그려져 어느 쪽이 큰지가 사라집니다.
+
+예전엔 인자당 defect 하나만 나왔습니다(`FACTOR_TO_DEFECT`가 `dict[str, str]`). 그래서 CLN_Flow가
+`원인 → Remain_Coat`로만 보였는데, 멘토 확정 시나리오는 *"DP04 = Cleaning Failure → CLN_Flow
+감소 → Remain_Coat / Particle 증가"* 로 둘 다입니다. 절반만 보여주고 있었습니다.
+실제로 DP04에서 **Particle 쪽이 더 큽니다**(89일 평균 8.80% vs Remain_Coat 4.24%).
+
+**`alert_usable=False`가 막는 건 "경계값"이지 "관계"가 아닙니다.** 이 규칙을 도입할 때의
+사례가 CLN_Flow↔Particle이었습니다 — tier T2(조건부조치)로 관계는 인정돼 있는데 "위험구간
+불량률이 정상구간보다 낮음"(risk_ratio 0.80)이라 경계값만 못 쓰는 상태였고, 화면에
+`(경계값 미검증)`으로 표시했습니다. 즉 *9.722를 넘었으니 파티클 경보* 라고 말하지 말라는
+것이지, *CLN_Flow가 나빠져도 파티클과 무관하다* 가 아닙니다.
+
+**(26.08.11 갱신) 이 예시 자체는 더 이상 유효하지 않습니다.** 같은 날 라벨 확장안(PR #24)이
+들어오면서 관계DB가 다시 학습됐고, `CLN_Flow↔Particle`은 `alert_usable=True`가 됐습니다.
+규칙(tier와 alert_usable을 별개 축으로 읽는 것)은 코드에 그대로 남아 있고 DB 값을 매번
+읽으므로, 지금 `alert_usable=False`인 짝이 생기면 자동으로 그 취급을 받습니다.
+
+이 절을 쓸 당시와 달라진 것(전부 26.08.11 재실측):
+
+- **Health Index 점수** — 4대 **85.0** / 47.6 / 50.8 / 14.5. 이 절을 쓸 때는 DP01이 91.9였고
+  "안 바뀐다"고 적었는데, 그 뒤 라벨 확장안으로 `CLN_Flow`가 Particle 원인으로도 잡히면서
+  그 경보가 DP01의 변수 점수를 깎았습니다. 점수가 나빠진 게 아니라 안 보이던 게 보인 것입니다
+- **Particle의 경보 인자** — `Surface_Roughness` 하나뿐이 아니라 `CLN_Flow`·`CLN_Pressure`
+  (둘 다 T2, `alert_usable=True`)가 함께 잡힙니다
+- **defect가 2개 이상 달린 인자** — `CLN_Flow` 하나가 아니라 `CLN_Flow`·`CLN_Pressure`
+  (Remain_Coat + Particle)와 `Cooling_Flow`(Chipping + Micro_Crack) 셋입니다. 파급 범위가
+  넓어져서, 파이프라인이 **(인자, defect) 짝**을 단위로 다루도록 바뀌었습니다
+  (`26.08.01_Goal5_HealthIndex_Dashboard_김시우/README.md` 참고)
+
+바뀌지 **않은** 것 — **관계DB는 수정이 필요 없었습니다.** 당시에도
+`defects: ["Remain_Coat", "Particle"]`로 둘 다 들어 있었고, 코드가 그중 하나만 읽고 있었을
+뿐입니다.
+
 ### 히트맵 셀 값
 
 `경보 샷 비율 (%)` = 그 Product×Recipe 조합에서 이 변수가 경보 상태였던 샷 수 ÷ 그 조합의
@@ -134,14 +190,18 @@ python3 server.py
 
 - 지금은 각자 본인 컴퓨터에서만 실행 가능 (localhost는 외부 공유 안 됨) — 팀 전체가 공용
   링크 하나로 접속하려면 별도 배포(서버 호스팅)가 필요, 아직 미착수
-- 데이터 출처가 `Goal5_HealthIndex_Dashboard`의 `health_index_data.json` 하나뿐 — 윤진혁님의
-  관계DB가 완성되면 그쪽으로 교체 필요 (Particle/Remain_Coat도 관계DB에 포함되도록 확장 필요)
+- ~~데이터 출처가 `Goal5_HealthIndex_Dashboard`의 `health_index_data.json` 하나뿐 — 관계DB가
+  완성되면 그쪽으로 교체 필요~~ **(26.08.11 해소)** 짝짓기·tier·경계값은 이제
+  `agent_cause_factors.json`(윤진혁님 관계DB)에서 직접 읽습니다. Particle/Remain_Coat도
+  DB에 들어와 있습니다. `health_index_data.json`은 계산된 점수/시계열 쪽만 담당합니다
 - 안전망 임계값(스펙 여유 50% 이상 사용)과 추세 윈도우(14일)는 전부 잠정치
   (`Goal5_HealthIndex_Dashboard/README.md` 참고)
 - 에러 처리/인증/멀티유저 지원 없음 — 데모 프로토타입 수준
 - **대시보드의 챗봇 경로(`/api/ask` → `view_state` → 화면 이동)는 아직 실제 API 키로
-  검증하지 못했습니다.** 뷰 4개·선택기·히트맵은 브라우저에서 확인했지만, 질문이 화면을
-  옮기는 동작은 키가 있는 환경에서 한 번 돌려봐야 합니다.
+  검증하지 못했습니다.** 뷰 4개·선택기·히트맵은 브라우저에서 확인했고, 키가 없을 때의
+  경로(`.env` 미로드 → 503 + 안내문)와 잘못된 키(401)까지는 확인했습니다. 남은 것은
+  **유효한 키로 실제 답변이 오고 화면이 옮겨지는지** — 키가 있는 환경에서 한 번 돌려봐야
+  합니다(`python3 agent.py --check`로 키부터 확인).
 - 히트맵의 `경보 샷 비율`은 `trend_analysis.py`의 판정을 그대로 센 것이라, 그 스크립트의
   윈도우/지속성 필터 설정에 종속됩니다 — 절대적인 불량 위험도가 아닙니다.
 - 대시보드는 `heatmap_data.json`을 **미리 구워둔 파일**로 읽습니다. 원자료가 바뀌면

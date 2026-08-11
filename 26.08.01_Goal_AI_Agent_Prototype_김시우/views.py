@@ -2,11 +2,11 @@
 
 ## 왜 이 파일이 따로 있나
 
-chat.html은 "질문 → 답변 + 패널"이라 화면 상태가 전적으로 Claude의 도구 호출에 달려
-있었다. 자유도가 높아 무엇을 물어볼 수 있는지 알 수 없고, 같은 질문이 매번 같은 화면에
-도착한다는 보장도 없었다. dashboard.html은 그 반대로 간다 — 화면이 가질 수 있는 상태를
-먼저 유한하게 정의하고, 사이드바 클릭이든 자연어 질문이든 **똑같은 상태 객체 하나**를
-만들어낸다. 이 파일이 그 상태를 데이터로 바꾸는 곳이다.
+이전 화면(chat.html, 26.08.11에 삭제)은 "질문 → 답변 + 패널"이라 화면 상태가 전적으로
+Claude의 도구 호출에 달려 있었다. 자유도가 높아 무엇을 물어볼 수 있는지 알 수 없고,
+같은 질문이 매번 같은 화면에 도착한다는 보장도 없었다. dashboard.html은 그 반대로 간다 —
+화면이 가질 수 있는 상태를 먼저 유한하게 정의하고, 사이드바 클릭이든 자연어 질문이든
+**똑같은 상태 객체 하나**를 만들어낸다. 이 파일이 그 상태를 데이터로 바꾸는 곳이다.
 
 ## 뷰 상태 스키마
 
@@ -83,7 +83,7 @@ def _clear_agent_chart_calls() -> None:
 
 def _chart(machine_id: str, factor: str, days: int | None = None) -> dict | None:
     """agent의 시계열 조회를 그대로 쓴다. 관리한계/스펙 두 축, 짝지어진 defect 불량률,
-    경보 시작일까지 이미 다 넣어주므로 화면 쪽 렌더러가 chat.html과 동일하게 동작한다."""
+    경보 시작일까지 이미 다 넣어주므로 화면 쪽 렌더러가 그대로 받아 그리면 된다."""
     try:
         raw = agent.get_trend_chart_data.func(machine_id, factor, days)
         data = json.loads(raw)
@@ -179,6 +179,11 @@ def variable_tree(machine_id: str) -> list[dict]:
             "early_warning_active": bool(row.get("early_warning_active")),
             "alert_active_days": (float(row["alert_active_days"])
                                   if pd.notna(row.get("alert_active_days")) else None),
+            # (26.08.11) 경보 배지를 "경보 O/X"가 아니라 세기로 그리기 위해 같이 싣는다.
+            # "full"은 Health Index가 추세 페널티를 최대폭까지 받은 경보 — 즉 점수가 이미
+            # 통째로 반영한 것이라 강조해도 점수와 어긋나지 않는다. "early"는 그 미만.
+            "alert_level": (row["alert_level"]
+                            if pd.notna(row.get("alert_level")) else None),
             "margin_used_pct": (float(row["margin_used_pct"])
                                 if pd.notna(row.get("margin_used_pct")) else None),
             "spec_status": row.get("spec_status"),
@@ -198,10 +203,16 @@ def variable_tree(machine_id: str) -> list[dict]:
         items.sort(key=sort_key)
         # 접힌 그룹 안의 경보는 안 보인다 — "그 외 37개"가 접혀 있으면 거기 뜬 경보를
         # 영영 못 본다. 그룹 헤더에 개수를 실어서 펼칠 이유를 준다.
+        #
+        # (26.08.11) 개수를 둘로 나눈다. 활성 경보 76건 중 65건이 "early"(점수를 거의
+        # 안 깎는 경보)라, 전부 세면 거의 모든 그룹에 빨간 불이 켜져서 접힌 채로는
+        # 어느 그룹을 펼쳐야 할지 알 수 없었다. 빨간 불은 full만 세고, 총 개수는
+        # 툴팁으로 남긴다 — 끄는 게 아니라 무게를 다르게 준다.
         out.append({
             "group": name,
             "items": items,
             "alert_count": sum(1 for it in items if it["early_warning_active"]),
+            "alert_count_full": sum(1 for it in items if it["alert_level"] == "full"),
         })
     return out
 
@@ -265,6 +276,18 @@ def view_trend(machine_id: str, factor: str, days: int | None = None) -> dict:
     def _num(v):
         return float(v) if v is not None and pd.notna(v) else None
 
+    # (26.08.11) 헤더에 쓸 **하류 defect 전체 목록**. 위 defect_name은 health_index_data의
+    # causes에서 오는데, 그건 alert_usable=True인 짝만 담고 있어 CLN_Flow가 Remain_Coat
+    # 하나로만 보였다. 관계DB는 CLN_Flow에 Remain_Coat와 Particle을 둘 다 달아뒀고
+    # (Particle은 tier T2 / alert_usable=False — 막힌 건 경계값이지 관계가 아니다),
+    # 멘토 확정 시나리오도 "세정 실패 -> 둘 다 증가"다. 원인 변수 쪽에서 읽으면
+    # "이 변수가 나빠지면 이 두 불량이 생길 수 있다"가 맞는 서술이다.
+    # tier/진입률 등 숫자는 아래처럼 계속 짝 단위(defect_name)로만 쓴다 — 경계값을
+    # 근거로 쓰는 자리에는 alert_usable=False인 짝을 절대 끼워넣지 않는다.
+    # 관계표는 agent가 관계DB 세 출처를 한 번에 훑어 만든 단일 표다(agent.defect_relations).
+    # 화면은 인자 이름으로 분기하지 않고 tier/is_cause만 보고 줄을 나눈다.
+    relations = agent.defect_relations(factor)
+
     return {
         "view": "trend",
         "machine": machine_id,
@@ -272,6 +295,7 @@ def view_trend(machine_id: str, factor: str, days: int | None = None) -> dict:
         "defect": defect_name,
         "days": days,
         "total_days": total_days,
+        "related_defects": relations,
         "chart": chart,
         "detail": detail,
         "meta": {
@@ -414,6 +438,7 @@ def view_compare(factor: str) -> dict:
             "values": [by_date.get(d) for d in dates],
             "early_warning_active": chart.get("early_warning_active"),
             "alert_active_days": chart.get("alert_active_days"),
+            "alert_level": chart.get("alert_level"),
             "spec_status": chart.get("spec_status"),
         })
 

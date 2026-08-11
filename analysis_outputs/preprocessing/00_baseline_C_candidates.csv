@@ -1,8 +1,8 @@
 ﻿defect,column,n_groups_fitted,separation_ratio_median,noise_ceiling_p95,noise_ceiling_fwer,consistency_ceiling_fwer,signal_over_noise,passes_fwer,passes_direction,threshold_median,dominant_direction,direction_consistency,has_mentor_spec,assigned_type_c
 Particle,Surface_Roughness,54,17.741,2.046,2.332,0.739,8.67,True,True,0.60015,high_is_risky,1.0,False,True
-Particle,CLN_Flow,53,3.526,2.046,2.332,0.739,1.72,True,True,9.7385,low_is_risky,0.868,False,False
+Particle,CLN_Flow,53,3.526,2.046,2.332,0.739,1.72,True,True,9.7385,low_is_risky,0.868,False,True
 Particle,Coating_Thickness,50,3.088,2.046,2.332,0.739,1.51,True,True,9.70855,low_is_risky,0.96,True,False
-Particle,CLN_Pressure,52,2.736,2.046,2.332,0.739,1.34,True,True,296.98251,low_is_risky,1.0,False,False
+Particle,CLN_Pressure,52,2.736,2.046,2.332,0.739,1.34,True,True,296.98251,low_is_risky,1.0,False,True
 Particle,Vibration,53,2.261,2.046,2.332,0.739,1.11,False,True,0.15295,high_is_risky,1.0,False,False
 Particle,Coating_Flow,42,2.174,2.046,2.332,0.739,1.06,False,False,50.0635,high_is_risky,0.5,False,False
 Particle,Head_Temp,40,2.044,2.046,2.332,0.739,1.0,False,False,41.903,high_is_risky,0.675,True,False

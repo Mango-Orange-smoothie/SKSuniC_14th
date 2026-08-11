@@ -68,7 +68,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item.active .item-name{color:var(--accent)}
 .badge{font:10.5px var(--font-mono);padding:1px 5px;border-radius:3px;flex:0 0 auto}
+/* 경보 배지는 두 무게로 그린다. 예전엔 early_warning_active(boolean) 하나로 전부 빨간
+   `경보`였는데, 활성 경보 76건 중 65건이 점수를 거의 안 깎는 초기 경보라 HI 99.6짜리와
+   HI 14.5짜리가 똑같이 빨갛게 보였다. 빨강은 Health Index가 추세 페널티를 최대폭까지
+   받은 경보(alert_level="full", 11건)에만 쓴다 — 그래야 배지 색과 옆 점수가 같은 말을
+   한다. 나머지는 배경 없이 흐린 글자로: 정보는 남기고 눈길만 거둔다. */
 .badge.alert{background:rgba(208,59,59,.15);color:var(--critical)}
+.badge.alert.early{background:none;color:var(--ink-faint);padding:1px 0}
 .score{font:600 12.5px var(--font-mono);flex:0 0 auto;min-width:34px;text-align:right}
 .side-h .score{font-weight:400}
 .chk{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:12.5px;cursor:pointer}
@@ -188,17 +194,36 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .m h3:first-child{margin-top:0}
 .m ul{margin:5px 0;padding-left:17px}
 .m p{margin:5px 0}
-.m table{border-collapse:collapse;width:100%;font-size:11.5px;margin:6px 0}
+/* 표는 316px 패널보다 넓어질 수 있다(레시피 조합 이름이 길다). 셀을 줄여서 읽기를
+   포기하는 대신 표만 가로로 굴린다 — 말풍선 자체는 안 넘친다. */
+.m .tw{overflow-x:auto;margin:6px 0}
+.m table{border-collapse:collapse;width:100%;font-size:11.5px}
 .m th,.m td{border:1px solid var(--border);padding:3px 6px;text-align:left}
+.m th{color:var(--ink-muted);font-weight:600;white-space:nowrap}
+.m td{font-family:var(--font-mono)}
+
+/* 첫 화면 안내. **말풍선으로 그리지 않는다** — 모델이 한 말과 화면이 만든 말이 같은
+   모양이면, 부팅 시점에 이미 LLM이 뭔가 판단한 것처럼 보인다. 이 문단은 /api/bootstrap
+   숫자를 그대로 쓴 정적 안내다. */
+.intro{font-size:12px;color:var(--ink-muted);line-height:1.7;padding-bottom:4px;
+  border-bottom:1px solid var(--border)}
+.intro b{color:var(--ink)}
+.intro code{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+.intro .hi{font:600 13px var(--font-mono)}
+.intro-t{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
 .jump{align-self:flex-start;font-size:11.5px;color:var(--accent);background:var(--accent-soft);
   padding:5px 10px;border-radius:6px}
 .hints{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px}
 .hint{font-size:11.5px;background:var(--bg);border:1px solid var(--border);padding:5px 9px;
   border-radius:14px;color:var(--ink-muted);cursor:pointer}
 .hint:hover{border-color:var(--accent);color:var(--accent)}
-.inbar{display:flex;gap:7px;padding:11px 14px;border-top:1px solid var(--border)}
+/* flex-end: 입력창이 커질 때 전송 버튼은 아래(마지막 줄 옆)에 붙어 있어야 한다 */
+.inbar{display:flex;align-items:flex-end;gap:7px;padding:11px 14px;border-top:1px solid var(--border)}
+/* 높이 38px 고정이라 두 줄짜리 질문이 한 줄 안에 갇혀 앞부분이 안 보였다. 내용만큼
+   늘리고 120px(약 5줄)에서 멈춰 스크롤 — 대화 로그가 입력창에 먹히지 않게 한다. */
 .inbar textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:8px;
-  padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);height:38px}
+  padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);
+  height:38px;min-height:38px;max-height:120px;overflow-y:auto;line-height:1.5}
 .inbar textarea:focus{outline:none;border-color:var(--accent)}
 .inbar button{background:var(--accent);color:#fff;border:none;border-radius:8px;
   padding:0 14px;font:600 12.5px var(--font-ui);cursor:pointer}
@@ -271,6 +296,24 @@ const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 const hiColor = v => v == null ? 'var(--ink-faint)' : v < 50 ? 'var(--critical)' : v < 80 ? 'var(--warn)' : 'var(--good)';
 const needs = () => VIEWS.find(v => v.id === state.view).needs;
 
+// 경보 지속일. 40일짜리에 소수점을 붙이면 자리만 먹고, 0.2일짜리를 반올림하면 "0일"이
+// 되어 뜻이 사라진다 — 하루를 기준으로 표기를 바꾼다.
+const alertDays = d => d == null ? '' : (d >= 1 ? `${Math.round(d)}일` : `${d.toFixed(1)}일`);
+
+// 사이드바 경보 배지. **경보 여부가 아니라 세기를 그린다** — 배지가 빨간데 옆 점수가
+// 99.6이면 둘 중 하나는 거짓말이고, 그게 26.08.11 이전 화면의 상태였다. 빨강은
+// alert_level="full"(Health Index가 추세 페널티를 최대폭까지 받은 경보)에만 준다.
+// 초기 경보는 지우지 않는다 — DP04 CLN_Flow도 39일 전엔 0.1일째였다. 흐리게 남긴다.
+function alertBadge(it){
+  if(!it.early_warning_active) return '';
+  const full = it.alert_level === 'full';
+  const days = alertDays(it.alert_active_days);
+  const tip = full
+    ? `${days}째 지속 — 점수에 최대폭 반영됨`
+    : `${days}째 — 아직 초기라 점수를 거의 안 깎는다(지속되면 빨갛게 바뀜)`;
+  return `<span class="badge alert ${full ? '' : 'early'}" title="${esc(tip)}">경보 ${days}</span>`;
+}
+
 // ---------- 부팅 ----------
 async function boot(){
   try{
@@ -281,7 +324,7 @@ async function boot(){
   }
   if(BOOT.error){ $('view').innerHTML = `<div class="empty">${esc(BOOT.error)}</div>`; return; }
   Object.assign(state, BOOT.default_state);
-  renderTabs(); renderStrip(); renderSide(); renderHints();
+  renderTabs(); renderStrip(); renderSide(); renderHints(); renderIntro();
   load();
 }
 
@@ -352,14 +395,17 @@ function renderSide(){
       return `<div class="item ${it.factor === state.factor ? 'active' : ''} ${blocked ? 'blocked' : ''}"
                    data-f="${it.factor}" title="${esc(title)}">
           <span class="item-name">${it.factor}</span>
-          ${it.early_warning_active ? `<span class="badge alert">경보</span>` : ''}
+          ${alertBadge(it)}
           <span class="score" style="color:${hiColor(hi)}">${hi == null ? '—' : hi.toFixed(1)}</span>
         </div>`;
     }).join('') : '';
     // 접힌 그룹에도 경보가 있다는 걸 알려야 하지만, "경보 N" 글자는 그룹 이름과 경쟁해서
     // 헤더가 시끄러웠다. 빨간 불 하나로 줄인다 — 개수는 툴팁으로.
-    const alerts = g.alert_count
-      ? `<span class="dot" style="background:var(--critical)" title="경보 ${g.alert_count}개"></span>` : '';
+    // (26.08.11) 빨간 불은 full 경보만 센다. 전부 세면 네 그룹에 다 불이 켜져서 어느
+    // 그룹을 펼칠지 못 고른다 — 초기 경보 개수는 툴팁에 같이 적어 안 잃어버린다.
+    const alerts = g.alert_count_full
+      ? `<span class="dot" style="background:var(--critical)"
+              title="지속 경보 ${g.alert_count_full}개 (초기 경보 ${g.alert_count - g.alert_count_full}개 포함 총 ${g.alert_count}개)"></span>` : '';
     return `<div class="grp">
         <div class="grp-h" data-g="${esc(g.group)}">
           <span>${open ? '▾' : '▸'} ${esc(g.group)}</span>
@@ -380,6 +426,26 @@ function renderHints(){
   const hints = ['DP04 왜 그렇게 낮아?', 'DP01이랑 DP03 비교해줘', 'Particle 불량 원인이 뭐야?'];
   $('hints').innerHTML = hints.map(h => `<div class="hint">${esc(h)}</div>`).join('');
   $('hints').querySelectorAll('.hint').forEach(el => el.onclick = () => ask(el.textContent));
+}
+
+// 첫 화면 안내. 예전엔 대화창이 완전히 비어 있어서 힌트 칩 3개만 떠 있었고, 그 3개가
+// 이 패널이 할 수 있는 일의 전부처럼 보였다.
+// **숫자는 여기서 다시 세지 않고 사이드바가 쓰는 것과 같은 트리에서 센다** — 안내문이
+// "지속 경보 N개"라고 말한 뒤 사이드바에서 빨간 배지를 세면 N이 나와야 한다.
+function renderIntro(){
+  let full = 0, early = 0;
+  for(const tree of Object.values(BOOT.variables))
+    for(const g of tree){ full += g.alert_count_full; early += g.alert_count - g.alert_count_full; }
+
+  const worst = BOOT.machines[0];   // views.py가 나쁜 순으로 정렬해 보낸다
+  $('msgs').innerHTML = `<div class="intro">
+      <div class="intro-t">장비·변수·불량에 대해 물어보세요</div>
+      가장 낮은 장비는 <b>${worst.machine_id}</b>
+      <span class="hi" style="color:${hiColor(worst.health_index)}">${worst.health_index ?? '—'}</span>
+      (${esc(worst.worst_defect ?? '—')} · <code>${esc(worst.worst_factor ?? '')}</code>).
+      4대 합쳐 지속 경보 <b>${full}개</b>, 초기 경보 ${early}개.<br>
+      답변에는 근거 숫자가 같이 나오고, 관련 화면으로 함께 이동합니다.
+    </div>`;
 }
 
 // ---------- 상태 전이 ----------
@@ -421,10 +487,12 @@ function renderTrend(d){
   const margin = det.margin_used_pct;
   // 조치 긴급도는 tier 코드(T1/T2)가 아니라 한국어 그대로 보여준다 — 처음 보는 사람이
   // T1을 못 읽는다. 색은 여전히 긴급도별로 다르게 준다.
+  // 색은 action_type 문자열이 아니라 tier로 고른다. 전에는 한국어 문구를 나열해
+  // 맞췄는데(['즉시조치','급락알람']), DB가 급락알람을 즉시조치로 고치자(PR #23)
+  // 목록에 죽은 값이 남았다. 문구는 바뀔 수 있고 tier는 취급법의 단일 근거다.
+  // 보여주는 글자는 그대로 한국어 문구 — 처음 보는 사람이 T1을 못 읽는다.
   const urgency = meta.action_type;
-  const urgCls = ['즉시조치','급락알람'].includes(urgency) ? 't1'
-               : urgency === '조건부조치' ? 't2'
-               : String(urgency || '').startsWith('감시') ? 'mon' : 'na';
+  const urgCls = { T1: 't1', T2: 't2', M1: 'mon' }[meta.tier] || 'na';
 
   // 스펙 위치를 %로 환산해 설명하던 문구는 뺐다 — 스펙선은 그래프에 이미 그려지고,
   // 점수 기준선(관리한계)도 같이 그려지므로 두 축의 차이는 그림에서 바로 보인다.
@@ -443,7 +511,25 @@ function renderTrend(d){
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
-      ${d.defect ? `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}</div>` : ''}
+      ${(() => {
+        // 인자 이름으로 분기하지 않는다 — 관계DB에서 만든 단일 표(related_defects)를
+        // tier/is_cause로만 갈라 줄을 만든다. 새 짝이 DB에 추가돼도 여기는 안 고친다.
+        const rel = d.related_defects || (d.defect ? [{defect:d.defect, is_cause:true, alert_usable:true}] : []);
+        const cause = rel.filter(r => r.is_cause), cand = rel.filter(r => !r.is_cause);
+        const label = r => {
+          // alert_usable=false = "재봤는데 경계가 안 갈렸다"(risk_ratio 0.80).
+          // "미검증"으로 쓰면 "아직 안 봤다"로 읽히므로 기준이 없다고 쓴다.
+          if(r.alert_usable === false) return `<span title="관계는 tier ${esc(r.tier||'')}로 인정된 짝이지만, 이 변수 값으로 위험구간 선을 그을 수 없다 — 경계 아래 불량률이 위보다 낮게 나왔다(risk_ratio 0.80).">`
+            + `${esc(r.defect)} <span style="color:var(--ink-faint)">(위험구간 기준 없음)</span></span>`;
+          return esc(r.defect);
+        };
+        let out = '';
+        if(cause.length) out += `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${cause.map(label).join(' · ')}</div>`;
+        // T3 = "원인이라고 답하지 말 것"(관계DB tier_legend) — 그래서 줄을 나눈다.
+        if(cand.length) out += `<div class="vsub" style="color:var(--ink-faint)">감시 후보 → ${
+          cand.map(r => `<span title="${esc(r.reason || '')}">${esc(r.defect)} (${esc(r.tier||'')} · 원인 아님)</span>`).join(' · ')}</div>`;
+        return out;
+      })()}
       <div class="rngbar">${picker}<span class="rng-n">${
         chartZoom ? `확대 ${zc.series.length}일 · 그래프 더블클릭으로 복귀`
                   : `${c.series.length}일${d.total_days ? ` / 전체 ${d.total_days}일` : ''} · 드래그하면 확대`
@@ -470,14 +556,18 @@ function renderTrend(d){
       ${renderChart(zc, meta.threshold_raw)}
       <div class="meta">
         ${c.early_warning_active && c.alert_since
-          ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)` : '추세 경보 없음'}
+          ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)`
+            + (c.alert_level === 'full'
+                ? ` <span style="color:var(--critical)">— 점수에 최대폭 반영됨</span>`
+                : ` <span style="color:var(--ink-faint)">— 초기 경보라 점수를 거의 안 깎았다</span>`)
+          : '추세 경보 없음'}
         ${det.defect_zone_rate_pct != null
           ? ` · 위험구간 진입률 <b>${det.defect_zone_rate_pct}%</b> <span style="color:var(--ink-faint)">(평소 ${det.defect_zone_baseline_pct}%)</span>` : ''}
-        ${det.estimated_days_to_spec_out != null
-          ? ` · 이 추세면 <b>${det.estimated_days_to_spec_out}일</b> 뒤 관리한계 도달` : ''}
+        ${det.estimated_days_to_control_limit != null
+          ? ` · 이 추세면 <b>${det.estimated_days_to_control_limit}일</b> 뒤 관리한계 도달` : ''}
         ${meta.mechanism ? `<br>메커니즘 <code>${esc(meta.mechanism)}</code>` : ''}
       </div>
-      ${renderRiskBand(meta, det, d.defect)}
+      ${renderRiskBand(meta, det, d.defect, d.factor)}
     </div>`;
 
   $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
@@ -492,7 +582,7 @@ function renderTrend(d){
 // 각 쪽에 떨어진 샷들이 실제로 놓인 범위(p5~p95)이고, 양쪽 꼬리 5%씩을 잘라낸 값이라
 // 두 범위 사이에 빈 구간이 생긴다. 예전엔 두 범위만 색칠해서 그 빈 구간이 "중립지대"처럼
 // 읽혔다 — 경계선을 같이 그리고, 범위가 무엇인지 글로 밝힌다.
-function renderRiskBand(meta, det, defect){
+function renderRiskBand(meta, det, defect, factor){
   const parse = s => {
     const m = String(s || '').match(/(-?[\d.]+)\s*~\s*(-?[\d.]+)/);
     return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
@@ -506,33 +596,41 @@ function renderRiskBand(meta, det, defect){
   const nR = meta.rate_in_risky_pct, nN = meta.rate_in_normal_pct;
   const rate = v => v == null ? '—' : `${v}%`;
 
+  // 경계까지 남은 거리 — "아직 안 넘음"만으로는 여유가 큰지 코앞인지 알 수 없다.
+  const gap = (now != null && thr != null) ? Math.abs(now - thr) : null;
+  const digits = String(thr ?? '').split('.')[1]?.length ?? 3;
+  const op = riskyIsAbove ? '≥' : '≤';
+
   return `<div class="band">
-    <div class="band-h">불량이 갈리는 경계 — 경계값 <b style="color:var(--ink)">${thr ?? '—'}</b>${defect ? ` · ${defect}` : ''}</div>
+    <div class="band-h">${defect ? `${defect} ` : ''}위험구간 — <b style="color:var(--ink)">${esc(factor || '')} ${op} ${thr ?? '—'}</b></div>
     <table class="dtable">
-      <thead><tr><th></th><th>값 범위</th><th>불량률</th></tr></thead>
+      <thead><tr><th>구분</th><th>실측범위 (p5~p95)</th><th>${defect ? defect + ' ' : ''}불량률</th></tr></thead>
       <tbody>
         <tr>
-          <td><span class="swatch" style="background:var(--critical)"></span>불량 난 쪽</td>
+          <td><span class="swatch" style="background:var(--critical)"></span>위험구간</td>
           <td>${meta.risky_range}</td><td class="hot">${rate(nR)}</td>
         </tr>
         <tr>
-          <td><span class="swatch" style="background:var(--good)"></span>괜찮은 쪽</td>
+          <td><span class="swatch" style="background:var(--good)"></span>정상구간</td>
           <td>${meta.normal_range}</td><td>${rate(nN)}</td>
         </tr>
         ${now == null ? '' : `<tr class="nowrow">
-          <td><span class="swatch" style="background:var(--ink)"></span>지금</td>
-          <td>${now}</td><td>${crossed ? '경계 넘음' : '아직 안 넘음'}</td>
+          <td><span class="swatch" style="background:var(--ink)"></span>현재값</td>
+          <td>${now}</td><td>${crossed
+            ? `<span style="color:var(--critical);font-weight:600">진입 (${gap != null ? gap.toFixed(digits) + ' 초과' : ''})</span>`
+            : `미진입${gap != null ? ` · 경계까지 ${gap.toFixed(digits)}` : ''}`}</td>
         </tr>`}
       </tbody>
     </table>
     <div class="band-foot">
-      ${meta.risk_ratio ? `경계를 넘은 쪽이 <b>${meta.risk_ratio}배</b>. ` : ''}값 범위는 판정 기준이 아니라 각 쪽 샷들이 실제로 놓였던 구간(가운데 90%)입니다 — 판정은 경계값 하나로만 합니다.
+      ${meta.risk_ratio ? `위험구간 불량률이 정상구간의 <b>${meta.risk_ratio}배</b>. ` : ''}실측범위는 판정 기준이 아니라 각 구간에 떨어진 샷의 분포(양끝 5%씩 제외) — 판정은 경계값 하나로 한다.
     </div>
   </div>`;
 }
 
-// chat.html의 렌더러를 그대로 가져왔다 — 관리한계/스펙 두 축 구분, 짝지어진 defect
+// 이전 화면(chat.html)의 렌더러를 이식한 것 — 관리한계/스펙 두 축 구분, 짝지어진 defect
 // 불량률 겹쳐 그리기, 경보 시작 세로선은 이 데이터에만 있는 요구라 검증된 코드를 유지한다.
+// 26.08.11에 chat.html을 지우면서 이 함수가 그래프 렌더러의 유일한 사본이 됐다.
 function renderChart(cd, threshold){
   const W=640,H=210,padL=52,padR=16,padT=14,padB=26;
   const n=cd.series.length; if(n<2) return '';
@@ -553,19 +651,34 @@ function renderChart(cd, threshold){
   const linePath=cd.series.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
   const last=cd.series[n-1];
 
+  // (26.08.11) 하류 defect가 여러 개면 전부 겹쳐 그린다 — 한 원인이 두 불량을 미는 걸
+  // 눈으로 보이게 하는 게 목적이라 우축(비율) 스케일은 **공유**한다. 각자 최댓값으로
+  // 정규화하면 둘 다 같은 높이로 그려져서 어느 쪽이 큰지가 사라진다.
+  const dSets=(cd.defects&&cd.defects.length ? cd.defects
+              : (cd.defect_series ? [{defect:cd.defect, series:cd.defect_series, alert_usable:true}] : []))
+              .filter(s=>s.series&&s.series.length===n&&s.series.some(p=>has(p.value)));
   let defectArea='';
-  if(cd.defect_series&&cd.defect_series.length===n){
-    const dv=cd.defect_series.map(p=>p.value).filter(has);
-    const dMax=Math.max(...dv);
-    if(dv.length&&dMax>0){
+  if(dSets.length){
+    const dMax=Math.max(...dSets.flatMap(s=>s.series.map(p=>p.value).filter(has)));
+    if(dMax>0){
       const dTop=padT+(H-padT-padB)*0.60, dBot=H-padB;
       const dy=v=>dBot-(v/dMax)*(dBot-dTop);
-      const pts=cd.defect_series.map((p,i)=>has(p.value)?`${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`:null).filter(Boolean);
-      if(pts.length>1){
-        defectArea=`<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n-1).toFixed(1)},${dBot}" fill="var(--warn)" opacity="0.16"/>`
-          +`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--warn)" stroke-width="1.2" opacity="0.75"/>`
-          +`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5" fill="var(--warn)">${cd.defect} 불량률 (우축 최대 ${(dMax*100).toFixed(2)}%)</text>`;
-      }
+      const COLORS=['var(--warn)','var(--accent)'];
+      const labels=[];
+      dSets.forEach((s,si)=>{
+        const col=COLORS[si%COLORS.length];
+        const pts=s.series.map((p,i)=>has(p.value)?`${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`:null).filter(Boolean);
+        if(pts.length<2) return;
+        // 첫 계열만 면으로 채운다 — 둘 다 채우면 겹쳐서 둘 다 안 읽힌다.
+        if(si===0) defectArea+=`<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n-1).toFixed(1)},${dBot}" fill="${col}" opacity="0.16"/>`;
+        defectArea+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" opacity="0.8"${s.alert_usable===false?' stroke-dasharray="3 2"':''}/>`;
+        // 경계값으로 경보를 못 거는 짝은 점선 — 관계는 인정됐지만(tier) 이 선을 근거로
+        // 경보를 걸지는 않는다는 표시다. 실측 불량률 자체는 사실이므로 그린다.
+        labels.push(`<tspan fill="${col}">${s.defect}${s.alert_usable===false?'(위험구간 기준 없음)':''}</tspan>`);
+      });
+      if(defectArea) defectArea+=`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5">`
+        +labels.join('<tspan fill="var(--ink-faint)"> · </tspan>')
+        +`<tspan fill="var(--ink-faint)"> 불량률 (우축 최대 ${(dMax*100).toFixed(2)}%)</tspan></text>`;
     }
   }
   const hline=(v,color,dashed)=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed?' stroke-dasharray="4 3"':''}/>`;
@@ -742,7 +855,12 @@ function renderCompare(d){
     const color=MACHINE_COLORS[m.machine_id]||'var(--ink-muted)';
     const lx=padL+i*128;
     return `<line x1="${lx}" y1="${H-12}" x2="${lx+13}" y2="${H-12}" stroke="${color}" stroke-width="2.5"/>`
-      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${m.machine_id}${m.alert_active_days!=null?` 경보 ${m.alert_active_days}일`:''}</text>`;
+      // 경보 지속일은 사이드바 배지와 같은 표기·같은 무게로 쓴다 — 같은 사실을 두 화면이
+      // 다르게 그리면 어느 쪽을 믿어야 할지 알 수 없다. 빨강은 full 경보에만.
+      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${m.machine_id}</text>`
+      +(m.alert_active_days==null ? ''
+        : `<text x="${lx+17+m.machine_id.length*6.2}" y="${H-9}" font-size="9.5"
+                 fill="${m.alert_level==='full'?'var(--critical)':'var(--ink-faint)'}"> 경보 ${alertDays(m.alert_active_days)}</text>`);
   }).join('');
 
   $('view').innerHTML=`
@@ -1017,14 +1135,19 @@ function chartSummaryText(d){
   }
   const c = d.chart, det = d.detail || {}, meta = d.meta || {};
   const L = [`## ${d.machine} · ${d.factor}`, ''];
-  if(d.defect) L.push(`- ${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}`);
+  // 화면(vhead)과 같은 출처를 쓴다 — 한 인자에 defect가 둘인 경우가 실제로 있어서
+  // d.defect 하나만 적으면 복사본이 화면보다 적게 나간다.
+  const rel = d.related_defects || (d.defect ? [{defect: d.defect, is_cause: true}] : []);
+  const cause = rel.filter(r => r.is_cause), cand = rel.filter(r => !r.is_cause);
+  if(cause.length) L.push(`- ${meta.actionable === false ? '감시지표' : '원인'} → ${cause.map(r => r.defect).join(' · ')}`);
+  if(cand.length) L.push(`- 감시 후보 → ${cand.map(r => `${r.defect} (${r.tier || ''} · 원인 아님)`).join(' · ')}`);
   L.push(`- 현재값: ${det.current_value ?? c.series.at(-1).value} (정상값 ${c.baseline_median})`);
   if(c.control_lsl != null || c.control_usl != null) L.push(`- 관리한계: ${c.control_lsl} ~ ${c.control_usl}`);
   if(det.health_index != null) L.push(`- Health Index: ${det.health_index}`);
   if(det.margin_used_pct != null) L.push(`- 여유 소진: ${det.margin_used_pct}%`);
   if(meta.action_type) L.push(`- 조치 긴급도: ${meta.action_type} (tier ${meta.tier ?? '-'}) [SOP 미수령]`);
   if(c.early_warning_active && c.alert_since) L.push(`- 경보: ${c.alert_since}부터 ${c.alert_active_days}일째 지속`);
-  if(det.estimated_days_to_spec_out != null) L.push(`- 이 추세면 ${det.estimated_days_to_spec_out}일 뒤 관리한계 도달`);
+  if(det.estimated_days_to_control_limit != null) L.push(`- 이 추세면 ${det.estimated_days_to_control_limit}일 뒤 관리한계 도달`);
   if(meta.mechanism) L.push(`- 메커니즘: ${meta.mechanism}`);
   L.push('', `기간: ${c.series[0].date} ~ ${c.series.at(-1).date} (${c.series.length}일)`);
   return L.join('\n');
@@ -1163,15 +1286,44 @@ function wireChart(d){
 // 에이전트 — 자연어를 "선택 UI의 단축키"로 쓴다. 답변에 딸려온 view_state로
 // 화면을 옮기므로, 질문이 갈 수 있는 곳은 여전히 위 4개 뷰뿐이다.
 // ===================================================================
+// 지원 문법은 agent.py 프롬프트가 모델에게 약속한 5개와 **정확히 같아야 한다**
+// (`### 헤더`, `**볼드**`, `` `코드` ``, `- 목록`, `| 표 |`). 표는 빠져 있었는데,
+// 프롬프트는 미확정 이상치와 recipe_hotspots를 표로 답하라고 지시한다 — 그래서 그
+// 답변들은 화면에 파이프 문자가 그대로 찍히고 있었다.
 function md(s){
   const inline=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
-  let html='',inList=false;
-  for(const line of String(s).split('\n')){
-    if(/^#{1,3}\s+/.test(line)){ if(inList){html+='</ul>';inList=false;} html+=`<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`; }
+  // 양끝 파이프는 있어도 없어도 받는다(모델이 `|a|b|`와 `a | b` 사이를 오간다).
+  const cells=l=>l.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  const isRow=l=>l.includes('|');
+  const isSep=l=>isRow(l)&&/^[\s|:-]+$/.test(l)&&l.includes('-');
+
+  const lines=String(s).split('\n');
+  let html='',inList=false,i=0;
+  const closeList=()=>{ if(inList){html+='</ul>';inList=false;} };
+
+  while(i<lines.length){
+    const line=lines[i];
+    // 구분선(`|---|---|`)이 뒤따를 때만 표로 본다. 문장 속 파이프 하나를 표로 오인하면
+    // 답변이 통째로 깨지므로, 헤더+구분선 두 줄이 다 맞아야 표를 시작한다.
+    if(isRow(line)&&isSep(lines[i+1]||'')){
+      closeList();
+      const head=cells(line);
+      const body=[];
+      for(i+=2;i<lines.length&&isRow(lines[i])&&lines[i].trim();i++) body.push(cells(lines[i]));
+      html+='<div class="tw"><table><thead><tr>'
+          + head.map(c=>`<th>${inline(c)}</th>`).join('') + '</tr></thead>'
+          + (body.length ? '<tbody>' + body.map(r=>'<tr>'
+              + r.map(c=>`<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody>' : '')
+          + '</table></div>';
+      continue;
+    }
+    if(/^#{1,3}\s+/.test(line)){ closeList(); html+=`<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`; }
     else if(/^\s*-\s+/.test(line)){ if(!inList){html+='<ul>';inList=true;} html+=`<li>${inline(line.replace(/^\s*-\s+/,''))}</li>`; }
-    else { if(inList){html+='</ul>';inList=false;} if(line.trim()) html+=`<p>${inline(line)}</p>`; }
+    else { closeList(); if(line.trim()) html+=`<p>${inline(line)}</p>`; }
+    i++;
   }
-  return html + (inList?'</ul>':'');
+  closeList();
+  return html;
 }
 
 let sending=false;
@@ -1180,7 +1332,7 @@ async function ask(question){
   sending=true; $('send').disabled=true;
   const msgs=$('msgs');
   msgs.insertAdjacentHTML('beforeend', `<div class="m u">${esc(question)}</div>`);
-  $('q').value='';
+  $('q').value=''; fitInput();
   const typing=document.createElement('div');
   typing.className='m a'; typing.textContent='…';
   msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
@@ -1208,7 +1360,15 @@ async function ask(question){
   }
 }
 
+// 입력창 높이를 내용에 맞춘다. 38px로 되돌릴 때 scrollHeight를 먼저 재면 이전 높이가
+// 남아 계속 커지므로, auto로 접었다가 다시 잰다.
+function fitInput(){
+  const q=$('q');
+  q.style.height='auto';
+  q.style.height=Math.min(q.scrollHeight,120)+'px';
+}
 $('send').onclick=()=>ask($('q').value);
+$('q').oninput=fitInput;
 $('q').onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); ask($('q').value); } };
 $('closeAgent').onclick=()=>$('app').classList.add('agent-closed');
 $('reopenAgent').onclick=()=>$('app').classList.remove('agent-closed');

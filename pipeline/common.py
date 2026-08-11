@@ -120,7 +120,7 @@ def zscore_transform(
     return result
 
 
-def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
+def load_defect_pairing_from_db() -> tuple[dict[str, list[str]], pd.DataFrame] | None:
     """Goal2 관계DB에서 "이 인자는 이 defect로 감시한다" 짝짓기를 읽어온다.
 
     (26.08.08 신설) 왜 필요한가 — 이 짝짓기가 config.BASELINE_C_DEFECT_MAP에 손으로
@@ -132,15 +132,24 @@ def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
       - repro_state: 감시 데이터(원본)에서도 재현되는지에 대한 팀 공식 판정.
         Chipping 짝 인자들은 원본 defect 표본이 3건뿐이라 "판정불가"다 — 이걸 모르고
         C유형에 넣으면 감시 데이터에서 경보가 0건 나온다(실측 확인).
-      - watch_mode: CLN_Pressure만 "spike"(순간 급락). CUSUM은 지속적 수준 이동용이라
-        구조적으로 안 맞는다.
+      - watch_mode: 짝마다 "수준(level)"이냐 "순간 급락(spike)"이냐. CUSUM은 지속적
+        수준 이동용이라 spike와는 구조적으로 안 맞는다. (26.08.11 현재 8행 전부
+        level이다 — CLN_Pressure가 유일한 spike였는데 급락 사건이 실제로 없음이
+        확인돼 level로 정정됐다(554816b). 아래 채택 판정은 이 값을 보지 않는다.)
 
     채택 조건은 두 파일의 AND다 — rel_30(인계 파일)의 alert_usable이 True이고,
     rel_20(근거표)의 repro_state가 "통과"인 짝만 쓴다. 지금 데이터에서는 결과가
     현행 하드코딩 3개와 같다(CLN_Pressure/CLN_Flow/Surface_Roughness).
 
-    반환: ({column: defect}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한 컬럼이
-    없으면 None — 호출부가 config 폴백으로 되돌아간다.
+    (26.08.11) **한 인자에 defect가 여럿이면 전부 돌려준다** — 값이 defect 하나가
+    아니라 리스트다. 예전엔 dict(zip(...))으로 컬럼당 하나만 담았는데, 그러면 둘
+    이상 채택된 순간 조용히 하나가 사라졌다. 게다가 경고 문구는 "첫 행만 사용합니다"
+    였지만 dict(zip)은 나중 값이 덮어쓰므로 실제로는 **마지막 행**이 남았다. 순서가
+    tier와 무관하니 확정 T1 짝이 T2 짝에 밀릴 수 있었다(CLN_Flow: Remain_Coat T1이
+    Particle T2에 밀림 — alert_usable 덕에 지금까지 안 터졌을 뿐이다).
+
+    반환: ({column: [defect, ...]}, 판정 근거가 담긴 DataFrame). 파일이 없거나 필요한
+    컬럼이 없으면 None — 호출부가 config 폴백으로 되돌아간다.
     """
     iface = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
     tiers = config.RELATIONSHIP_DB_DIR / "rel_20_tier_table.csv"
@@ -166,14 +175,58 @@ def load_defect_pairing_from_db() -> tuple[dict[str, str], pd.DataFrame] | None:
     adopted = merged.loc[merged["adopted"]]
     if adopted.empty:
         return None
-    # 한 인자가 여러 defect로 통과하면 지금 구조(컬럼당 defect 하나)로는 담을 수 없다.
-    # 그런 경우가 생기면 알아채야 하므로 조용히 첫 행을 쓰지 않고 경고한다.
-    dup = adopted["factor"].duplicated(keep=False)
-    if dup.any():
-        print(f"[관계DB] 경고: 한 인자에 defect가 둘 이상 채택됨 — "
-              f"{sorted(adopted.loc[dup, 'factor'].unique())}. 첫 행만 사용합니다.")
-    pairing = dict(zip(adopted["factor"], adopted["defect"]))
+    # 한 인자에 defect가 여럿이면 전부 담는다. 경고가 아니라 정상 경로다 —
+    # 하류(C유형 경계값·경보·화면)가 defect마다 따로 처리한다.
+    pairing: dict[str, list[str]] = {}
+    for factor, defect in zip(adopted["factor"], adopted["defect"]):
+        pairing.setdefault(str(factor), []).append(str(defect))
+    multi = {f: d for f, d in pairing.items() if len(d) > 1}
+    if multi:
+        print(f"[관계DB] 한 인자에 defect가 둘 이상 채택됨 — {multi}. 전부 감시합니다.")
     return pairing, merged
+
+
+# rel_30의 threshold_direction 문구 -> 우리 코드의 방향 이름.
+_DIRECTION_WORDS = {
+    "아래로 내려가면 위험": "low_is_risky",
+    "위로 올라가면 위험": "high_is_risky",
+}
+
+
+def load_domain_directions() -> dict[tuple[str, str], str]:
+    """관계DB가 확정한 짝별 위험 방향 — {(인자, defect): 'low_is_risky'|'high_is_risky'}.
+
+    (26.08.11 신설) 왜 필요한가 — C유형 경계값은 그룹(Product×Recipe)마다 결정트리
+    스텀프로 따로 학습하는데, 그때 위험 방향도 같이 나온다. 그 방향이 도메인과 반대로
+    나오는 그룹이 있다. 실측: CLN_Flow↔Particle은 54개 그룹 중 7개가 "높으면 위험"으로
+    나온다(나머지 47개와 rel_30은 "낮으면 위험").
+
+    "세정 유량이 **높아서** 파티클이 생긴다"는 건 물리적으로 말이 안 된다 — 그 7개
+    그룹에서 잡힌 건 이 인자가 아니라 다른 원인일 것이다. 그래서 그런 그룹은 이 짝의
+    근거로 쓰지 않는다(호출부: step0의 compute_baseline_type_c).
+
+    방향의 단일 출처는 rel_30이다. 우리가 데이터에서 다시 정하지 않는다 — 그러면
+    "인자↔불량 관계는 관계DB가 단일 출처"라는 규칙이 방향에서만 깨진다.
+    파일이 없거나 열이 없으면 빈 dict를 돌려주고, 호출부는 필터를 걸지 않는다
+    (조용히 다 버리는 것보다 예전 동작이 낫다).
+    """
+    path = config.RELATIONSHIP_DB_DIR / "rel_30_trend_interface.csv"
+    if not path.exists():
+        return {}
+    try:
+        t = pd.read_csv(path)
+    except Exception:
+        return {}
+    if not {"factor", "defect", "threshold_direction"} <= set(t.columns):
+        print("[관계DB] 경고: rel_30에 threshold_direction 열이 없습니다 — "
+              "도메인 방향 필터를 건너뜁니다.")
+        return {}
+    out: dict[tuple[str, str], str] = {}
+    for row in t.itertuples(index=False):
+        word = _DIRECTION_WORDS.get(str(row.threshold_direction).strip())
+        if word:
+            out[(str(row.factor), str(row.defect))] = word
+    return out
 
 
 def binomial_alert_count(base_rate: float, n_trials: int, alpha: float) -> int:

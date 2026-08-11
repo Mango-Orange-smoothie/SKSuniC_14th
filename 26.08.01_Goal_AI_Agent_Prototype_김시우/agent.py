@@ -15,8 +15,8 @@ true인 변수는 레벨 점수에 (1 - 0.5×maturity) 배율을 곱한다(단 �
 alert_since부터 며칠째 지속 중인지를 14일 기준으로 0~1로 정규화한 값. 막 뜬 경보는
 거의 안 깎이고 14일 이상 지속된 "성숙한" 경보라야 최대 50%까지 깎인다 — 그래서
 health_index 자체가 이미 추세(그것도 얼마나 오래 확인된 추세인지)를 어느 정도 반영한
-값이다(margin과 완전히 같은 게 아님). 그 위에 "이 속도면 예상 며칠 뒤 스펙아웃"이라는
-정량 추정치(estimated_days_to_spec_out)를 별도로 더 준다. 자세한 계산 로직은
+값이다(margin과 완전히 같은 게 아님). 그 위에 "이 속도면 예상 며칠 뒤 관리한계 도달"이라는
+정량 추정치(estimated_days_to_control_limit)를 별도로 더 준다. 자세한 계산 로직은
 build_health_index.py 상단 docstring 참고.
 
 get_machine_health가 반환하는 구조 핵심:
@@ -45,11 +45,13 @@ get_machine_health가 반환하는 구조 핵심:
     심각도를 이 값으로 말하면 과장된다. 예: 7.53%(평소 6.13%)면 "평소보다 위험구간 진입이 늘었다"는 뜻.
     평소 비율은 **그 장비 자신의 이력** 기준이다(CLN_Flow처럼 특정 장비에서만 일어나는
     현상을 4대 평균과 비교하면 왜곡되기 때문) — "다른 장비 대비"로 설명하면 안 됨.
-  - estimated_days_to_spec_out: margin 기울기로 추정한 **관리한계 도달 예상일**
-    (이름은 옛날 것이 남았다 — 스펙아웃이 아니라 관리한계다). 나빠지는 중일 때만 값이
+  - estimated_days_to_control_limit: margin 기울기로 추정한 **관리한계 도달 예상일**
+    (26.08.11에 estimated_days_to_spec_out에서 개명 — 8/8에 기준선이 3σ 관리한계로
+    바뀌면서 의미가 달라졌는데 이름만 남아 있었고, 이 프롬프트가 그 이름을 보고
+    "스펙아웃"이라고 답하게 만들고 있었다). 나빠지는 중일 때만 값이
     있고, 안정적이거나 좋아지는 중이거나 이미 관리한계를 넘었으면 null. 표본이 작아 숫자 자체보다 "며칠 단위/몇 주 단위" 정도의
     감으로만 말할 것.
-  - trend_direction / early_warning_active / trend_message: estimated_days_to_spec_out과
+  - trend_direction / early_warning_active / trend_message: estimated_days_to_control_limit과
     다른 스크립트(trend_analysis.py, 김시우 팀원 작성)가 WINDOW=10 롤링+지속성 필터로
     따로 검증해서 내린 판정. early_warning_active가 true면 "지금 공식적으로 추세
     경보가 켜져 있다"는 뜻이고, 이미 health_index 점수 자체에 alert_active_days
@@ -65,6 +67,18 @@ get_machine_health가 반환하는 구조 핵심:
     있다"고만 말하지 말고 반드시 이 날짜/일수를 같이 언급할 것(예: "2/13부터 23일째
     지속 중"). 매일 새로 알림이 뜨는 게 아니라 이 시작일 기준 하나의 사건이 계속되고
     있다는 뜻이므로, 어제도 오늘도 물어봤다고 "새로 발생했다"고 말하면 안 됨.
+  - alert_level / alert_strength: **"경보가 켜졌나"(early_warning_active)가 아니라
+    "얼마나 큰 경보인가"다.** alert_strength(0~1)는 health_index가 추세 페널티에 실제로
+    쓴 값이고, alert_level은 그게 최대인지("full") 아닌지("early")다. 활성 경보 76건 중
+    65건이 "early"이고 그 65건의 health_index는 전부 67.9 이상이다 — 즉 경보가 켜져
+    있다는 사실만으로는 심각하다는 뜻이 전혀 아니다.
+      "full"  = 지속일이 14일을 넘겨 점수를 최대폭으로 깎은 경보(11건, health_index
+                14.5~58.3). 이때만 "지속 경보"라고 부르고 조치 우선순위로 올려라.
+      "early" = 아직 증거가 얕은 경보. 반드시 "초기 경보"로 부르고 "N일째"를 같이 말해라.
+                **끄지는 마라** — DP04 CLN_Flow도 39일 전에는 0.2일째였다. 다만 이걸
+                근거로 지금 당장 설비를 세우라는 식으로 말하면 안 된다.
+    점수가 높은데(예: health_index 99.4) 경보가 켜져 있으면 그건 모순이 아니라 "이제 막
+    켜진 초기 경보"라는 뜻이다. 그렇게 설명하라.
   - recipe_hotspots / n_product_recipe_combos_affected / recipe_hotspot_concentrated:
     "어느 설비가 문제인지"는 machine_id 자체가 답이지만, "어느 제품/레시피 조합이
     문제인지"는 이 필드가 답한다(전체 54개 Product×Recipe 조합 중 경고가 집중된 순위,
@@ -81,14 +95,16 @@ get_machine_health가 반환하는 구조 핵심:
 get_sop_for_factor만 그걸 읽도록 바꾸면 되고 에이전트 구조 자체는 안 바뀐다.)
 
 실행 전 준비:
-  1. pip install anthropic   (이미 설치됨)
-  2. 터미널에서: export ANTHROPIC_API_KEY="본인 키"
+  1. pip install -r ../requirements.txt   (anthropic 포함)
+  2. 저장소 루트에 .env 파일:  ANTHROPIC_API_KEY=본인 키
+     (또는 터미널에서 export ANTHROPIC_API_KEY="본인 키" — .env는 .gitignore에 있음)
   3. python3 agent.py "DP03 상태 어때?"
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -104,6 +120,59 @@ HEALTH_INDEX_DATA = GOAL5_DIR / "health_index_data.json"
 LEVEL_TREND_CSV = GOAL5_DIR / "01_level_trend_by_machine_column.csv"
 DAILY_SERIES_CSV = HERE.parent / "analysis_outputs" / "preprocessing" / "00_machine_daily_series.csv"
 DAILY_TREND_CSV = HERE.parent / "analysis_outputs" / "05_machine_daily_trend.csv"
+
+# ── API 키 ─────────────────────────────────────────────────────────────────
+# export는 터미널을 닫으면 사라져서, 시연 때마다 "키를 안 넣고 서버를 띄웠다"가
+# 반복됐다. 저장소 루트(또는 이 폴더)의 .env를 읽어 환경변수로 채운다.
+# .env는 .gitignore에 이미 들어 있다 — 키가 커밋되지 않는다.
+# 이미 export된 값이 있으면 그쪽이 이긴다(파일이 export를 덮어쓰지 않음).
+ENV_FILES = (HERE.parent / ".env", HERE / ".env")
+
+
+def _load_env_files() -> None:
+    for path in ENV_FILES:
+        if not path.exists():
+            continue
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip().removeprefix("export ").strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_env_files()
+
+
+def has_api_key() -> bool:
+    """키가 있는지'만' 본다. 값은 절대 로그·화면에 찍지 않는다.
+    import 시점에 한 번 굳히지 않는 이유: 서버를 띄워둔 채 .env를 만드는 흐름이
+    실제로 있었고, 그때 재시작 없이 다음 질문부터 되게 하려는 것."""
+    _load_env_files()
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+
+
+MISSING_KEY_MESSAGE = (
+    "ANTHROPIC_API_KEY가 없습니다. 챗봇 답변만 키가 필요하고 그래프·히트맵은 그대로 동작합니다.\n"
+    "  방법 1) 저장소 루트에 .env 파일을 만들고 한 줄:  ANTHROPIC_API_KEY=본인 키\n"
+    f"          ({ENV_FILES[0]} — .gitignore에 들어 있어 커밋되지 않습니다)\n"
+    '  방법 2) 터미널에서:  export ANTHROPIC_API_KEY="본인 키"'
+)
+
+
+MODEL = "claude-sonnet-5"
+
+
+def _client() -> anthropic.Anthropic:
+    """키가 없으면 SDK의 영문 TypeError 대신 무엇을 해야 하는지 알려주고 멈춘다.
+    (서버는 이 메시지를 그대로 브라우저에 띄운다 — server.py의 /api/ask 참고.)"""
+    if not has_api_key():
+        raise RuntimeError(MISSING_KEY_MESSAGE)
+    return anthropic.Anthropic()
+
 
 with open(HEALTH_INDEX_DATA, encoding="utf-8") as f:
     DATA = json.load(f)
@@ -130,9 +199,17 @@ DEFECT_RATE_COLS = {
     "Chipping": "Chipping_rate",
 }
 
-# defect -> 그 defect의 원인으로 확정된 factor 목록 (역인덱스).
+# defect -> 그 defect의 **확정 원인 인자** 목록 (역인덱스).
+#
+# 주의: 이건 "경보 목록"이 아니다. 경보(early_warning_active)는 **변수**에 붙는다 —
+# trend_analysis.py가 (장비, 컬럼)의 시계열에 CUSUM을 돌려서 켜는 것이고, defect는
+# 경보를 받지 않는다. defect는 "그 변수가 나빠지면 생길 수 있는 결과"의 이름일 뿐이다.
+# 이 역인덱스가 쓰이는 곳은 두 군데뿐이다:
+#   get_defect_causes()      "이 불량의 확정 원인이 뭐냐" 조회
+#   views.py usable_factors  "이 불량을 감시할 수단이 있냐" 표시
+#
 # per_defect[defect].alert_usable=False인 짝은 제외한다 — 인자 레벨 플래그만 보면
-# CLN_Flow↔Particle처럼 DB가 "이 경계값으로 경보를 걸면 안 됨"이라고 적어둔 짝이 통과한다.
+# CLN_Flow↔Particle처럼 DB가 "이 경계값으로는 위험구간을 못 가른다"고 적어둔 짝이 통과한다.
 DEFECT_TO_FACTORS: dict[str, list[str]] = {}
 for factor, meta in CAUSE_FACTORS.items():
     per = meta.get("per_defect") or {}
@@ -140,19 +217,123 @@ for factor, meta in CAUSE_FACTORS.items():
         if per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)):
             DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
 
-# factor -> 그래프에 같이 그릴 defect 하나. (26.08.10) 원인 변수의 추세만 보여주면
+# factor -> 그래프에 같이 그릴 defect **목록**. (26.08.10) 원인 변수의 추세만 보여주면
 # "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인 시점과 불량률이 올라간
-# 시점을 한 화면에 겹쳐야 선후관계가 보인다. DEFECT_TO_FACTORS의 역방향인데, 한 인자가
-# 여러 defect의 원인일 수 있으므로(예: Head_Temp) meta["defects"] 순서상 첫 번째를 쓴다.
-# alert_usable=False인 짝은 여기서도 제외한다 — DB가 막아둔 관계를 그림으로 주장하면 안 된다.
-FACTOR_TO_DEFECT: dict[str, str] = {}
-for defect, factors in DEFECT_TO_FACTORS.items():
-    for factor in factors:
-        FACTOR_TO_DEFECT.setdefault(factor, defect)
+# 시점을 한 화면에 겹쳐야 선후관계가 보인다.
+#
+# (26.08.11) 예전엔 dict[str, str]이라 인자당 defect 하나만 남았고, DEFECT_TO_FACTORS를
+# 뒤집어 만드느라 alert_usable=False인 짝이 통째로 빠졌다. 그 결과 CLN_Flow가
+# "원인 → Remain_Coat"로만 나왔다. 두 가지가 문제였다:
+#
+#   1. 한 원인이 두 불량을 일으키는 경우를 화면이 표현하지 못한다. 멘토 확정 시나리오가
+#      정확히 그것이다 — "DP04 = Cleaning Failure -> CLN_Flow 감소 -> Remain_Coat /
+#      Particle 증가". 절반만 보여주고 있었다.
+#   2. alert_usable=False를 "관계 없음"으로 읽었는데, DB가 막은 건 **경계값**이다.
+#      CLN_Flow↔Particle은 tier=T2(조건부조치)로 관계가 인정돼 있고, 붙은 경고는
+#      "위험구간 불량률이 정상구간보다 낮음 — 이 경계값으로 경보를 걸면 안 됨"이다
+#      (risk_ratio 0.80). 즉 "9.722를 넘었으니 파티클 경보"라고 말하지 말라는 것이지
+#      "CLN_Flow가 나빠져도 파티클과 무관하다"가 아니다.
+#
+# 그래서 여기서는 meta["defects"]를 그대로 싣되, 경보/경계값 용도인 DEFECT_TO_FACTORS는
+# 위에서 계속 alert_usable로 걸러진 채로 둔다. 점수(Health Index)도 안 건드린다 —
+# defect 건강도는 build_health_index.py가 _usable_defects로 따로 판단한다.
+#
+# ---------------------------------------------------------------------------
+# 인자 -> 관련 defect 관계표 (단일 규칙)
+# ---------------------------------------------------------------------------
+# 관계DB는 (인자, defect) 관계를 **세 군데**에 나눠 적어둔다. 인자마다 분기를 치면
+# 새 짝이 생길 때마다 코드를 고쳐야 하므로, 세 출처를 한 번에 훑어 하나의 표로 만든다.
+#
+#   cause_factors[f].defects            역할=원인(FDC)     tier T1~T2
+#   monitor_factors[f].defects          역할=감시지표      tier M1
+#   defects_without_confirmed_cause[d]  후보              tier T3~T4
+#     .candidates_below_bar[]
+#
+# 표시 방법은 **인자 이름이 아니라 tier로만** 정한다. 관계DB tier_legend가 등급별
+# 취급법을 이미 정의해뒀고, 그게 유일한 판단 근거다:
+#
+#   T1 원인 · 즉시조치        이름 부름 + 경계값 사용
+#   T2 원인 · 조건부조치      이름 부름 + 경계값은 alert_usable일 때만
+#   M1 감시지표 · 경보 전용   이름 부름, 조치 지시 금지
+#   T3 원인 후보 · 감시만     "원인이라고 답하지 말 것" -> 별도 줄
+#   T4 판단보류               도메인과 데이터 방향이 반대 -> 표시 안 함
+#
+# T4를 빼는 이유: 방향이 뒤집힌 짝을 "생길 수 있는 불량"이라고 부르면 근거 없이 겁만
+# 준다. tier_legend는 "양쪽 병기할 것"이라고 하는데, 그건 그 짝을 직접 물었을 때
+# (get_defect_causes) 할 얘기지 인자 화면에 띄울 얘기가 아니다.
+#
+# alert_usable은 tier와 **별개 축**이다 — "위험구간 선을 그을 수 있는가"만 말한다.
+# False는 "아직 안 봤다"가 아니라 "재봤는데 안 갈렸다"는 뜻이다(CLN_Flow↔Particle은
+# 경계 아래 불량률이 위보다 낮게 나왔다, risk_ratio 0.80). 그래서 이름은 부르되
+# "값이 얼마 이하면 위험"이라고는 못 한다. 이름을 부르는 것과 선을 긋는 것은 다른 권한이다.
+_CAUSE_TIERS = {"T1", "T2", "M1"}     # 원인/감시지표로 이름을 부를 수 있는 등급
+_CANDIDATE_TIERS = {"T3"}             # 후보로만 — "원인" 줄에 넣으면 안 되는 등급
+
+FACTOR_DEFECT_RELATIONS: dict[str, list[dict]] = {}
+
+
+def _add_relation(factor: str, defect: str, tier: str | None,
+                  is_cause: bool, reason: str | None = None) -> None:
+    if defect not in DEFECT_RATE_COLS:
+        return
+    meta = CAUSE_FACTORS.get(factor) or {}
+    per = (meta.get("per_defect") or {}).get(defect) or {}
+    rel = {
+        "defect": defect,
+        "tier": tier,
+        # 원인/감시지표로 이름을 부를 수 있는가 (False면 "감시 후보" 줄로)
+        "is_cause": is_cause,
+        # 이 짝의 경계값으로 위험구간 선을 그을 수 있는가 (tier와 별개 축)
+        "alert_usable": bool(per.get("alert_usable", meta.get("alert_usable", True)))
+        if is_cause else False,
+        "reason": reason,
+    }
+    FACTOR_DEFECT_RELATIONS.setdefault(factor, []).append(rel)
+
+
+for _f, _meta in CAUSE_FACTORS.items():
+    _per = _meta.get("per_defect") or {}
+    for _d in _meta.get("defects") or []:
+        _tier = (_per.get(_d) or {}).get("tier", _meta.get("tier"))
+        if _tier in _CANDIDATE_TIERS:
+            _add_relation(_f, _d, _tier, is_cause=False)
+        elif _tier is None or _tier in _CAUSE_TIERS:
+            _add_relation(_f, _d, _tier, is_cause=True)
+        # T4 등 그 외 등급은 표시하지 않는다(위 주석 참고).
+
+for _d, _info in (_REL_DB_JSON.get("defects_without_confirmed_cause") or {}).items():
+    for _c in _info.get("candidates_below_bar") or []:
+        if _c.get("tier") in _CANDIDATE_TIERS:
+            _add_relation(_c["factor"], _d, _c.get("tier"), is_cause=False, reason=_c.get("reason"))
+
+
+def defect_relations(factor: str) -> list[dict]:
+    """이 인자와 관련된 defect 전부 — 등급(tier)과 함께. 화면·답변의 단일 출처."""
+    return FACTOR_DEFECT_RELATIONS.get(factor, [])
+
+
+def paired_defects(factor: str) -> list[str]:
+    """그래프에 불량률을 겹쳐 그릴 defect — 후보(T3)까지 포함해 실측은 다 보여준다."""
+    return [r["defect"] for r in defect_relations(factor)]
+
+
+def alert_usable_pair(factor: str, defect: str) -> bool:
+    """이 짝의 경계값으로 위험구간 선을 그을 수 있는가."""
+    return next((r["alert_usable"] for r in defect_relations(factor)
+                 if r["defect"] == defect), False)
+
+
+# (26.08.11) SYSTEM_PROMPT가 downstream_defects/candidate_defects를 참조하므로 스냅샷의
+# causes에 실어둔다. 프롬프트가 참조하는 필드가 payload에 없으면 모델이 조용히 지어낸다
+# — f32cbae(margin_used_pct 누락)에서 같은 사고가 났었다.
+for _snap in MACHINES.values():
+    for _sig in (_snap.get("defect_signals") or {}).values():
+        for _f, _c in (_sig.get("causes") or {}).items():
+            _c["related_defects"] = defect_relations(_f)
 
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
-# 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
+# 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 화면에 넘겨야 한다.
 # 주의: 프로토타입이라 전역 변수로 처리 — 동시에 여러 요청이 들어오면(멀티유저) 꼬일 수
 # 있다. 데모용 단일 사용자 흐름 전제.
 _chart_calls_this_turn: list = []
@@ -213,7 +394,7 @@ def get_sop_for_factor(factor_name: str) -> str:
     (26.08.06) 관계DB agent_rules에 "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것"이
     명시돼 있다 — agent_cause_factors.json의 sop.status가 "SOP 미수령"이기 때문이다. 그래서
     이 도구는 구체적인 점검/조치 "문구"를 만들어내지 않는다. 대신 이미 검정으로 확정된 것만
-    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/급락알람 등 — 이건 SOP 문구가 아니라
+    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/감시(경보) — 이건 SOP 문구가 아니라
     통계 검정 결과로 정해진 긴급도 분류라 지어낸 게 아님), 그리고 실제 위험/정상 구간 값.
 
     Args:
@@ -363,6 +544,8 @@ def get_trend_chart_data(
         "trend_message": spec["trend_message"] if pd.notna(spec["trend_message"]) else None,
         "alert_since": spec["alert_since"] if pd.notna(spec["alert_since"]) else None,
         "alert_active_days": float(spec["alert_active_days"]) if pd.notna(spec["alert_active_days"]) else None,
+        "alert_strength": float(spec["alert_strength"]) if pd.notna(spec["alert_strength"]) else None,
+        "alert_level": spec["alert_level"] if pd.notna(spec["alert_level"]) else None,
         "series": [
             {"date": d, "value": v}
             for d, v in zip(series["date"], series["daily_mean"])
@@ -373,19 +556,38 @@ def get_trend_chart_data(
     # 원인 변수만 보여주면 "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인
     # 시점과 불량률이 올라간 시점이 한 화면에 겹쳐야 선후관계가 보인다.
     # 스케일이 완전히 다르므로(유량 9.99 vs 불량률 0.0x) 화면에서 별도 축으로 그린다.
-    paired_defect = FACTOR_TO_DEFECT.get(factor)
-    rate_col = DEFECT_RATE_COLS.get(paired_defect) if paired_defect else None
-    if rate_col and rate_col in DAILY_TREND.columns:
-        dates = [str(d) for d in series["date"]]
-        sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+    #
+    # (26.08.11) 하류 defect가 여러 개면 **전부** 겹쳐 그린다. 예전엔 하나만 그려서
+    # CLN_Flow 그래프에 Remain_Coat만 나왔는데, 세정 실패는 Remain_Coat와 Particle을
+    # 같이 올린다(멘토 확정). 둘을 같은 날짜 축에 겹쳐야 "한 원인이 두 불량을 민다"가
+    # 눈으로 보인다 — 이건 경계값을 쓰는 주장이 아니라 실측 불량률을 나란히 놓는 것이다.
+    dates = [str(d) for d in series["date"]]
+    sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+    defects_out = []
+    for d_name in paired_defects(factor):
+        rate_col = DEFECT_RATE_COLS.get(d_name)
+        if not rate_col or rate_col not in DAILY_TREND.columns:
+            continue
         rate_by_date = dict(zip(sub["date"].astype(str), sub[rate_col]))
-        pairs = [(d, rate_by_date.get(d)) for d in dates]
-        if any(v is not None and pd.notna(v) for _, v in pairs):
-            result["defect"] = paired_defect
-            result["defect_series"] = [
-                {"date": d, "value": (float(v) if v is not None and pd.notna(v) else None)}
-                for d, v in pairs
-            ]
+        pairs = [(dt, rate_by_date.get(dt)) for dt in dates]
+        if not any(v is not None and pd.notna(v) for _, v in pairs):
+            continue
+        defects_out.append({
+            "defect": d_name,
+            # 경계값 경보를 걸 수 있는 짝인지 — 화면이 선을 그릴지 판단하는 데 쓴다.
+            # False라도 실측 불량률은 그린다(관계는 tier로 인정돼 있고, 막힌 건 경계값뿐).
+            "alert_usable": alert_usable_pair(factor, d_name),
+            "series": [
+                {"date": dt, "value": (float(v) if v is not None and pd.notna(v) else None)}
+                for dt, v in pairs
+            ],
+        })
+    if defects_out:
+        result["defects"] = defects_out
+        # 하위호환: 기존 소비자가 읽던 단수 키를 첫 번째(경보 가능한 짝 우선)로 유지한다.
+        primary = next((x for x in defects_out if x["alert_usable"]), defects_out[0])
+        result["defect"] = primary["defect"]
+        result["defect_series"] = primary["series"]
 
     _chart_calls_this_turn.append(result)
     return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)
@@ -408,8 +610,11 @@ SYSTEM_PROMPT = """\
 --- 출력 형식 ---
 ### {장비ID} 종합 상태 (기준일 `{latest_date}`)
 
-### {actual_occurred_recent_7d가 true면 "🔴" / false이고 early_warning_active가 true면 "🟡" / \
-그 외 "⚪"} {N}순위 - {defect} (HI `{health_index}`)
+### {actual_occurred_recent_7d가 true면 "🔴" / false이고 원인 인자 중 alert_level이 "full"인 게 \
+있으면 "🟡" / 그 외 "⚪"} {N}순위 - {defect} (HI `{health_index}`)
+{🟡를 early_warning_active(boolean)로 고르지 마라 — 활성 경보의 86%가 초기 경보라 그러면 \
+거의 전부가 🟡가 되고, HI 99짜리와 HI 14짜리가 같은 표시를 받는다. 초기 경보뿐이면 ⚪로 두되 \
+아래 "공통" 줄에서 초기 경보라고 밝혀라.}
 - **발생**: {actual_occurred_recent_7d가 true면 "최근 7일 내내(7/7)" 또는 "{occurred_days_recent_7d}/7일" \
 | false면 "없음(조짐 단계)"}
 - **원인**: `{worst_factors[0]의 factor}` — 현재 `{current_value}` / \
@@ -423,11 +628,18 @@ SYSTEM_PROMPT = """\
   defect_zone_rate_pct가 null이 아니면(C유형) 위 한 줄 뒤에 \
   ", 위험구간 진입 `{defect_zone_rate_pct}`% (평소 `{defect_zone_baseline_pct}`%)"를 덧붙여라 \
   — 이건 점수 근거가 아니라 참고 지표다.
-   공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_spec_out이 \
-null이 아닐 때만 ", 스펙아웃 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
+   공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_control_limit이 \
+null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
 절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
-경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
-- **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}
+{alert_level이 "full"이면 "경보 지속" / "early"면 "초기 경보"}"를 붙여라 — 매일 새로 뜬 게 아니라 \
+하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 되고, 초기 경보를 지속 경보처럼 쓰면 안 된다}
+- **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}\
+{related_defects를 보고 판단하라 — 한 인자가 여러 불량을 밀 수 있고 그게 멘토 확정 \
+시나리오다(세정 실패 → Remain_Coat + Particle). is_cause=true가 2개 이상이면 이 불릿 끝에 \
+반드시 ", 같은 원인으로 `{나머지 defect}`도 위험"을 덧붙여라. is_cause=false(tier T3)는 \
+**원인이라고 쓰지 마라** — ", `{defect}`는 감시 후보(원인 아님)"로만 적어라. \
+alert_usable이 false인 defect는 이름만 부르고 "값이 얼마 이하면 위험" 식의 경계값 문장을 \
+절대 붙이지 마라 — 재봤는데 경계가 안 갈린 짝이다.}
 - **조치**: get_sop_for_factor 호출 후 `{action_type}`(tier `{tier}`) `[SOP 미수령]` — \
 위험구간 `{risky_range}` 참고. **구체적 점검·조치 문구는 아직 없으니 지어내지 말고, \
 tier/action_type과 위험구간 숫자만 전달하라.**
@@ -438,7 +650,8 @@ tier/action_type과 위험구간 숫자만 전달하라.**
 defect_signals 중 counts_toward_machine_score가 false인데 원인 인자에 early_warning_active가 \
 있으면, 순위 목록 **아래에 따로** 이렇게 쓴다(순위에 섞지 마라 — 장비 점수에 안 들어간 항목이다):
 ### 예방 정비 대상 (장비 점수 미반영)
-- `{factor}` {alert_active_days}일째 경보 — {defect} 위험. {not_scored_reason}
+- `{factor}` {alert_active_days}일째 {alert_level이 "full"이면 "경보" / "early"면 "초기 경보"} \
+— {defect} 위험. {not_scored_reason}
 
 이 구분이 중요한 이유: 감시 데이터에 그 불량이 너무 적어 "이 인자가 그 불량을 일으킨다"를 \
 여기서 검증할 수 없다는 뜻이다. 관계 자체는 도메인으로 확정돼 있으니 **버리지 말고 경보로 \
@@ -447,7 +660,7 @@ defect_signals 중 counts_toward_machine_score가 false인데 원인 인자에 e
 unconfirmed_anomalies가 있으면 마지막에 표로:
 | 인자 | 상태 |
 |---|---|
-| `{factor1}` | {SPEC_OUT 또는 "N일 뒤 스펙아웃"} |
+| `{factor1}` | {SPEC_OUT 또는 "N일 뒤 관리한계 도달"} |
 
 맨 끝에 한 줄만(헤더·볼드 없이 평문으로):
 ※ 원인은 통계적 상관관계로 확정된 것이며 완전한 인과관계 증명은 아닙니다. 구체적 SOP 문구는 아직 \
@@ -507,6 +720,21 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 _MACHINE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])DP0[1-4](?![0-9])", re.IGNORECASE)
 
 
+def _alert_phrase(d: dict) -> str:
+    """경보 한 건을 부르는 이름. 없으면 빈 문자열.
+
+    (26.08.11) 예전엔 early_warning_active만 보고 전부 "경보 지속"이라고 썼다. 그런데
+    활성 경보 76건 중 65건은 지속일이 14일 미만이라 점수를 거의 안 깎는 초기 경보이고,
+    그 65건의 health_index는 전부 67.9 이상이다 — HI 99.4짜리를 "경보 지속"이라고
+    부르면 도구 결과 자체가 과장이라 프롬프트로 아무리 막아도 답변이 따라간다.
+    build_health_index가 점수에 쓴 alert_level을 그대로 문구로 옮긴다.
+    """
+    if not (d.get("early_warning_active") and d.get("alert_since")):
+        return ""
+    kind = "경보 지속" if d.get("alert_level") == "full" else "초기 경보"
+    return f", `{d['alert_since']}`부터 `{d.get('alert_active_days')}일`째 {kind}"
+
+
 def _format_cause_value_line(c: dict) -> str:
     """"원인" 줄의 값 부분 하나를 만든다.
 
@@ -537,11 +765,9 @@ def _format_cause_value_line(c: dict) -> str:
         value_part += f" (멘토 스펙 `{spec_val}`)"
     trend_word = {"up": "상승", "down": "하강"}.get(c.get("trend_direction"), "")
     trend_txt = f", {trend_word}추세" if trend_word else ""
-    reach = c.get("estimated_days_to_spec_out")
+    reach = c.get("estimated_days_to_control_limit")
     reach_txt = f", 관리한계 도달 예상 `{reach}일`" if reach is not None else ""
-    alert_txt = ""
-    if c.get("early_warning_active") and c.get("alert_since"):
-        alert_txt = f", `{c['alert_since']}`부터 `{c.get('alert_active_days')}일`째 경보 지속"
+    alert_txt = _alert_phrase(c)
     return f"{value_part}{zone_txt}{trend_txt}{reach_txt}{alert_txt}"
 
 
@@ -671,9 +897,7 @@ def _panel_from_chart(chart: dict) -> dict:
     series = chart.get("series") or []
     latest = series[-1]["value"] if series else None
     trend_word = {"up": "상승", "down": "하강"}.get(chart.get("trend_direction"), "")
-    alert_txt = ""
-    if chart.get("early_warning_active") and chart.get("alert_since"):
-        alert_txt = f", `{chart['alert_since']}`부터 `{chart.get('alert_active_days')}일`째 경보 지속"
+    alert_txt = _alert_phrase(chart)
 
     # 편측 컬럼은 한쪽 한계만 존재한다 — 없는 쪽을 "~"로 이어 쓰면 없는 선을 있는 것처럼
     # 말하게 된다(26.08.10). 있는 쪽만 이름을 붙여서 말한다.
@@ -769,6 +993,7 @@ def _panel_from_compare(charts: list[dict]) -> dict:
             "current_value": present[-1] if present else None,
             "alert_since": c.get("alert_since"),
             "alert_active_days": c.get("alert_active_days"),
+            "alert_level": c.get("alert_level"),
             "early_warning_active": c.get("early_warning_active"),
         })
 
@@ -808,13 +1033,13 @@ def _panel_from_compare(charts: list[dict]) -> dict:
         # %.4g는 9.9996을 "10"으로 뭉갠다 — 비교 그래프에서 자릿수가 죽으면 순위가
         # 사라지므로 정상값과 같은 소수 자릿수(최소 4자리)로 맞춘다.
         "- **현재값**: " + " · ".join(
-            f"`{m['machine_id']}` {m['current_value']:.4f}" + ("⚠️" if m.get("early_warning_active") else "")
+            # ⚠️는 full 경보에만. early_warning_active로 달면 4대 중 3~4대에 전부 붙어서
+            # "어느 장비가 문제인가"를 묻는 이 비교 뷰에서 아무것도 못 가른다.
+            f"`{m['machine_id']}` {m['current_value']:.4f}" + ("⚠️" if m.get("alert_level") == "full" else "")
             for m in ranked if m["current_value"] is not None),
     ]
     if deviation(worst) > 0:
-        alert_txt = (f", `{worst['alert_since']}`부터 `{worst['alert_active_days']}일`째 경보"
-                     if worst.get("early_warning_active") and worst.get("alert_since") else "")
-        lines.append(f"- **가장 벗어난 장비**: `{worst['machine_id']}`{alert_txt}")
+        lines.append(f"- **가장 벗어난 장비**: `{worst['machine_id']}`{_alert_phrase(worst)}")
 
     meta = CAUSE_FACTORS.get(factor)
     if factor == "Vibration":
@@ -891,9 +1116,9 @@ def _build_panels(snapshots: dict, chart_calls: list, question: str) -> list[dic
 def ask(question: str) -> dict:
     _chart_calls_this_turn.clear()
     _machine_snapshots_this_turn.clear()
-    client = anthropic.Anthropic()
+    client = _client()
     runner = client.beta.messages.tool_runner(
-        model="claude-sonnet-5",
+        model=MODEL,
         max_tokens=3000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
         # 붙다 보니 2000으로 가끔 빠듯했다(26.08.06 티어체계 확장 이후 답변이 길어짐).
         system=SYSTEM_PROMPT,
@@ -916,10 +1141,36 @@ def ask(question: str) -> dict:
     return {"answer": final_text, "panels": panels}
 
 
+def check_api() -> str:
+    """키가 실제로 통하는지 확인한다. 질문을 한 번 던져보는 것과 달리 토큰을 안 쓴다
+    (모델 조회 엔드포인트라 크레딧이 안 나간다). 인증·모델 접근 권한 두 가지를 본다."""
+    client = _client()
+    model = client.models.retrieve(MODEL)
+    return f"API 연결 확인됨 — 모델 {model.id} 사용 가능"
+
+
 if __name__ == "__main__":
+    if "--check" in sys.argv[1:]:
+        try:
+            print(check_api())
+        except RuntimeError as exc:  # 키 없음
+            sys.exit(str(exc))
+        except anthropic.AuthenticationError:
+            sys.exit("키가 거부됐습니다(401). 값이 잘리거나 폐기된 키인지 확인하세요.")
+        except anthropic.PermissionDeniedError:
+            sys.exit(f"이 키로는 {MODEL}에 접근할 수 없습니다(403). 콘솔에서 권한/크레딧을 확인하세요.")
+        except anthropic.NotFoundError:
+            sys.exit(f"모델 {MODEL}을 찾을 수 없습니다(404). agent.py의 MODEL 값을 확인하세요.")
+        except anthropic.APIConnectionError:
+            sys.exit("api.anthropic.com에 연결하지 못했습니다. 네트워크/프록시를 확인하세요.")
+        sys.exit(0)
+
     q = " ".join(sys.argv[1:]) or "DP03 상태 어때? 오늘 제일 급한 게 뭐야?"
     print(f"질문: {q}\n")
-    result = ask(q)
+    try:
+        result = ask(q)
+    except RuntimeError as exc:  # 키 없음 — 스택트레이스 대신 할 일만 보여준다
+        sys.exit(str(exc))
     print(result["answer"])
     if result["panels"]:
         print(f"\n[대시보드 패널 {len(result['panels'])}개 생성됨: "

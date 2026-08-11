@@ -29,7 +29,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         자기 분포로 경계를 다시 재서 고침.)
   2. **추세는 두 가지를 별도 정보로 계속 제공하면서, 그중 (b)만 점수에도 작게 반영한다.**
        (a) margin_used_pct의 최근 14일 기울기(%/일)로 뽑은 정량적 "예상 며칠 뒤
-           스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out) — 이 스크립트가
+           스펙아웃"(margin_trend_pct_per_day/estimated_days_to_control_limit) — 이 스크립트가
            직접 추정. 이건 여전히 점수에 안 섞고 별도 필드로만 준다(리드타임 추정치라
            "점수"로 만들 단위가 없음).
        (b) trend_analysis.py(이승연 원안, WINDOW=10 롤링 + PERSIST_WINDOW=5 지속성
@@ -47,7 +47,7 @@ USL/LSL) 되기 전에 미리 알 수 있는가"다.** (처음에 정규분포/�
         레벨 점수(중 ALARM_BAND 위 몫)에
         (1 - TREND_PENALTY_MAX_CUT × max(maturity, urgency)) 배율을 곱한다.
           maturity = alert_since부터 지속된 일수 ÷ RECENT_WINDOW_DAYS (0~1) — 증거가 쌓였나
-          urgency  = RECENT_WINDOW_DAYS ÷ estimated_days_to_spec_out (0~1) — 곧 터지나
+          urgency  = RECENT_WINDOW_DAYS ÷ estimated_days_to_control_limit (0~1) — 곧 터지나
                      (개선 중이거나 기울기가 0 이하라 est_days가 없으면 0)
         (26.08.08까지는 maturity 하나만 썼는데, 그러면 "방금 뜬 급한 경보"가 거의 안 깎여
         순위가 뒤집혔다 — DP03 CLN_Pressure(17.8일 뒤 도달, 경보 0.1일째)가 66.3점으로
@@ -400,6 +400,19 @@ def load_trend_warning_status() -> dict[tuple[str, str], dict]:
                  "trend_direction", "message", "episode_id"],
     )
     tr["DateTime"] = pd.to_datetime(tr["DateTime"])
+    # (26.08.12) **경보 로그는 짝(인자, defect) 단위인데 이 표는 (장비, 컬럼) 단위다.**
+    # 한 인자가 두 defect의 원인이면 같은 샷이 두 행으로 들어오므로, 접지 않으면 이
+    # 함수가 내는 "건수"가 전부 짝 수만큼 부풀려진다. 실측: DP04 CLN_Flow의
+    # PKG_D|RCP_1은 443행이지만 경보 샷은 222개 — recipe_hotspots의 warning_count가
+    # 화면과 에이전트 답변("| 조합 | 경고건수 |" 표)에 그대로 두 배로 나갔다.
+    # 이 표의 모든 값이 "이 장비의 이 변수가 경보였던 **샷**"에 대한 진술이라
+    # (언제부터인가·어느 방향인가·어느 조합에 몰렸나), 여기서 한 번만 접는다.
+    # build_heatmap_data.py의 SHOT_KEY와 같은 이유·같은 키다.
+    n_rows = len(tr)
+    tr = tr.drop_duplicates(["Machine_ID", "Product_ID", "Recipe_ID", "column", "DateTime"])
+    if n_rows != len(tr):
+        print(f"[경보로그] {n_rows:,}행 -> 샷 {len(tr):,}개 "
+              f"(짝 단위 중복 {n_rows - len(tr):,}행 제거)")
     dataset_latest = tr["DateTime"].max()
 
     status: dict[tuple[str, str], dict] = {}
@@ -603,6 +616,20 @@ def load_target_override_map() -> dict[str, float]:
     return result
 
 
+_TIER_RANK = {"T1": 0, "T2": 1, "T3": 2, "T4": 3, "M1": 4}
+
+
+def _pair_tier_rank(factor: str, defect: str) -> int:
+    """(인자, defect) 짝의 급한 정도 — 낮을수록 급하다. 관계DB의 per_defect tier를 읽는다.
+
+    컬럼당 하나를 골라야 하는 자리에서 파일 행 순서로 고르면 확정 T1 짝이 T2 짝에
+    밀린다. tier가 취급법의 단일 근거이므로 그걸로 고른다.
+    """
+    meta = HEALTH_FACTORS.get(factor, {})
+    pair = (meta.get("per_defect") or {}).get(defect, {})
+    return _TIER_RANK.get(pair.get("tier", meta.get("tier")), 9)
+
+
 def load_defect_threshold_map() -> dict[str, dict]:
     """C유형(CLN_Pressure/Surface_Roughness)의 "불량률이 급변하는 경계값"을 컬럼별 대표값으로 로드.
 
@@ -626,23 +653,39 @@ def load_defect_threshold_map() -> dict[str, dict]:
     Product_ID x Recipe_ID 54개 그룹별로 학습된 값이라 컬럼 대표값은 median을 쓴다
     (compute_spec_values가 baseline_median을 뽑는 방식과 동일 — level_trend는 OPCOND가
     아니라 장비x컬럼 단위라 그룹별 값을 그대로는 못 씀).
+
+    (26.08.11) 한 컬럼이 두 defect의 원인이면 경계값이 defect마다 다르다. 예전엔
+    groupby("column")으로 뭉쳐서 **두 defect의 경계값을 median으로 섞고** matched_defect는
+    첫 행을 집었다 — 조용히 틀린 값이 나온다. 이제 (컬럼, defect)로 묶고, 이 표가
+    장비x컬럼 단위라 컬럼당 하나를 골라야 하는 자리에서는 **가장 급한 tier의 짝**을
+    쓴다(views.py의 사이드바 배지와 같은 규칙). 고른 결과는 로그로 찍어 남긴다.
     """
     path = config.PREPROCESSING_DIR / "00_baseline_C.csv"
     if not path.exists():
         return {}
     c = pd.read_csv(path)
-    result: dict[str, dict] = {}
-    for col, g in c.groupby("column"):
+    per_pair: dict[str, list[dict]] = {}
+    for (col, defect), g in c.groupby(["column", "matched_defect"]):
         directions = g["risky_direction"].unique()
         if len(directions) != 1:
             # 그룹마다 위험 방향이 갈리면 대표값 하나로 못 줄임 — 임시 percentile로 폴백.
-            print(f"[경고] {col}: risky_direction이 그룹별로 불일치({directions}) — defect_threshold 미적용")
+            print(f"[경고] {col}↔{defect}: risky_direction이 그룹별로 불일치({directions})"
+                  " — defect_threshold 미적용")
             continue
-        result[col] = {
+        per_pair.setdefault(str(col), []).append({
             "threshold": float(g["threshold"].median()),
             "risky_direction": str(directions[0]),
-            "matched_defect": str(g["matched_defect"].iloc[0]),
-        }
+            "matched_defect": str(defect),
+        })
+
+    result: dict[str, dict] = {}
+    for col, entries in per_pair.items():
+        if len(entries) > 1:
+            entries = sorted(entries, key=lambda e: _pair_tier_rank(col, e["matched_defect"]))
+            print(f"[관계DB] {col}: defect가 여럿이라 화면 대표값은 가장 급한 짝을 씁니다 — "
+                  f"{entries[0]['matched_defect']} 채택, "
+                  f"{[e['matched_defect'] for e in entries[1:]]}는 경보에서만 사용.")
+        result[col] = entries[0]
     return result
 
 
@@ -755,7 +798,7 @@ def compute_level_and_trend(
     점수를 내는 경보선을 그대로 실어서 화면과 점수의 근거가 어긋나지 않게 한다.
 
     추세는 두 가지를 같이 담는다: margin_used_pct의 최근 14일 기울기로 뽑은 정량적
-    "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_spec_out)과,
+    "예상 며칠 뒤 스펙아웃"(margin_trend_pct_per_day/estimated_days_to_control_limit)과,
     trend_analysis.py(load_trend_warning_status)가 판정한 "지금 공식적으로 경보가
     켜져 있는가"(trend_direction/early_warning_active/trend_message) — 전자는 이
     스크립트가 직접 추정한 속도, 후자는 팀이 따로 검증한 판정 로직의 결과다.
@@ -782,8 +825,20 @@ def compute_level_and_trend(
     # 잰 단일 출처를 양쪽이 같이 읽는다(config.py C_BASELINE_MIN_STABLE_DAYS 주석 참고).
     # zone_lookup(날짜별 실제 진입률)은 계속 일별 집계 파일에서 온다 — 이건 "지금 값"이라
     # baseline과 달리 전 구간이 필요하다.
+    #
+    # (26.08.11) 두 산출물 모두 matched_defect 열이 생겼다(컬럼당 defect가 여럿일 수
+    # 있으므로). 이 표는 장비x컬럼 단위라 컬럼당 한 계열만 실을 수 있어서,
+    # defect_threshold_map이 이미 고른 짝(가장 급한 tier)과 **같은 짝**을 쓴다.
+    # 여기서 따로 고르면 화면의 경계값과 진입률이 서로 다른 defect 기준이 된다.
+    def _chosen_defect(col: str) -> str | None:
+        return (defect_threshold_map.get(col) or {}).get("matched_defect")
+
     if zone_rate_df is not None and len(zone_rate_df):
         for (m, c), zg in zone_rate_df.groupby(["Machine_ID", "column"]):
+            if "matched_defect" in zg.columns and _chosen_defect(c) is not None:
+                zg = zg.loc[zg["matched_defect"] == _chosen_defect(c)]
+                if zg.empty:
+                    continue
             zg = zg.set_index("date").sort_index()
             zone_lookup[(m, c)] = zg["defect_zone_rate"]
             zone_shots[(m, c)] = zg["n_shots"]
@@ -793,6 +848,11 @@ def compute_level_and_trend(
     entry_path = config.PREPROCESSING_DIR / "00_baseline_C_entry_rate.csv"
     if entry_path.exists():
         entry = pd.read_csv(entry_path)
+        if "matched_defect" in entry.columns:
+            # 위 zone_lookup과 같은 짝만 남긴다 — "지금 값"과 "평소 값"이 서로 다른
+            # defect 기준이면 그 둘을 나눈 배수가 아무 뜻도 없는 수가 된다.
+            keep = entry["column"].map(_chosen_defect)
+            entry = entry.loc[keep.isna() | (entry["matched_defect"] == keep)]
         agg = entry.groupby(["Machine_ID", "column"])[["n_in_zone", "n_ok_shots"]].sum()
         for (m, c), v in (agg["n_in_zone"] / agg["n_ok_shots"]).items():
             zone_base_rate[(m, c)] = float(v)
@@ -974,6 +1034,25 @@ def compute_level_and_trend(
             # 이미 경보선을 넘었으면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다.
 
         ta_status = trend_status.get((machine, col), {})
+
+        # (26.08.11) 경보의 **세기**. 아래 페널티 배율에 쓰는 값을 그대로 내보낸다 —
+        # 화면과 agent가 early_warning_active(boolean)만 읽어서 "10,513행 39.6일째"와
+        # "31행 0.2일째"를 똑같은 `경보` 배지로 그리고 있었다(docs/점검_원인변수_경보기준.md).
+        # 활성 경보 76건 중 63건이 세기 0.5 미만이고 그 63건의 HI가 전부 96 이상이라,
+        # 사실상 "HI 99인데 빨간 경보"가 화면의 기본 상태였다.
+        #
+        # 새 기준을 만들지 않고 **점수가 이미 쓰고 있는 값**을 그대로 표시로 보낸다.
+        # 그래야 배지와 점수가 서로 다른 말을 할 수 없다 — 배지가 빨간데 HI가 99인
+        # 지금 상태가 정확히 그 어긋남이었다. 경보가 없으면 None.
+        alert_strength, alert_level = None, None
+        if ta_status.get("early_warning_active"):
+            maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
+            urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
+            alert_strength = round(max(maturity, urgency), 3)
+            # "full" = 페널티를 최대폭(TREND_PENALTY_MAX_CUT)까지 다 받은 경보. 즉 점수가
+            # 이미 이 경보를 통째로 반영했다는 뜻이라, 여기서만 강조 표시를 쓴다.
+            alert_level = "full" if alert_strength >= 1.0 else "early"
+
         # 추세 페널티는 "스펙 안" 구간(ALARM_BAND 위)에서만, 그 구간 안에서만 깎는다.
         #  - 이미 SPEC_OUT이면 안 깎는다: margin 자체가 이미 심각하다고 말하고 있어서 추세가
         #    추가로 알려줄 정보가 없다(이 페널티의 존재 목적 자체가 "margin은 멀쩡해 보이는데
@@ -981,7 +1060,7 @@ def compute_level_and_trend(
         #  - 스펙 안이면 ALARM_BAND 위에 남은 몫(excess)만 깎는다. 점수 전체에 배율을
         #    곱하면 스펙 안인 변수가 스펙아웃 전용 구간(0~10) 안으로 내려가 "10점 미만 =
         #    이미 스펙아웃"이라는 읽는 법이 깨진다.
-        if ta_status.get("early_warning_active") and not alarm_exceeded:
+        if alert_strength is not None and not alarm_exceeded:
             # (26.08.08) 예전엔 성숙도(경보 지속일)만 썼다. 그러면 "방금 뜬 급한 경보"가
             # 거의 안 깎여서 순위가 뒤집힌다 — DP03에서 CLN_Pressure(17.8일 뒤 스펙아웃,
             # 경보 0.1일째)가 66.3점으로, Head_Temp(41.8일째지만 기울기 -0.02로 오히려
@@ -999,11 +1078,11 @@ def compute_level_and_trend(
             # RECENT_WINDOW_DAYS 하나로 쓰므로 새로 고른 상수가 없다. est_days는 이미
             # 계산해서 화면에 보여주던 값이고(remaining/slope), 기울기가 0 이하면 None이라
             # "개선 중"이 자동으로 긴급도 0이 된다.
-            maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
-            urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
+            # (26.08.11) max(maturity, urgency) 자체는 바로 위에서 alert_strength로 미리
+            # 계산해둔다 — 같은 값을 화면·agent에도 내보내야 배지와 점수가 어긋나지 않는다.
             excess = health_index_var - ALARM_BAND
             health_index_var = ALARM_BAND + excess * (
-                1 - TREND_PENALTY_MAX_CUT * max(maturity, urgency))
+                1 - TREND_PENALTY_MAX_CUT * alert_strength)
 
         rows.append({
             "Machine_ID": machine,
@@ -1056,7 +1135,7 @@ def compute_level_and_trend(
             "margin_used_pct": round(current_margin_pct, 1),
             "health_index": round(health_index_var, 1),
             "margin_trend_pct_per_day": round(margin_slope, 3) if margin_slope is not None else None,
-            "estimated_days_to_spec_out": est_days,
+            "estimated_days_to_control_limit": est_days,
             "trend_direction": ta_status.get("trend_direction"),
             # 1.0에 가까울수록 한 방향으로 확실히 쏠린 것, 0.5에 가까우면 방향이 섞여
             # 있어서 "추세"라고 부르기 어렵다 — 소비자가 구분할 수 있게 같이 낸다.
@@ -1065,6 +1144,10 @@ def compute_level_and_trend(
             "trend_message": ta_status.get("trend_message"),
             "alert_since": ta_status.get("alert_since"),
             "alert_active_days": ta_status.get("alert_active_days"),
+            # 경보의 세기(0~1)와 그 세기가 최대인지 여부. early_warning_active가 "켜졌나"만
+            # 말한다면 이 둘은 "얼마나 큰 경보인가"를 말한다 — 점수가 쓰는 값과 같다.
+            "alert_strength": alert_strength,
+            "alert_level": alert_level,
             "recipe_hotspots": ta_status.get("recipe_hotspots", []),
             "n_product_recipe_combos_affected": ta_status.get("n_product_recipe_combos_affected"),
             "recipe_hotspot_concentrated": ta_status.get("recipe_hotspot_concentrated", False),
@@ -1212,12 +1295,14 @@ def build_machine_snapshot(
                     "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
                     "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                     "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
-                    "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                    "estimated_days_to_control_limit": _none_if_nan(row["estimated_days_to_control_limit"]),
                     "trend_direction": _none_if_nan(row["trend_direction"]),
                     "early_warning_active": bool(row["early_warning_active"]),
                     "trend_message": _none_if_nan(row["trend_message"]),
                     "alert_since": _none_if_nan(row["alert_since"]),
                     "alert_active_days": _none_if_nan(row["alert_active_days"]),
+                    "alert_strength": _none_if_nan(row["alert_strength"]),
+                    "alert_level": _none_if_nan(row["alert_level"]),
                     "recipe_hotspots": row["recipe_hotspots"],
                     "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                     "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
@@ -1273,12 +1358,14 @@ def build_machine_snapshot(
                 "defect_zone_rate_pct": _none_if_nan(row["defect_zone_rate_pct"]),
                 "defect_zone_baseline_pct": _none_if_nan(row["defect_zone_baseline_pct"]),
                 "margin_trend_pct_per_day": _none_if_nan(row["margin_trend_pct_per_day"]),
-                "estimated_days_to_spec_out": _none_if_nan(row["estimated_days_to_spec_out"]),
+                "estimated_days_to_control_limit": _none_if_nan(row["estimated_days_to_control_limit"]),
                 "trend_direction": _none_if_nan(row["trend_direction"]),
                 "early_warning_active": bool(row["early_warning_active"]),
                 "trend_message": _none_if_nan(row["trend_message"]),
                 "alert_since": _none_if_nan(row["alert_since"]),
                 "alert_active_days": _none_if_nan(row["alert_active_days"]),
+                "alert_strength": _none_if_nan(row["alert_strength"]),
+                "alert_level": _none_if_nan(row["alert_level"]),
                 "recipe_hotspots": row["recipe_hotspots"],
                 "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                 "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
