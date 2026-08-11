@@ -256,11 +256,25 @@ def view_trend(machine_id: str, factor: str) -> dict:
     def _num(v):
         return float(v) if v is not None and pd.notna(v) else None
 
+    # (26.08.11) 헤더에 쓸 **하류 defect 전체 목록**. 위 defect_name은 health_index_data의
+    # causes에서 오는데, 그건 alert_usable=True인 짝만 담고 있어 CLN_Flow가 Remain_Coat
+    # 하나로만 보였다. 관계DB는 CLN_Flow에 Remain_Coat와 Particle을 둘 다 달아뒀고
+    # (Particle은 tier T2 / alert_usable=False — 막힌 건 경계값이지 관계가 아니다),
+    # 멘토 확정 시나리오도 "세정 실패 -> 둘 다 증가"다. 원인 변수 쪽에서 읽으면
+    # "이 변수가 나빠지면 이 두 불량이 생길 수 있다"가 맞는 서술이다.
+    # tier/진입률 등 숫자는 아래처럼 계속 짝 단위(defect_name)로만 쓴다 — 경계값을
+    # 근거로 쓰는 자리에는 alert_usable=False인 짝을 절대 끼워넣지 않는다.
+    downstream = [
+        {"defect": d, "alert_usable": agent.alert_usable_pair(factor, d)}
+        for d in agent.paired_defects(factor)
+    ]
+
     return {
         "view": "trend",
         "machine": machine_id,
         "factor": factor,
         "defect": defect_name,
+        "defects": downstream,
         "chart": chart,
         "detail": detail,
         "meta": {

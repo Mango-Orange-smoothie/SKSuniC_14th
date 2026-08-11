@@ -142,15 +142,47 @@ for factor, meta in CAUSE_FACTORS.items():
         if per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)):
             DEFECT_TO_FACTORS.setdefault(defect, []).append(factor)
 
-# factor -> 그래프에 같이 그릴 defect 하나. (26.08.10) 원인 변수의 추세만 보여주면
+# factor -> 그래프에 같이 그릴 defect **목록**. (26.08.10) 원인 변수의 추세만 보여주면
 # "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인 시점과 불량률이 올라간
-# 시점을 한 화면에 겹쳐야 선후관계가 보인다. DEFECT_TO_FACTORS의 역방향인데, 한 인자가
-# 여러 defect의 원인일 수 있으므로(예: Head_Temp) meta["defects"] 순서상 첫 번째를 쓴다.
-# alert_usable=False인 짝은 여기서도 제외한다 — DB가 막아둔 관계를 그림으로 주장하면 안 된다.
-FACTOR_TO_DEFECT: dict[str, str] = {}
-for defect, factors in DEFECT_TO_FACTORS.items():
-    for factor in factors:
-        FACTOR_TO_DEFECT.setdefault(factor, defect)
+# 시점을 한 화면에 겹쳐야 선후관계가 보인다.
+#
+# (26.08.11) 예전엔 dict[str, str]이라 인자당 defect 하나만 남았고, DEFECT_TO_FACTORS를
+# 뒤집어 만드느라 alert_usable=False인 짝이 통째로 빠졌다. 그 결과 CLN_Flow가
+# "원인 → Remain_Coat"로만 나왔다. 두 가지가 문제였다:
+#
+#   1. 한 원인이 두 불량을 일으키는 경우를 화면이 표현하지 못한다. 멘토 확정 시나리오가
+#      정확히 그것이다 — "DP04 = Cleaning Failure -> CLN_Flow 감소 -> Remain_Coat /
+#      Particle 증가". 절반만 보여주고 있었다.
+#   2. alert_usable=False를 "관계 없음"으로 읽었는데, DB가 막은 건 **경계값**이다.
+#      CLN_Flow↔Particle은 tier=T2(조건부조치)로 관계가 인정돼 있고, 붙은 경고는
+#      "위험구간 불량률이 정상구간보다 낮음 — 이 경계값으로 경보를 걸면 안 됨"이다
+#      (risk_ratio 0.80). 즉 "9.722를 넘었으니 파티클 경보"라고 말하지 말라는 것이지
+#      "CLN_Flow가 나빠져도 파티클과 무관하다"가 아니다.
+#
+# 그래서 여기서는 meta["defects"]를 그대로 싣되, 경보/경계값 용도인 DEFECT_TO_FACTORS는
+# 위에서 계속 alert_usable로 걸러진 채로 둔다. 점수(Health Index)도 안 건드린다 —
+# defect 건강도는 build_health_index.py가 _usable_defects로 따로 판단한다.
+#
+# 이 목록은 "이 변수가 나빠지면 어떤 불량이 생길 수 있는가"를 이름으로 말하는 데만 쓴다.
+FACTOR_TO_DEFECTS: dict[str, list[str]] = {
+    factor: list(meta.get("defects") or [])
+    for factor, meta in CAUSE_FACTORS.items()
+}
+
+
+def paired_defects(factor: str) -> list[str]:
+    """이 인자의 하류 defect 목록 — 불량률을 그래프에 겹쳐 그릴 대상."""
+    return [d for d in FACTOR_TO_DEFECTS.get(factor, []) if d in DEFECT_RATE_COLS]
+
+
+def alert_usable_pair(factor: str, defect: str) -> bool:
+    """이 (인자, defect) 짝의 **경계값으로 경보를 걸어도 되는가**.
+
+    이름을 부르는 것(paired_defects)과 경보를 거는 것은 다른 권한이다 — 위 주석 참고.
+    """
+    meta = CAUSE_FACTORS.get(factor) or {}
+    per = meta.get("per_defect") or {}
+    return bool(per.get(defect, {}).get("alert_usable", meta.get("alert_usable", True)))
 
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
@@ -375,19 +407,38 @@ def get_trend_chart_data(
     # 원인 변수만 보여주면 "그래서 불량이 실제로 늘었냐"에 답이 안 된다 — 원인이 꺾인
     # 시점과 불량률이 올라간 시점이 한 화면에 겹쳐야 선후관계가 보인다.
     # 스케일이 완전히 다르므로(유량 9.99 vs 불량률 0.0x) 화면에서 별도 축으로 그린다.
-    paired_defect = FACTOR_TO_DEFECT.get(factor)
-    rate_col = DEFECT_RATE_COLS.get(paired_defect) if paired_defect else None
-    if rate_col and rate_col in DAILY_TREND.columns:
-        dates = [str(d) for d in series["date"]]
-        sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+    #
+    # (26.08.11) 하류 defect가 여러 개면 **전부** 겹쳐 그린다. 예전엔 하나만 그려서
+    # CLN_Flow 그래프에 Remain_Coat만 나왔는데, 세정 실패는 Remain_Coat와 Particle을
+    # 같이 올린다(멘토 확정). 둘을 같은 날짜 축에 겹쳐야 "한 원인이 두 불량을 민다"가
+    # 눈으로 보인다 — 이건 경계값을 쓰는 주장이 아니라 실측 불량률을 나란히 놓는 것이다.
+    dates = [str(d) for d in series["date"]]
+    sub = DAILY_TREND[DAILY_TREND["Machine_ID"] == machine_id]
+    defects_out = []
+    for d_name in paired_defects(factor):
+        rate_col = DEFECT_RATE_COLS.get(d_name)
+        if not rate_col or rate_col not in DAILY_TREND.columns:
+            continue
         rate_by_date = dict(zip(sub["date"].astype(str), sub[rate_col]))
-        pairs = [(d, rate_by_date.get(d)) for d in dates]
-        if any(v is not None and pd.notna(v) for _, v in pairs):
-            result["defect"] = paired_defect
-            result["defect_series"] = [
-                {"date": d, "value": (float(v) if v is not None and pd.notna(v) else None)}
-                for d, v in pairs
-            ]
+        pairs = [(dt, rate_by_date.get(dt)) for dt in dates]
+        if not any(v is not None and pd.notna(v) for _, v in pairs):
+            continue
+        defects_out.append({
+            "defect": d_name,
+            # 경계값 경보를 걸 수 있는 짝인지 — 화면이 선을 그릴지 판단하는 데 쓴다.
+            # False라도 실측 불량률은 그린다(관계는 tier로 인정돼 있고, 막힌 건 경계값뿐).
+            "alert_usable": alert_usable_pair(factor, d_name),
+            "series": [
+                {"date": dt, "value": (float(v) if v is not None and pd.notna(v) else None)}
+                for dt, v in pairs
+            ],
+        })
+    if defects_out:
+        result["defects"] = defects_out
+        # 하위호환: 기존 소비자가 읽던 단수 키를 첫 번째(경보 가능한 짝 우선)로 유지한다.
+        primary = next((x for x in defects_out if x["alert_usable"]), defects_out[0])
+        result["defect"] = primary["defect"]
+        result["defect_series"] = primary["series"]
 
     _chart_calls_this_turn.append(result)
     return json.dumps({**result, "series_length": len(result["series"])}, ensure_ascii=False)

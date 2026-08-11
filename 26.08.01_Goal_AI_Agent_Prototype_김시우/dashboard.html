@@ -403,7 +403,18 @@ function renderTrend(d){
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
-      ${d.defect ? `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}</div>` : ''}
+      ${(() => {
+        // 하류 defect를 전부 적는다 — 한 원인이 두 불량을 미는 경우(CLN_Flow -> Remain_Coat
+        // + Particle, 멘토 확정 세정 실패)를 화면이 표현하지 못하고 하나만 보여주고 있었다.
+        const list = (d.defects && d.defects.length) ? d.defects
+                   : (d.defect ? [{defect:d.defect, alert_usable:true}] : []);
+        if(!list.length) return '';
+        const names = list.map(s => s.alert_usable === false
+          ? `<span title="관계DB가 tier로 인정한 짝이지만, 경계값이 위험구간과 정상구간을 못 가른다(risk_ratio 0.80) — 이 경계로 경보는 걸지 않는다">`
+            + `${esc(s.defect)} <span style="color:var(--ink-faint)">(경계값 미검증)</span></span>`
+          : esc(s.defect)).join(' · ');
+        return `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${names}</div>`;
+      })()}
     </div>
 
     <div class="card">
@@ -501,19 +512,34 @@ function renderChart(cd, threshold){
   const linePath=cd.series.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
   const last=cd.series[n-1];
 
+  // (26.08.11) 하류 defect가 여러 개면 전부 겹쳐 그린다 — 한 원인이 두 불량을 미는 걸
+  // 눈으로 보이게 하는 게 목적이라 우축(비율) 스케일은 **공유**한다. 각자 최댓값으로
+  // 정규화하면 둘 다 같은 높이로 그려져서 어느 쪽이 큰지가 사라진다.
+  const dSets=(cd.defects&&cd.defects.length ? cd.defects
+              : (cd.defect_series ? [{defect:cd.defect, series:cd.defect_series, alert_usable:true}] : []))
+              .filter(s=>s.series&&s.series.length===n&&s.series.some(p=>has(p.value)));
   let defectArea='';
-  if(cd.defect_series&&cd.defect_series.length===n){
-    const dv=cd.defect_series.map(p=>p.value).filter(has);
-    const dMax=Math.max(...dv);
-    if(dv.length&&dMax>0){
+  if(dSets.length){
+    const dMax=Math.max(...dSets.flatMap(s=>s.series.map(p=>p.value).filter(has)));
+    if(dMax>0){
       const dTop=padT+(H-padT-padB)*0.60, dBot=H-padB;
       const dy=v=>dBot-(v/dMax)*(dBot-dTop);
-      const pts=cd.defect_series.map((p,i)=>has(p.value)?`${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`:null).filter(Boolean);
-      if(pts.length>1){
-        defectArea=`<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n-1).toFixed(1)},${dBot}" fill="var(--warn)" opacity="0.16"/>`
-          +`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--warn)" stroke-width="1.2" opacity="0.75"/>`
-          +`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5" fill="var(--warn)">${cd.defect} 불량률 (우축 최대 ${(dMax*100).toFixed(2)}%)</text>`;
-      }
+      const COLORS=['var(--warn)','var(--accent)'];
+      const labels=[];
+      dSets.forEach((s,si)=>{
+        const col=COLORS[si%COLORS.length];
+        const pts=s.series.map((p,i)=>has(p.value)?`${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`:null).filter(Boolean);
+        if(pts.length<2) return;
+        // 첫 계열만 면으로 채운다 — 둘 다 채우면 겹쳐서 둘 다 안 읽힌다.
+        if(si===0) defectArea+=`<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n-1).toFixed(1)},${dBot}" fill="${col}" opacity="0.16"/>`;
+        defectArea+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.2" opacity="0.8"${s.alert_usable===false?' stroke-dasharray="3 2"':''}/>`;
+        // 경계값으로 경보를 못 거는 짝은 점선 — 관계는 인정됐지만(tier) 이 선을 근거로
+        // 경보를 걸지는 않는다는 표시다. 실측 불량률 자체는 사실이므로 그린다.
+        labels.push(`<tspan fill="${col}">${s.defect}${s.alert_usable===false?'(경계값 미검증)':''}</tspan>`);
+      });
+      if(defectArea) defectArea+=`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5">`
+        +labels.join('<tspan fill="var(--ink-faint)"> · </tspan>')
+        +`<tspan fill="var(--ink-faint)"> 불량률 (우축 최대 ${(dMax*100).toFixed(2)}%)</tspan></text>`;
     }
   }
   const hline=(v,color,dashed)=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed?' stroke-dasharray="4 3"':''}/>`;

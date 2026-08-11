@@ -119,6 +119,34 @@ python3 server.py
 
 **대시보드의 그래프·히트맵은 API 키 없이도 동작합니다** — 키가 필요한 건 챗봇 답변뿐입니다.
 
+### 한 원인이 두 불량을 미는 경우 (26.08.11)
+
+원인 변수 그래프의 헤더가 `원인 → Remain_Coat · Particle (경계값 미검증)`처럼 **하류 defect를
+전부** 적고, 실제 불량률도 둘 다 겹쳐 그립니다. 우축 스케일은 공유합니다 — 각자 최댓값으로
+정규화하면 둘 다 같은 높이로 그려져 어느 쪽이 큰지가 사라집니다.
+
+예전엔 인자당 defect 하나만 나왔습니다(`FACTOR_TO_DEFECT`가 `dict[str, str]`). 그래서 CLN_Flow가
+`원인 → Remain_Coat`로만 보였는데, 멘토 확정 시나리오는 *"DP04 = Cleaning Failure → CLN_Flow
+감소 → Remain_Coat / Particle 증가"* 로 둘 다입니다. 절반만 보여주고 있었습니다.
+실제로 DP04에서 **Particle 쪽이 더 큽니다**(89일 평균 8.80% vs Remain_Coat 4.24%).
+
+**`alert_usable=False`가 막는 건 "경계값"이지 "관계"가 아닙니다.** CLN_Flow↔Particle은
+관계DB에서 tier T2(조건부조치)로 관계가 인정돼 있고, 붙은 경고는 "위험구간 불량률이
+정상구간보다 낮음 — 이 경계값으로 경보를 걸면 안 됨"(risk_ratio 0.80)입니다. 즉 *9.722를
+넘었으니 파티클 경보* 라고 말하지 말라는 것이지, *CLN_Flow가 나빠져도 파티클과 무관하다* 가
+아닙니다. 그래서 이름은 부르되 경계값은 안 씁니다(화면에 `(경계값 미검증)`으로 표시).
+
+바뀌지 **않은** 것:
+
+- **Health Index 점수** — 4대 91.9 / 47.6 / 50.8 / 14.5 그대로. `build_health_index.py`는
+  한 줄도 안 고쳤습니다. defect 건강도는 거기서 `_usable_defects`로 따로 판단합니다
+- **경보 경로** — `DEFECT_TO_FACTORS`(경보용 역인덱스)는 계속 `alert_usable`로 걸립니다.
+  Particle의 경보 인자는 여전히 Surface_Roughness 하나뿐입니다
+- **관계DB** — 수정 불필요. `defects: ["Remain_Coat", "Particle"]`로 이미 둘 다 들어 있었고,
+  코드가 그중 하나만 읽고 있었을 뿐입니다
+
+DB에 defect가 2개 이상 달린 인자는 현재 CLN_Flow 하나뿐이라 파급 범위가 거기로 한정됩니다.
+
 ### 히트맵 셀 값
 
 `경보 샷 비율 (%)` = 그 Product×Recipe 조합에서 이 변수가 경보 상태였던 샷 수 ÷ 그 조합의
