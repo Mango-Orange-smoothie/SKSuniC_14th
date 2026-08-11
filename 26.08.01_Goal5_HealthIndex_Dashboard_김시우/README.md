@@ -130,6 +130,17 @@ defect별 분석)은 이 통합 DB로 흡수됐다.
   `current_value` / `defect_zone_rate_pct`를 최근 `RECENT_DEFECT_WINDOW_DAYS`(7)일
   중앙값으로.** 수정 후 장비 순위가 드리프트 수·경보 지속일과 일치합니다
   (DP01 78.8 / DP03 53.6 / DP02 51.1 / DP04 0.4).
+- **(26.08.11 발견 및 수정) 경보를 boolean 한 칸으로만 내보내던 문제.**
+  `early_warning_active`는 "마지막 경보가 1일 이내인가"만 말합니다. 그래서 화면과
+  agent가 39.6일째 지속된 DP04 CLN_Flow(HI 14.5)와 0.1일째인 DP03 CLN_Pressure(HI 99.6)에
+  **똑같은 빨간 `경보` 배지**를 그렸습니다. 실측: 활성 경보 76건 중 65건이 지속일 14일
+  미만이고 그 65건의 HI는 전부 67.9 이상 — 즉 "HI 99인데 빨간 경보"가 화면의 기본
+  상태였습니다. 점수 쪽은 이미 맞게 나오고 있었고(지속일 비례 배율), 어긋난 건 표시였습니다.
+  **수정: 점수가 쓰는 배율 `max(maturity, urgency)`를 `alert_strength`(0~1)로,
+  그게 최대인지를 `alert_level`("full"/"early")로 같이 내보냅니다.** 새 상수를 만들지
+  않고 점수가 이미 쓰던 값을 그대로 표시로 보내므로 배지와 점수가 어긋날 수 없습니다.
+  갈림: full 11건(HI 14.5~58.3) / early 65건(HI 67.9~99.6), 겹침 없음.
+  경보를 **끄지는 않습니다** — DP04 CLN_Flow도 39일 전에는 0.2일째였습니다.
 - **(26.08.08 발견 및 수정) 경보 지속 상태가 계속 리셋되던 문제.** `alert_since`를
   "최신 행이 속한 episode(같은 Product×Recipe 안에서 끊기지 않은 구간)의 시작"으로
   잡았는데, 경보는 Product×Recipe별로 판정되고 서로 다른 그룹의 샷이 시간축에서 뒤섞이므로
@@ -202,7 +213,7 @@ defect별 분석)은 이 통합 DB로 흡수됐다.
 
 | 파일 | 내용 |
 |---|---|
-| `01_level_trend_by_machine_column.csv` | 장비×전체 연속형변수별 레벨/추세/실제값 (원인/비원인 다 포함, trend_direction/early_warning_active/trend_message 포함) |
+| `01_level_trend_by_machine_column.csv` | 장비×전체 연속형변수별 레벨/추세/실제값 (원인/비원인 다 포함, trend_direction/early_warning_active/alert_level/trend_message 포함) |
 | `02_health_index_by_defect.csv` | 장비×defect별 Health Index + 최악 원인변수 |
 | `03_health_index_by_machine.csv` | 장비별 최종 Health Index + 최악 defect |
 | `04_defect_occurrence_recent7d.csv` | 장비×defect별 최근 7일 실제 발생 여부 |

@@ -179,6 +179,11 @@ def variable_tree(machine_id: str) -> list[dict]:
             "early_warning_active": bool(row.get("early_warning_active")),
             "alert_active_days": (float(row["alert_active_days"])
                                   if pd.notna(row.get("alert_active_days")) else None),
+            # (26.08.11) 경보 배지를 "경보 O/X"가 아니라 세기로 그리기 위해 같이 싣는다.
+            # "full"은 Health Index가 추세 페널티를 최대폭까지 받은 경보 — 즉 점수가 이미
+            # 통째로 반영한 것이라 강조해도 점수와 어긋나지 않는다. "early"는 그 미만.
+            "alert_level": (row["alert_level"]
+                            if pd.notna(row.get("alert_level")) else None),
             "margin_used_pct": (float(row["margin_used_pct"])
                                 if pd.notna(row.get("margin_used_pct")) else None),
             "spec_status": row.get("spec_status"),
@@ -198,10 +203,16 @@ def variable_tree(machine_id: str) -> list[dict]:
         items.sort(key=sort_key)
         # 접힌 그룹 안의 경보는 안 보인다 — "그 외 37개"가 접혀 있으면 거기 뜬 경보를
         # 영영 못 본다. 그룹 헤더에 개수를 실어서 펼칠 이유를 준다.
+        #
+        # (26.08.11) 개수를 둘로 나눈다. 활성 경보 76건 중 65건이 "early"(점수를 거의
+        # 안 깎는 경보)라, 전부 세면 거의 모든 그룹에 빨간 불이 켜져서 접힌 채로는
+        # 어느 그룹을 펼쳐야 할지 알 수 없었다. 빨간 불은 full만 세고, 총 개수는
+        # 툴팁으로 남긴다 — 끄는 게 아니라 무게를 다르게 준다.
         out.append({
             "group": name,
             "items": items,
             "alert_count": sum(1 for it in items if it["early_warning_active"]),
+            "alert_count_full": sum(1 for it in items if it["alert_level"] == "full"),
         })
     return out
 
@@ -416,6 +427,7 @@ def view_compare(factor: str) -> dict:
             "values": [by_date.get(d) for d in dates],
             "early_warning_active": chart.get("early_warning_active"),
             "alert_active_days": chart.get("alert_active_days"),
+            "alert_level": chart.get("alert_level"),
             "spec_status": chart.get("spec_status"),
         })
 

@@ -67,6 +67,18 @@ get_machine_health가 반환하는 구조 핵심:
     있다"고만 말하지 말고 반드시 이 날짜/일수를 같이 언급할 것(예: "2/13부터 23일째
     지속 중"). 매일 새로 알림이 뜨는 게 아니라 이 시작일 기준 하나의 사건이 계속되고
     있다는 뜻이므로, 어제도 오늘도 물어봤다고 "새로 발생했다"고 말하면 안 됨.
+  - alert_level / alert_strength: **"경보가 켜졌나"(early_warning_active)가 아니라
+    "얼마나 큰 경보인가"다.** alert_strength(0~1)는 health_index가 추세 페널티에 실제로
+    쓴 값이고, alert_level은 그게 최대인지("full") 아닌지("early")다. 활성 경보 76건 중
+    65건이 "early"이고 그 65건의 health_index는 전부 67.9 이상이다 — 즉 경보가 켜져
+    있다는 사실만으로는 심각하다는 뜻이 전혀 아니다.
+      "full"  = 지속일이 14일을 넘겨 점수를 최대폭으로 깎은 경보(11건, health_index
+                14.5~58.3). 이때만 "지속 경보"라고 부르고 조치 우선순위로 올려라.
+      "early" = 아직 증거가 얕은 경보. 반드시 "초기 경보"로 부르고 "N일째"를 같이 말해라.
+                **끄지는 마라** — DP04 CLN_Flow도 39일 전에는 0.2일째였다. 다만 이걸
+                근거로 지금 당장 설비를 세우라는 식으로 말하면 안 된다.
+    점수가 높은데(예: health_index 99.4) 경보가 켜져 있으면 그건 모순이 아니라 "이제 막
+    켜진 초기 경보"라는 뜻이다. 그렇게 설명하라.
   - recipe_hotspots / n_product_recipe_combos_affected / recipe_hotspot_concentrated:
     "어느 설비가 문제인지"는 machine_id 자체가 답이지만, "어느 제품/레시피 조합이
     문제인지"는 이 필드가 답한다(전체 54개 Product×Recipe 조합 중 경고가 집중된 순위,
@@ -477,6 +489,8 @@ def get_trend_chart_data(
         "trend_message": spec["trend_message"] if pd.notna(spec["trend_message"]) else None,
         "alert_since": spec["alert_since"] if pd.notna(spec["alert_since"]) else None,
         "alert_active_days": float(spec["alert_active_days"]) if pd.notna(spec["alert_active_days"]) else None,
+        "alert_strength": float(spec["alert_strength"]) if pd.notna(spec["alert_strength"]) else None,
+        "alert_level": spec["alert_level"] if pd.notna(spec["alert_level"]) else None,
         "series": [
             {"date": d, "value": v}
             for d, v in zip(series["date"], series["daily_mean"])
@@ -541,8 +555,11 @@ SYSTEM_PROMPT = """\
 --- 출력 형식 ---
 ### {장비ID} 종합 상태 (기준일 `{latest_date}`)
 
-### {actual_occurred_recent_7d가 true면 "🔴" / false이고 early_warning_active가 true면 "🟡" / \
-그 외 "⚪"} {N}순위 - {defect} (HI `{health_index}`)
+### {actual_occurred_recent_7d가 true면 "🔴" / false이고 원인 인자 중 alert_level이 "full"인 게 \
+있으면 "🟡" / 그 외 "⚪"} {N}순위 - {defect} (HI `{health_index}`)
+{🟡를 early_warning_active(boolean)로 고르지 마라 — 활성 경보의 86%가 초기 경보라 그러면 \
+거의 전부가 🟡가 되고, HI 99짜리와 HI 14짜리가 같은 표시를 받는다. 초기 경보뿐이면 ⚪로 두되 \
+아래 "공통" 줄에서 초기 경보라고 밝혀라.}
 - **발생**: {actual_occurred_recent_7d가 true면 "최근 7일 내내(7/7)" 또는 "{occurred_days_recent_7d}/7일" \
 | false면 "없음(조짐 단계)"}
 - **원인**: `{worst_factors[0]의 factor}` — 현재 `{current_value}` / \
@@ -559,7 +576,8 @@ SYSTEM_PROMPT = """\
    공통: {trend_direction이 up이면 "상승" down이면 "하강" 아니면 생략}추세{estimated_days_to_control_limit이 \
 null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — null이면 이 구절을 통째로 빼고, 숫자를 \
 절대 지어내지 마라}{early_warning_active가 true면 반드시 ", `{alert_since}`부터 `{alert_active_days}일`째 \
-경보 지속"을 붙여라 — 매일 새로 뜬 게 아니라 하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 된다}
+{alert_level이 "full"이면 "경보 지속" / "early"면 "초기 경보"}"를 붙여라 — 매일 새로 뜬 게 아니라 \
+하나의 사건이 이어지고 있다는 뜻이니 날짜를 빼면 안 되고, 초기 경보를 지속 경보처럼 쓰면 안 된다}
 - **메커니즘**: {mechanism을 화살표(→) 형식 한 줄로 압축}\
 {related_defects를 보고 판단하라 — 한 인자가 여러 불량을 밀 수 있고 그게 멘토 확정 \
 시나리오다(세정 실패 → Remain_Coat + Particle). is_cause=true가 2개 이상이면 이 불릿 끝에 \
@@ -577,7 +595,8 @@ tier/action_type과 위험구간 숫자만 전달하라.**
 defect_signals 중 counts_toward_machine_score가 false인데 원인 인자에 early_warning_active가 \
 있으면, 순위 목록 **아래에 따로** 이렇게 쓴다(순위에 섞지 마라 — 장비 점수에 안 들어간 항목이다):
 ### 예방 정비 대상 (장비 점수 미반영)
-- `{factor}` {alert_active_days}일째 경보 — {defect} 위험. {not_scored_reason}
+- `{factor}` {alert_active_days}일째 {alert_level이 "full"이면 "경보" / "early"면 "초기 경보"} \
+— {defect} 위험. {not_scored_reason}
 
 이 구분이 중요한 이유: 감시 데이터에 그 불량이 너무 적어 "이 인자가 그 불량을 일으킨다"를 \
 여기서 검증할 수 없다는 뜻이다. 관계 자체는 도메인으로 확정돼 있으니 **버리지 말고 경보로 \
@@ -646,6 +665,21 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
 _MACHINE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])DP0[1-4](?![0-9])", re.IGNORECASE)
 
 
+def _alert_phrase(d: dict) -> str:
+    """경보 한 건을 부르는 이름. 없으면 빈 문자열.
+
+    (26.08.11) 예전엔 early_warning_active만 보고 전부 "경보 지속"이라고 썼다. 그런데
+    활성 경보 76건 중 65건은 지속일이 14일 미만이라 점수를 거의 안 깎는 초기 경보이고,
+    그 65건의 health_index는 전부 67.9 이상이다 — HI 99.4짜리를 "경보 지속"이라고
+    부르면 도구 결과 자체가 과장이라 프롬프트로 아무리 막아도 답변이 따라간다.
+    build_health_index가 점수에 쓴 alert_level을 그대로 문구로 옮긴다.
+    """
+    if not (d.get("early_warning_active") and d.get("alert_since")):
+        return ""
+    kind = "경보 지속" if d.get("alert_level") == "full" else "초기 경보"
+    return f", `{d['alert_since']}`부터 `{d.get('alert_active_days')}일`째 {kind}"
+
+
 def _format_cause_value_line(c: dict) -> str:
     """"원인" 줄의 값 부분 하나를 만든다.
 
@@ -678,9 +712,7 @@ def _format_cause_value_line(c: dict) -> str:
     trend_txt = f", {trend_word}추세" if trend_word else ""
     reach = c.get("estimated_days_to_control_limit")
     reach_txt = f", 관리한계 도달 예상 `{reach}일`" if reach is not None else ""
-    alert_txt = ""
-    if c.get("early_warning_active") and c.get("alert_since"):
-        alert_txt = f", `{c['alert_since']}`부터 `{c.get('alert_active_days')}일`째 경보 지속"
+    alert_txt = _alert_phrase(c)
     return f"{value_part}{zone_txt}{trend_txt}{reach_txt}{alert_txt}"
 
 
@@ -810,9 +842,7 @@ def _panel_from_chart(chart: dict) -> dict:
     series = chart.get("series") or []
     latest = series[-1]["value"] if series else None
     trend_word = {"up": "상승", "down": "하강"}.get(chart.get("trend_direction"), "")
-    alert_txt = ""
-    if chart.get("early_warning_active") and chart.get("alert_since"):
-        alert_txt = f", `{chart['alert_since']}`부터 `{chart.get('alert_active_days')}일`째 경보 지속"
+    alert_txt = _alert_phrase(chart)
 
     # 편측 컬럼은 한쪽 한계만 존재한다 — 없는 쪽을 "~"로 이어 쓰면 없는 선을 있는 것처럼
     # 말하게 된다(26.08.10). 있는 쪽만 이름을 붙여서 말한다.
@@ -908,6 +938,7 @@ def _panel_from_compare(charts: list[dict]) -> dict:
             "current_value": present[-1] if present else None,
             "alert_since": c.get("alert_since"),
             "alert_active_days": c.get("alert_active_days"),
+            "alert_level": c.get("alert_level"),
             "early_warning_active": c.get("early_warning_active"),
         })
 
@@ -947,13 +978,13 @@ def _panel_from_compare(charts: list[dict]) -> dict:
         # %.4g는 9.9996을 "10"으로 뭉갠다 — 비교 그래프에서 자릿수가 죽으면 순위가
         # 사라지므로 정상값과 같은 소수 자릿수(최소 4자리)로 맞춘다.
         "- **현재값**: " + " · ".join(
-            f"`{m['machine_id']}` {m['current_value']:.4f}" + ("⚠️" if m.get("early_warning_active") else "")
+            # ⚠️는 full 경보에만. early_warning_active로 달면 4대 중 3~4대에 전부 붙어서
+            # "어느 장비가 문제인가"를 묻는 이 비교 뷰에서 아무것도 못 가른다.
+            f"`{m['machine_id']}` {m['current_value']:.4f}" + ("⚠️" if m.get("alert_level") == "full" else "")
             for m in ranked if m["current_value"] is not None),
     ]
     if deviation(worst) > 0:
-        alert_txt = (f", `{worst['alert_since']}`부터 `{worst['alert_active_days']}일`째 경보"
-                     if worst.get("early_warning_active") and worst.get("alert_since") else "")
-        lines.append(f"- **가장 벗어난 장비**: `{worst['machine_id']}`{alert_txt}")
+        lines.append(f"- **가장 벗어난 장비**: `{worst['machine_id']}`{_alert_phrase(worst)}")
 
     meta = CAUSE_FACTORS.get(factor)
     if factor == "Vibration":

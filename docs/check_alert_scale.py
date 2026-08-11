@@ -68,6 +68,24 @@ def main() -> None:
     print("margin 2.5% 미만인데 경보가 켜진 조합 (짧은 경보)")
     print(quiet[["장비", "인자", "HI", "margin%", "지속일", "경보행"]].to_string(index=False))
 
+    # (26.08.11) 위 문제의 조치 결과 — 경보를 세기로 갈랐다(docs/점검_원인변수_경보기준.md §5).
+    # 여기서 재는 건 "갈라졌나"가 아니라 **두 무리의 HI 범위가 겹치나**다. 겹치면 배지
+    # 색과 옆 점수가 여전히 다른 말을 하고 있다는 뜻이라 갈랐어도 소용이 없다.
+    lt = pd.read_csv(REPO / "26.08.01_Goal5_HealthIndex_Dashboard_김시우"
+                            "/01_level_trend_by_machine_column.csv")
+    act = lt[lt["early_warning_active"]]
+    print(f"\n=== 경보 세기 (전체 {len(lt)}개 조합 중 활성 {len(act)}건) ===")
+    for lv in ("full", "early"):
+        sub = act[act["alert_level"] == lv]
+        if not len(sub):
+            continue
+        print(f"  {lv:<5} {len(sub):>3}건 · HI {sub['health_index'].min():>5.1f} ~ "
+              f"{sub['health_index'].max():>5.1f} · 지속일 {sub['alert_active_days'].min():.1f} ~ "
+              f"{sub['alert_active_days'].max():.1f}")
+    lo = act[act["alert_level"] == "full"]["health_index"].max()
+    hi_ = act[act["alert_level"] == "early"]["health_index"].min()
+    print(f"  => HI 범위 {'겹침 없음' if lo < hi_ else '겹침!'} (full 최고 {lo} < early 최저 {hi_})")
+
 
 if __name__ == "__main__":
     main()

@@ -68,7 +68,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item.active .item-name{color:var(--accent)}
 .badge{font:10.5px var(--font-mono);padding:1px 5px;border-radius:3px;flex:0 0 auto}
+/* 경보 배지는 두 무게로 그린다. 예전엔 early_warning_active(boolean) 하나로 전부 빨간
+   `경보`였는데, 활성 경보 76건 중 65건이 점수를 거의 안 깎는 초기 경보라 HI 99.6짜리와
+   HI 14.5짜리가 똑같이 빨갛게 보였다. 빨강은 Health Index가 추세 페널티를 최대폭까지
+   받은 경보(alert_level="full", 11건)에만 쓴다 — 그래야 배지 색과 옆 점수가 같은 말을
+   한다. 나머지는 배경 없이 흐린 글자로: 정보는 남기고 눈길만 거둔다. */
 .badge.alert{background:rgba(208,59,59,.15);color:var(--critical)}
+.badge.alert.early{background:none;color:var(--ink-faint);padding:1px 0}
 .score{font:600 12.5px var(--font-mono);flex:0 0 auto;min-width:34px;text-align:right}
 .side-h .score{font-weight:400}
 .chk{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:12.5px;cursor:pointer}
@@ -240,6 +246,24 @@ const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 const hiColor = v => v == null ? 'var(--ink-faint)' : v < 50 ? 'var(--critical)' : v < 80 ? 'var(--warn)' : 'var(--good)';
 const needs = () => VIEWS.find(v => v.id === state.view).needs;
 
+// 경보 지속일. 40일짜리에 소수점을 붙이면 자리만 먹고, 0.2일짜리를 반올림하면 "0일"이
+// 되어 뜻이 사라진다 — 하루를 기준으로 표기를 바꾼다.
+const alertDays = d => d == null ? '' : (d >= 1 ? `${Math.round(d)}일` : `${d.toFixed(1)}일`);
+
+// 사이드바 경보 배지. **경보 여부가 아니라 세기를 그린다** — 배지가 빨간데 옆 점수가
+// 99.6이면 둘 중 하나는 거짓말이고, 그게 26.08.11 이전 화면의 상태였다. 빨강은
+// alert_level="full"(Health Index가 추세 페널티를 최대폭까지 받은 경보)에만 준다.
+// 초기 경보는 지우지 않는다 — DP04 CLN_Flow도 39일 전엔 0.1일째였다. 흐리게 남긴다.
+function alertBadge(it){
+  if(!it.early_warning_active) return '';
+  const full = it.alert_level === 'full';
+  const days = alertDays(it.alert_active_days);
+  const tip = full
+    ? `${days}째 지속 — 점수에 최대폭 반영됨`
+    : `${days}째 — 아직 초기라 점수를 거의 안 깎는다(지속되면 빨갛게 바뀜)`;
+  return `<span class="badge alert ${full ? '' : 'early'}" title="${esc(tip)}">경보 ${days}</span>`;
+}
+
 // ---------- 부팅 ----------
 async function boot(){
   try{
@@ -321,14 +345,17 @@ function renderSide(){
       return `<div class="item ${it.factor === state.factor ? 'active' : ''} ${blocked ? 'blocked' : ''}"
                    data-f="${it.factor}" title="${esc(title)}">
           <span class="item-name">${it.factor}</span>
-          ${it.early_warning_active ? `<span class="badge alert">경보</span>` : ''}
+          ${alertBadge(it)}
           <span class="score" style="color:${hiColor(hi)}">${hi == null ? '—' : hi.toFixed(1)}</span>
         </div>`;
     }).join('') : '';
     // 접힌 그룹에도 경보가 있다는 걸 알려야 하지만, "경보 N" 글자는 그룹 이름과 경쟁해서
     // 헤더가 시끄러웠다. 빨간 불 하나로 줄인다 — 개수는 툴팁으로.
-    const alerts = g.alert_count
-      ? `<span class="dot" style="background:var(--critical)" title="경보 ${g.alert_count}개"></span>` : '';
+    // (26.08.11) 빨간 불은 full 경보만 센다. 전부 세면 네 그룹에 다 불이 켜져서 어느
+    // 그룹을 펼칠지 못 고른다 — 초기 경보 개수는 툴팁에 같이 적어 안 잃어버린다.
+    const alerts = g.alert_count_full
+      ? `<span class="dot" style="background:var(--critical)"
+              title="지속 경보 ${g.alert_count_full}개 (초기 경보 ${g.alert_count - g.alert_count_full}개 포함 총 ${g.alert_count}개)"></span>` : '';
     return `<div class="grp">
         <div class="grp-h" data-g="${esc(g.group)}">
           <span>${open ? '▾' : '▸'} ${esc(g.group)}</span>
@@ -440,7 +467,11 @@ function renderTrend(d){
       ${renderChart(c, meta.threshold_raw)}
       <div class="meta">
         ${c.early_warning_active && c.alert_since
-          ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)` : '추세 경보 없음'}
+          ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)`
+            + (c.alert_level === 'full'
+                ? ` <span style="color:var(--critical)">— 점수에 최대폭 반영됨</span>`
+                : ` <span style="color:var(--ink-faint)">— 초기 경보라 점수를 거의 안 깎았다</span>`)
+          : '추세 경보 없음'}
         ${det.defect_zone_rate_pct != null
           ? ` · 위험구간 진입률 <b>${det.defect_zone_rate_pct}%</b> <span style="color:var(--ink-faint)">(평소 ${det.defect_zone_baseline_pct}%)</span>` : ''}
         ${det.estimated_days_to_control_limit != null
@@ -724,7 +755,12 @@ function renderCompare(d){
     const color=MACHINE_COLORS[m.machine_id]||'var(--ink-muted)';
     const lx=padL+i*128;
     return `<line x1="${lx}" y1="${H-12}" x2="${lx+13}" y2="${H-12}" stroke="${color}" stroke-width="2.5"/>`
-      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${m.machine_id}${m.alert_active_days!=null?` 경보 ${m.alert_active_days}일`:''}</text>`;
+      // 경보 지속일은 사이드바 배지와 같은 표기·같은 무게로 쓴다 — 같은 사실을 두 화면이
+      // 다르게 그리면 어느 쪽을 믿어야 할지 알 수 없다. 빨강은 full 경보에만.
+      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${m.machine_id}</text>`
+      +(m.alert_active_days==null ? ''
+        : `<text x="${lx+17+m.machine_id.length*6.2}" y="${H-9}" font-size="9.5"
+                 fill="${m.alert_level==='full'?'var(--critical)':'var(--ink-faint)'}"> 경보 ${alertDays(m.alert_active_days)}</text>`);
   }).join('');
 
   $('view').innerHTML=`

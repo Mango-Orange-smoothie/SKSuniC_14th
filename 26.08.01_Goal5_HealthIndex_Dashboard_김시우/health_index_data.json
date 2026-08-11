@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T16:55:29.769611",
+  "generated_at": "2026-08-11T20:23:41.127877",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -291,6 +291,8 @@
               "trend_message": "DP01 / PKG_E / RCP_8의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-28",
               "alert_active_days": 2.7,
+              "alert_strength": 0.193,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_E",
@@ -358,6 +360,8 @@
               "trend_message": "DP01 / PKG_F / RCP_2의 CLN_Flow에서 위험 Threshold(10.0605)에 진입했습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -404,6 +408,8 @@
               "trend_message": "DP01 / PKG_B / RCP_6의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_E",
@@ -476,6 +482,8 @@
               "trend_message": "DP01 / PKG_E / RCP_7의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -522,6 +530,8 @@
               "trend_message": "DP01 / PKG_D / RCP_4의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-29",
               "alert_active_days": 1.2,
+              "alert_strength": 0.086,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_C",
@@ -568,6 +578,8 @@
               "trend_message": "DP01 / PKG_E / RCP_6의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.2,
+              "alert_strength": 0.014,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
@@ -614,6 +626,8 @@
               "trend_message": "DP01 / PKG_A / RCP_2의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
@@ -700,6 +714,8 @@
               "trend_message": "DP02 / PKG_A / RCP_3의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 1.0,
+              "alert_strength": 0.071,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -767,6 +783,8 @@
               "trend_message": "DP02 / PKG_B / RCP_9의 CLN_Flow에서 위험 Threshold(10.0575)에 진입했습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.2,
+              "alert_strength": 0.014,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -808,6 +826,8 @@
               "trend_message": "DP02 / PKG_D / RCP_3의 CLN_Pressure에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.1,
+              "alert_strength": 0.007,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -880,6 +900,8 @@
               "trend_message": "DP02 / PKG_B / RCP_2의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -926,6 +948,8 @@
               "trend_message": "DP02 / PKG_C / RCP_3의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_E",
@@ -972,6 +996,8 @@
               "trend_message": "DP02 / PKG_F / RCP_6의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-02-02",
               "alert_active_days": 56.0,
+              "alert_strength": 1.0,
+              "alert_level": "full",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -1018,6 +1044,8 @@
               "trend_message": "DP02 / PKG_F / RCP_6의 Power_Efficiency에서 정상 Baseline(최적값) 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-01-30",
               "alert_active_days": 59.5,
+              "alert_strength": 1.0,
+              "alert_level": "full",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_E",
@@ -1067,6 +1095,8 @@
           "trend_message": "DP02 / PKG_C / RCP_8의 Bottom_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
           "alert_since": "2026-02-10",
           "alert_active_days": 48.9,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_F",
@@ -1108,6 +1138,8 @@
           "trend_message": "DP02 / PKG_A / RCP_9의 Top_Kerf에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
           "alert_since": "2026-02-11",
           "alert_active_days": 47.2,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_E",
@@ -1149,6 +1181,8 @@
           "trend_message": "DP02 / PKG_D / RCP_6의 Kerf_Width_Profile에서 정상 Baseline(최적값) 대비 높은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
           "alert_since": "2026-03-05",
           "alert_active_days": 25.4,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_B",
@@ -1190,6 +1224,8 @@
           "trend_message": "DP02 / PKG_A / RCP_2의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
           "alert_since": "2026-03-11",
           "alert_active_days": 19.9,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_F",
@@ -1269,6 +1305,8 @@
               "trend_message": "DP03 / PKG_F / RCP_7의 Surface_Roughness 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-02-24",
               "alert_active_days": 34.5,
+              "alert_strength": 1.0,
+              "alert_level": "full",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
@@ -1336,6 +1374,8 @@
               "trend_message": "DP03 / PKG_B / RCP_9의 CLN_Flow에서 위험 Threshold(10.0575)에 진입했습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -1382,6 +1422,8 @@
               "trend_message": "DP03 / PKG_E / RCP_9의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.1,
+              "alert_strength": 0.007,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_C",
@@ -1454,6 +1496,8 @@
               "trend_message": "DP03 / PKG_B / RCP_3의 Cooling_Flow에서 정상 Baseline 대비 지속적인 하강 추세가 감지되었습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_D",
@@ -1500,6 +1544,8 @@
               "trend_message": "DP03 / PKG_A / RCP_4의 Head_Temp에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
               "alert_since": "2026-02-17",
               "alert_active_days": 41.8,
+              "alert_strength": 1.0,
+              "alert_level": "full",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
@@ -1546,6 +1592,8 @@
               "trend_message": "DP03 / PKG_C / RCP_2의 Laser_Power에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-03-25",
               "alert_active_days": 5.0,
+              "alert_strength": 0.357,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_C",
@@ -1592,6 +1640,8 @@
               "trend_message": "DP03 / PKG_D / RCP_6의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-29",
               "alert_active_days": 1.6,
+              "alert_strength": 0.114,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -1641,6 +1691,8 @@
           "trend_message": "DP03 / PKG_D / RCP_1의 Vibration에서 정상 Baseline 대비 지속적인 상승 추세가 감지되었습니다.",
           "alert_since": "2026-02-18",
           "alert_active_days": 40.8,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_C",
@@ -1682,6 +1734,8 @@
           "trend_message": "DP03 / PKG_C / RCP_2의 Kerf_Angle 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
           "alert_since": "2026-02-21",
           "alert_active_days": 37.0,
+          "alert_strength": 1.0,
+          "alert_level": "full",
           "recipe_hotspots": [
             {
               "product_id": "PKG_F",
@@ -1761,6 +1815,8 @@
               "trend_message": "DP04 / PKG_D / RCP_1의 Surface_Roughness에서 위험 Threshold(0.5992)에 진입했습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -1828,6 +1884,8 @@
               "trend_message": "DP04 / PKG_D / RCP_1의 CLN_Flow에서 정상 Baseline 대비 낮은 방향으로 지속적으로 벌어지는 편차가 감지되었습니다.",
               "alert_since": "2026-02-19",
               "alert_active_days": 39.6,
+              "alert_strength": 1.0,
+              "alert_level": "full",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -1874,6 +1932,8 @@
               "trend_message": "DP04 / PKG_E / RCP_5의 CLN_Pressure 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-24",
               "alert_active_days": 6.2,
+              "alert_strength": 0.443,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_A",
@@ -1946,6 +2006,8 @@
               "trend_message": "DP04 / PKG_D / RCP_8의 Cooling_Flow 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_C",
@@ -1992,6 +2054,8 @@
               "trend_message": "DP04 / PKG_A / RCP_3의 Head_Temp 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-30",
               "alert_active_days": 0.6,
+              "alert_strength": 0.043,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_B",
@@ -2038,6 +2102,8 @@
               "trend_message": "DP04 / PKG_B / RCP_3의 Laser_Power 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": null,
               "alert_active_days": null,
+              "alert_strength": null,
+              "alert_level": null,
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_F",
@@ -2084,6 +2150,8 @@
               "trend_message": "DP04 / PKG_B / RCP_4의 Power_Efficiency 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
               "alert_since": "2026-03-29",
               "alert_active_days": 1.1,
+              "alert_strength": 0.079,
+              "alert_level": "early",
               "recipe_hotspots": [
                 {
                   "product_id": "PKG_E",

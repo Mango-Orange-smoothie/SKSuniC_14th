@@ -974,6 +974,25 @@ def compute_level_and_trend(
             # 이미 경보선을 넘었으면 "며칠 뒤"는 의미 없으므로 est_days는 None으로 둔다.
 
         ta_status = trend_status.get((machine, col), {})
+
+        # (26.08.11) 경보의 **세기**. 아래 페널티 배율에 쓰는 값을 그대로 내보낸다 —
+        # 화면과 agent가 early_warning_active(boolean)만 읽어서 "10,513행 39.6일째"와
+        # "31행 0.2일째"를 똑같은 `경보` 배지로 그리고 있었다(docs/점검_원인변수_경보기준.md).
+        # 활성 경보 76건 중 63건이 세기 0.5 미만이고 그 63건의 HI가 전부 96 이상이라,
+        # 사실상 "HI 99인데 빨간 경보"가 화면의 기본 상태였다.
+        #
+        # 새 기준을 만들지 않고 **점수가 이미 쓰고 있는 값**을 그대로 표시로 보낸다.
+        # 그래야 배지와 점수가 서로 다른 말을 할 수 없다 — 배지가 빨간데 HI가 99인
+        # 지금 상태가 정확히 그 어긋남이었다. 경보가 없으면 None.
+        alert_strength, alert_level = None, None
+        if ta_status.get("early_warning_active"):
+            maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
+            urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
+            alert_strength = round(max(maturity, urgency), 3)
+            # "full" = 페널티를 최대폭(TREND_PENALTY_MAX_CUT)까지 다 받은 경보. 즉 점수가
+            # 이미 이 경보를 통째로 반영했다는 뜻이라, 여기서만 강조 표시를 쓴다.
+            alert_level = "full" if alert_strength >= 1.0 else "early"
+
         # 추세 페널티는 "스펙 안" 구간(ALARM_BAND 위)에서만, 그 구간 안에서만 깎는다.
         #  - 이미 SPEC_OUT이면 안 깎는다: margin 자체가 이미 심각하다고 말하고 있어서 추세가
         #    추가로 알려줄 정보가 없다(이 페널티의 존재 목적 자체가 "margin은 멀쩡해 보이는데
@@ -981,7 +1000,7 @@ def compute_level_and_trend(
         #  - 스펙 안이면 ALARM_BAND 위에 남은 몫(excess)만 깎는다. 점수 전체에 배율을
         #    곱하면 스펙 안인 변수가 스펙아웃 전용 구간(0~10) 안으로 내려가 "10점 미만 =
         #    이미 스펙아웃"이라는 읽는 법이 깨진다.
-        if ta_status.get("early_warning_active") and not alarm_exceeded:
+        if alert_strength is not None and not alarm_exceeded:
             # (26.08.08) 예전엔 성숙도(경보 지속일)만 썼다. 그러면 "방금 뜬 급한 경보"가
             # 거의 안 깎여서 순위가 뒤집힌다 — DP03에서 CLN_Pressure(17.8일 뒤 스펙아웃,
             # 경보 0.1일째)가 66.3점으로, Head_Temp(41.8일째지만 기울기 -0.02로 오히려
@@ -999,11 +1018,11 @@ def compute_level_and_trend(
             # RECENT_WINDOW_DAYS 하나로 쓰므로 새로 고른 상수가 없다. est_days는 이미
             # 계산해서 화면에 보여주던 값이고(remaining/slope), 기울기가 0 이하면 None이라
             # "개선 중"이 자동으로 긴급도 0이 된다.
-            maturity = min(1.0, (ta_status.get("alert_active_days") or 0.0) / RECENT_WINDOW_DAYS)
-            urgency = min(1.0, RECENT_WINDOW_DAYS / est_days) if est_days else 0.0
+            # (26.08.11) max(maturity, urgency) 자체는 바로 위에서 alert_strength로 미리
+            # 계산해둔다 — 같은 값을 화면·agent에도 내보내야 배지와 점수가 어긋나지 않는다.
             excess = health_index_var - ALARM_BAND
             health_index_var = ALARM_BAND + excess * (
-                1 - TREND_PENALTY_MAX_CUT * max(maturity, urgency))
+                1 - TREND_PENALTY_MAX_CUT * alert_strength)
 
         rows.append({
             "Machine_ID": machine,
@@ -1065,6 +1084,10 @@ def compute_level_and_trend(
             "trend_message": ta_status.get("trend_message"),
             "alert_since": ta_status.get("alert_since"),
             "alert_active_days": ta_status.get("alert_active_days"),
+            # 경보의 세기(0~1)와 그 세기가 최대인지 여부. early_warning_active가 "켜졌나"만
+            # 말한다면 이 둘은 "얼마나 큰 경보인가"를 말한다 — 점수가 쓰는 값과 같다.
+            "alert_strength": alert_strength,
+            "alert_level": alert_level,
             "recipe_hotspots": ta_status.get("recipe_hotspots", []),
             "n_product_recipe_combos_affected": ta_status.get("n_product_recipe_combos_affected"),
             "recipe_hotspot_concentrated": ta_status.get("recipe_hotspot_concentrated", False),
@@ -1218,6 +1241,8 @@ def build_machine_snapshot(
                     "trend_message": _none_if_nan(row["trend_message"]),
                     "alert_since": _none_if_nan(row["alert_since"]),
                     "alert_active_days": _none_if_nan(row["alert_active_days"]),
+                    "alert_strength": _none_if_nan(row["alert_strength"]),
+                    "alert_level": _none_if_nan(row["alert_level"]),
                     "recipe_hotspots": row["recipe_hotspots"],
                     "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                     "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
@@ -1279,6 +1304,8 @@ def build_machine_snapshot(
                 "trend_message": _none_if_nan(row["trend_message"]),
                 "alert_since": _none_if_nan(row["alert_since"]),
                 "alert_active_days": _none_if_nan(row["alert_active_days"]),
+                "alert_strength": _none_if_nan(row["alert_strength"]),
+                "alert_level": _none_if_nan(row["alert_level"]),
                 "recipe_hotspots": row["recipe_hotspots"],
                 "n_product_recipe_combos_affected": _none_if_nan(row["n_product_recipe_combos_affected"]),
                 "recipe_hotspot_concentrated": bool(row["recipe_hotspot_concentrated"]),
