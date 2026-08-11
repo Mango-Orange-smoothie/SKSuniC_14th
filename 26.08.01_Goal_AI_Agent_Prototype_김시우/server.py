@@ -29,10 +29,14 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return send_from_directory(HERE, "chat.html")
+    return send_from_directory(HERE, "dashboard.html")
 
 
-# 기존 chat.html은 촬영 대기 중이라 그대로 두고, 새 대시보드는 별도 경로로 붙인다.
+# (26.08.11) 화면을 대시보드 하나로 합쳤다. 예전 chat.html은 "질문 → 답변 + 패널"이라
+# 화면 상태가 전적으로 Claude의 도구 호출에 달려 있었고, 대시보드가 그걸 대체하면서
+# 챗은 그 안의 패널(선택 UI의 단축키)로 들어왔다 — views.py docstring 참고.
+# 시연 촬영용으로 남겨뒀던 것인데 촬영 전에 대시보드로 확정돼서 지웠다.
+# /dashboard는 문서·링크에 이미 퍼진 경로라 같은 화면으로 계속 열어둔다.
 @app.route("/dashboard")
 def dashboard():
     return send_from_directory(HERE, "dashboard.html")
@@ -69,8 +73,9 @@ def api_ask():
         result = agent.ask(question)  # {"answer": str, "panels": list | None}
         # 자연어를 "선택 UI의 단축키"로 쓴다 — 답변 문장을 파싱하지 않고, agent가
         # 결정론적으로 만든 패널에서 뷰 상태를 뽑아 화면을 그 상태로 옮긴다.
-        # chat.html은 이 키를 안 읽으므로 기존 화면 동작은 그대로다.
         result["view_state"] = views.state_from_panels(result.get("panels"))
+        # panels도 같이 내려간다 — 대시보드는 view_state만 읽지만, 응답 스키마를
+        # 좁히면 agent.ask()를 쓰는 CLI 쪽과 어긋나므로 그대로 둔다.
         return jsonify(result)
     except Exception as exc:  # noqa: BLE001 — 데모용 서버, 원인 그대로 노출해 디버깅 쉽게
         return jsonify({"error": str(exc)}), 500

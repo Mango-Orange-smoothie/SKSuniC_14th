@@ -478,8 +478,9 @@ function renderRiskBand(meta, det, defect){
   </div>`;
 }
 
-// chat.html의 렌더러를 그대로 가져왔다 — 관리한계/스펙 두 축 구분, 짝지어진 defect
+// 이전 화면(chat.html)의 렌더러를 이식한 것 — 관리한계/스펙 두 축 구분, 짝지어진 defect
 // 불량률 겹쳐 그리기, 경보 시작 세로선은 이 데이터에만 있는 요구라 검증된 코드를 유지한다.
+// 26.08.11에 chat.html을 지우면서 이 함수가 그래프 렌더러의 유일한 사본이 됐다.
 function renderChart(cd, threshold){
   const W=640,H=210,padL=52,padR=16,padT=14,padB=26;
   const n=cd.series.length; if(n<2) return '';

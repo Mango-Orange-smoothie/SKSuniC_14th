@@ -152,7 +152,7 @@ for defect, factors in DEFECT_TO_FACTORS.items():
 
 # get_trend_chart_data가 이번 턴에 만든 차트 데이터를 전부 담아둔다(리스트 — "Vibration을
 # 4개 장비 다 보여줘"처럼 한 턴에 여러 번 호출될 수 있다). tool_runner는 최종 텍스트만
-# 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 chat.html에 넘겨야 한다.
+# 돌려주기 때문에, 그래프용 원시 데이터는 별도로 꺼내 화면에 넘겨야 한다.
 # 주의: 프로토타입이라 전역 변수로 처리 — 동시에 여러 요청이 들어오면(멀티유저) 꼬일 수
 # 있다. 데모용 단일 사용자 흐름 전제.
 _chart_calls_this_turn: list = []
