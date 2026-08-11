@@ -5,21 +5,28 @@
 <title>공정 품질 통합 관리 — 대시보드</title>
 <style>
 :root{
-  /* (26.08.12) 화면 전체를 파랑·하늘 계열로. 배경은 파스텔, 강조는 읽히는 파랑.
-     경보 3색(good/warn/critical)만 남긴다 — 판정 결과를 나르는 정보라 톤을
+  /* (26.08.12) 바탕은 흰색, 파랑은 표시에만. 탭·선택·버튼·그래프선처럼 "무엇을
+     가리키는" 자리에만 --accent가 나가고, 면(面)은 전부 흰색으로 둔다.
+     경보 3색(good/warn/critical)은 그대로 — 판정 결과를 나르는 정보라 톤을
      맞추려고 흐리게 하면 화면이 읽히긴 예뻐도 급한 게 안 급해 보인다.
-     카드(--surface)는 흰색 그대로 둔다. 배경에만 색을 입혀야 카드가 떠 보이고,
-     그래프가 얹히는 면이 무채색이라 선 색이 그대로 나온다.
-     회색 3종(ink/ink-muted/ink-faint)도 보라기를 빼고 청회색으로 옮겼다 —
-     배경만 파랑으로 가면 본문 글씨에 남은 보라기가 오히려 도드라진다. */
-  --bg:#e9f4fd; --surface:#ffffff; --surface-2:#daebfa;
+     --bg와 --surface가 같은 흰색이 되면서 면끼리의 경계는 --border(연파랑
+     실선) 하나가 전담한다. 장비 카드도 배경이 아니라 위쪽 3px 파란 선으로만
+     "선택됨"을 말한다.
+     --surface-2만 아주 옅은 파랑을 남겼다 — 배경이 아니라 부품 바탕이다.
+     마우스 올림·게이지 트랙·설명 상자·에이전트 말풍선이 여기 걸려 있어서
+     완전한 흰색으로 만들면 그 넷이 전부 사라진다.
+     회색 3종(ink/ink-muted/ink-faint)은 청회색 그대로 둔다. */
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#e4effb;
   --ink:#101a26; --ink-muted:#54687e; --ink-faint:#8fa5bb;
   --accent:#1763bd; --accent-soft:#dbeafb;
   /* accent를 배경으로 깔고 그 위에 얹는 글자색. 라이트는 흰색이지만 다크의 accent는
      밝은 하늘색이라 흰 글씨를 얹으면 2.3:1까지 떨어진다(전송 버튼·기간 칩·말풍선).
      #fff를 그대로 박아두면 테마마다 다른 값을 줄 수가 없어 토큰으로 뺐다. */
   --on-accent:#ffffff;
-  --border:#c9e0f4;
+  /* 바탕이 전부 흰색이 되면서 면의 경계를 이 실선 하나가 전담하게 됐다(카드 테두리,
+     사이드바 구분선, 장비 스트립 사이 1px, 그래프 축, 히트맵 0칸). 그래서 흰 바탕
+     대비를 1.36 -> 1.62로 올렸다 — 더 진하게 가면 표(表)처럼 보인다. */
+  --border:#b0cfec;
   --good:#0ca30c; --warn:#d98324; --critical:#d03b3b;
   --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
@@ -181,8 +188,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
   font:11.5px var(--font-mono);border-radius:3px}
 /* 경보가 딱 0건인 칸. 색을 빼고 테두리만 남긴다 — 격자의 42%(1512칸 중 629칸)가
    0이라 아무리 옅게 깔아도 그 넓이가 먼저 눈에 들어오고 정작 몰린 칸이 묻힌다.
+   숫자는 다른 칸과 같은 --ink로 남긴다(색만 빼는 것이지 값을 숨기는 게 아니다).
    box-sizing:border-box라 테두리를 넣어도 칸 크기는 그대로다(격자가 안 밀린다). */
-.hm-cell.zero{background:var(--surface);border:1px solid var(--border)}
+.hm-cell.zero{background:var(--surface);border:1px solid var(--border);color:var(--ink)}
 .hm-lab{font-size:11px;color:var(--ink-muted);display:flex;align-items:center;justify-content:center}
 .hm-lab.row{justify-content:flex-end;padding-right:8px}
 .legend{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;color:var(--ink-muted)}
@@ -935,11 +943,10 @@ function renderHeatmap(d, p){
     const row=`<div class="hm-lab row">${p}</div>` + d.recipes.map((r,j)=>{
       const v=d.rows[i][j];
       if(v==null) return `<div class="hm-cell" style="background:var(--surface-2);color:var(--ink-faint)">–</div>`;
-      // 딱 0건은 숫자도 지운다 — 0을 629번 찍는 게 이 화면에서 제일 시끄러웠다.
-      // 값은 title(마우스 올리면)에 그대로 남는다.
+      // 딱 0건은 색만 뺀다 — 숫자는 다른 칸과 똑같이 남긴다.
       // 조건은 v===0이지 t===0이 아니다. scale_max가 48.1까지 가는 변수라
       // 0.2%도 t가 0으로 반올림되는데, 그건 "경보가 있었다"라서 색을 빼면 안 된다.
-      if(v===0) return `<div class="hm-cell zero" title="${p} × ${r} — 0%"></div>`;
+      if(v===0) return `<div class="hm-cell zero" title="${p} × ${r} — 0%">0</div>`;
       const t=Math.round((v/max)*100);
       return `<div class="hm-cell" title="${p} × ${r} — ${v}%"
         style="background:color-mix(in srgb, var(--critical) ${t}%, var(--surface-2));
