@@ -387,15 +387,53 @@ def get_defect_causes(defect_name: str) -> str:
     return json.dumps({"defect": defect_name, "confirmed_causes": details}, ensure_ascii=False, indent=2)
 
 
+# 멘토 SOP (2026-08-11 수령, JHdaimma 전달) — **인자가 아니라 '계통' 단위**로 왔다.
+# 인자마다 따로 지시하면 같은 작업을 여러 번 시키게 된다: DP03은 Head_Temp와 Cooling_Flow가
+# 둘 다 걸리는데 칠러 점검은 한 번이다. 그래서 인자→계통 역인덱스(SOP_GROUP)를 같이 만든다.
+#
+# 칠러 계통에 냉각 컬럼 2개가 들어간 근거(JHdaimma 확인): 멘토님이 "칠러는 냉각수를 내보내는
+# 장치"라고 확인해주셔서 Cooling_Flow/Cooling_Water_Temp가 SOP 원문의 "chiller에서 나오는
+# 물"에 해당한다. 데이터로도 유량 쪽은 재현된다(Cooling_Flow vs Head_Temp 상관 -0.422,
+# 유량 5분위 9.837→헤드 42.349 / 10.120→42.028로 단조). Cooling_Water_Temp는 상관 -0.000이라
+# 데이터로는 확인이 안 되지만 멘토 확정 도메인이라 계통에는 유지한다(tier는 T4 그대로).
+MENTOR_SOP = {
+    "세정": {
+        "factors": ["CLN_Pressure", "CLN_Flow"],
+        "actions": ["DI water 체결부(hook up) 상태 점검", "fab 공급단 변화 모니터링"],
+        "order":   "체결부 먼저(설비 쪽) → 공급단(팹 쪽)",
+        "why":     "팹에서 오는 DI water 압력·유량이 떨어지면 세정력이 약해지고 "
+                   "씻기지 않은 코팅액이 남는다.",
+    },
+    "레이저 광로": {
+        "factors": ["Power_Efficiency", "Laser_Power"],
+        "actions": ["광로(mirror)별 출력 점검"],
+        "order":   "거울을 하나씩 짚어가며 출력을 재서 어느 구간에서 떨어지는지 확인",
+        "why":     "헤드 출력과 가공점 출력의 차이가 효율이다. 사이 광로 거울에 파티클이 "
+                   "끼거나 레이저 과다 노출로 열화되면 효율이 떨어진다.",
+    },
+    "칠러": {
+        "factors": ["Head_Temp", "Cooling_Flow", "Cooling_Water_Temp"],
+        "actions": ["칠러(chiller) 점검", "레이저 빔 프로파일 점검"],
+        "order":   "칠러 먼저(원인) → 빔 프로파일(결과 확인)",
+        "why":     "헤드는 칠러 냉각수로 항온을 유지한다. 물 온도나 유량이 흐트러지면 "
+                   "헤드 온도가 오르고 빔 shape·centering이 틀어진다. 그루빙이 metal line을 "
+                   "다 못 날리고, 남은 metal에 singulation blade가 닿으면 chipping이 난다.",
+    },
+}
+SOP_GROUP = {f: g for g, v in MENTOR_SOP.items() for f in v["factors"]}
+
+
 @beta_tool
 def get_sop_for_factor(factor_name: str) -> str:
-    """특정 원인 변수(유효인자)의 조치 긴급도(tier/action_type)와 위험 구간을 조회한다.
+    """특정 원인 변수(유효인자)의 멘토 SOP와 조치 긴급도(tier/action_type), 위험 구간을 조회한다.
 
-    (26.08.06) 관계DB agent_rules에 "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것"이
-    명시돼 있다 — agent_cause_factors.json의 sop.status가 "SOP 미수령"이기 때문이다. 그래서
-    이 도구는 구체적인 점검/조치 "문구"를 만들어내지 않는다. 대신 이미 검정으로 확정된 것만
-    준다: tier(T1/T2)와 action_type(즉시조치/조건부조치/감시(경보) — 이건 SOP 문구가 아니라
-    통계 검정 결과로 정해진 긴급도 분류라 지어낸 게 아님), 그리고 실제 위험/정상 구간 값.
+    (26.08.12) 멘토 SOP를 수령해서(2026-08-11) sop_status를 채운다. **SOP는 계통 단위다** —
+    같은 계통(레이저 광로/칠러/세정)에 속한 인자가 여러 개 걸려도 점검은 한 번이므로,
+    sop_group/sop_shared_with를 같이 줘서 중복 지시를 막는다.
+
+    아직 SOP를 못 받은 인자(Surface_Roughness 등)는 예전 그대로 tier/action_type과 위험구간만
+    주고 조치 문구는 만들어내지 않는다 — 감시지표라 "조치"가 성립하지 않아서 "경보가 뜨면
+    무엇을 점검합니까"로 멘토님께 따로 여쭤둔 상태다.
 
     Args:
         factor_name: 원인 변수 이름, 예: "Head_Temp", "CLN_Pressure".
@@ -404,17 +442,32 @@ def get_sop_for_factor(factor_name: str) -> str:
     if not meta:
         known = ", ".join(sorted(CAUSE_FACTORS.keys()))
         return f"'{factor_name}'는 확정 유효인자가 아님. 조회 가능한 인자: {known}"
-    return json.dumps({
+    payload = {
         "factor": factor_name,
         "tier": meta.get("tier"),
         "action_type": meta.get("action_type"),
         "normal_range": meta.get("normal_range"),
         "risky_range": meta.get("risky_range"),
         "risk_ratio": meta.get("risk_ratio"),
-        "sop_status": "SOP 미수령 — 멘토 제공 대기",
-        "note": "구체적인 점검·조치 문구는 아직 없음. action_type(긴급도)과 위험구간만 전달하고, "
-                "세부 조치 방법을 지어내지 말 것.",
-    }, ensure_ascii=False, indent=2)
+    }
+    group = SOP_GROUP.get(factor_name)
+    if group:
+        sop = MENTOR_SOP[group]
+        payload.update({
+            "sop_status":      "수령 (2026-08-11 멘토 제공)",
+            "sop_group":       group,
+            "sop_shared_with": sop["factors"],
+            "sop_actions":     sop["actions"],
+            "sop_order":       sop["order"],
+            "sop_why":         sop["why"],
+        })
+    else:
+        payload.update({
+            "sop_status": "SOP 미수령 — 멘토 제공 대기",
+            "note": "이 인자는 구체적인 점검·조치 문구가 아직 없음. action_type(긴급도)과 "
+                    "위험구간만 전달하고, 세부 조치 방법을 지어내지 말 것.",
+        })
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 DEFAULT_CHART_DAYS = 30  # 경보가 없는(= 볼 사건이 없는) 변수의 기본 창. 최근 한 달.
@@ -640,9 +693,11 @@ null이 아닐 때만 ", 관리한계 도달 예상 `{N}일`"을 붙여라 — n
 **원인이라고 쓰지 마라** — ", `{defect}`는 감시 후보(원인 아님)"로만 적어라. \
 alert_usable이 false인 defect는 이름만 부르고 "값이 얼마 이하면 위험" 식의 경계값 문장을 \
 절대 붙이지 마라 — 재봤는데 경계가 안 갈린 짝이다.}
-- **조치**: get_sop_for_factor 호출 후 `{action_type}`(tier `{tier}`) `[SOP 미수령]` — \
-위험구간 `{risky_range}` 참고. **구체적 점검·조치 문구는 아직 없으니 지어내지 말고, \
-tier/action_type과 위험구간 숫자만 전달하라.**
+- **조치**: get_sop_for_factor 호출 후, sop_actions가 있으면 \
+`{action_type}`(tier `{tier}`) **{sop_group} 계통** — {sop_actions를 순서대로 " → "로 연결} \
+· 위험구간 `{risky_range}`. sop_actions가 없으면(아직 SOP 미수령 인자) \
+`{action_type}`(tier `{tier}`) `[SOP 미수령]` — 위험구간 `{risky_range}`만 쓰고 \
+**점검·조치 문구를 지어내지 마라.**
 
 (worst_defects 중 상위 1~2개만 위 `###` 헤더+4개 불릿 블록으로 쓰고, 그 아래 순위부터는 \
 헤더 없이 불릿 한 줄로: `- **{N순위}** {defect} (HI {값}) [발생/미발생] — {worst_factor} {한 줄 사유}`)
@@ -711,6 +766,18 @@ unconfirmed_anomalies가 있으면 마지막에 표로:
     설비 열화 알람(값 조정이 아니라 설비 점검 대상)"이라고 설명하고, "확정 원인 아님"이라는 \
     문구는 다른 미확인 이상과 똑같이 붙이지 마라 — 이건 검증 실패가 아니라 애초에 다른 트랙으로 \
     분류된 것이다.
+13. **SOP는 인자가 아니라 계통 단위다**(2026-08-11 멘토 수령: 레이저 광로 / 칠러 / 세정). \
+    같은 계통 인자가 여러 개 걸려도 **점검은 한 번만 지시하라** — DP03은 Head_Temp와 \
+    Cooling_Flow가 둘 다 칠러 계통이지만 칠러 점검은 한 번이다. sop_shared_with로 어느 인자가 \
+    같은 계통인지 알 수 있다.
+14. 같은 계통 인자 중 **경보 중인 것만 이름을 불러라**(early_warning_active=true). 경보가 없는 \
+    인자는 원인 목록에는 두되 **조치 지시에서는 빼라** — 지금 손댈 이유가 없는 설비를 점검 \
+    대상으로 올리면 안 된다.
+15. tier가 **T2면 조치를 단독으로 지시하지 마라.** 같은 계통에 T1이 있으면 그쪽에 묶고, \
+    없으면 "먼저 확인할 것"을 제시한 뒤 조건에 따라 갈라서 답하라.
+16. **SOP를 아직 못 받은 인자**(sop_actions가 없는 인자, 예: Surface_Roughness)는 예전 그대로 \
+    tier/action_type과 위험구간만 전달하고 **점검 문구를 지어내지 마라.** 감시지표라 "조치"가 \
+    성립하지 않아 별도로 멘토 확인을 요청해둔 상태다.
 """
 
 
@@ -772,12 +839,22 @@ def _format_cause_value_line(c: dict) -> str:
 
 
 def _format_action_line(factor: str) -> str:
-    """"조치" 줄 — SOP 문구를 지어내지 않고, 검정으로 확정된 tier/action_type/위험구간만
-    전달한다(agent_rules: "SOP는 아직 수령하지 않았다. 조치 문구를 지어내지 말 것")."""
+    """"조치" 줄. SOP를 받은 인자는 멘토 문구를 그대로 싣고, 못 받은 인자는 예전처럼
+    tier/action_type/위험구간만 전달한다(문구를 지어내지 않는다).
+
+    계통을 같이 밝히는 이유: 같은 계통 인자가 여러 개 걸려도 점검은 한 번이라,
+    화면에서 어느 작업이 겹치는지 보여야 같은 일을 두 번 시키지 않는다."""
     try:
         sop = json.loads(get_sop_for_factor.func(factor))
-        return (f"`{sop.get('action_type')}`(tier `{sop.get('tier')}`) `[SOP 미수령]` "
-                f"— 위험구간 `{sop.get('risky_range')}`")
+        head = f"`{sop.get('action_type')}`(tier `{sop.get('tier')}`)"
+        actions = sop.get("sop_actions")
+        if actions:
+            steps = " → ".join(actions)
+            shared = [f for f in (sop.get("sop_shared_with") or []) if f != factor]
+            share_txt = f" · 같은 계통 `{'`, `'.join(shared)}`" if shared else ""
+            return (f"{head} **{sop.get('sop_group')} 계통** — {steps}"
+                    f"{share_txt} · 위험구간 `{sop.get('risky_range')}`")
+        return (f"{head} `[SOP 미수령]` — 위험구간 `{sop.get('risky_range')}`")
     except (json.JSONDecodeError, KeyError, TypeError):
         return "확정 조치 유형 없음(감시지표 또는 원인 미확정) `[SOP 미수령]`"
 

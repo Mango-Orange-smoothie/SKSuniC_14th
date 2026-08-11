@@ -1264,7 +1264,7 @@ function chartSummaryText(d){
   if(c.control_lsl != null || c.control_usl != null) L.push(`- 관리한계: ${c.control_lsl} ~ ${c.control_usl}`);
   if(det.health_index != null) L.push(`- Health Index: ${det.health_index}`);
   if(det.margin_used_pct != null) L.push(`- 여유 소진: ${det.margin_used_pct}%`);
-  if(meta.action_type) L.push(`- 조치 긴급도: ${meta.action_type} (tier ${meta.tier ?? '-'}) [SOP 미수령]`);
+  if(meta.action_type) L.push(`- 조치 긴급도: ${meta.action_type} (tier ${meta.tier ?? '-'})`);
   if(c.early_warning_active && c.alert_since) L.push(`- 경보: ${c.alert_since}부터 ${c.alert_active_days}일째 지속`);
   if(det.estimated_days_to_control_limit != null) L.push(`- 이 추세면 ${det.estimated_days_to_control_limit}일 뒤 관리한계 도달`);
   if(meta.mechanism) L.push(`- 메커니즘: ${meta.mechanism}`);
