@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T20:23:41.127877",
+  "generated_at": "2026-08-11T21:21:13.926974",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -1712,49 +1712,6 @@
           ],
           "n_product_recipe_combos_affected": 54.0,
           "recipe_hotspot_concentrated": false,
-          "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
-        },
-        {
-          "column": "Kerf_Angle",
-          "current_value": 90.0396,
-          "baseline_median": 90.032,
-          "lsl": 89.7218,
-          "usl": 90.3422,
-          "control_lsl": 89.7218,
-          "control_usl": 90.3422,
-          "score_side": "both",
-          "spec_source": "control_limit_3sigma",
-          "spec_status": "OK",
-          "defect_zone_rate_pct": null,
-          "defect_zone_baseline_pct": null,
-          "margin_trend_pct_per_day": 0.068,
-          "estimated_days_to_control_limit": null,
-          "trend_direction": "up",
-          "early_warning_active": true,
-          "trend_message": "DP03 / PKG_C / RCP_2의 Kerf_Angle 변동성이 정상 대비 지속적으로 확대되고 있습니다.",
-          "alert_since": "2026-02-21",
-          "alert_active_days": 37.0,
-          "alert_strength": 1.0,
-          "alert_level": "full",
-          "recipe_hotspots": [
-            {
-              "product_id": "PKG_F",
-              "recipe_id": "RCP_2",
-              "warning_count": 96
-            },
-            {
-              "product_id": "PKG_A",
-              "recipe_id": "RCP_6",
-              "warning_count": 43
-            },
-            {
-              "product_id": "PKG_D",
-              "recipe_id": "RCP_2",
-              "warning_count": 38
-            }
-          ],
-          "n_product_recipe_combos_affected": 50.0,
-          "recipe_hotspot_concentrated": true,
           "note": "확정 원인 아님 — 어느 defect와 연결되는지 검증 안 됨, 모니터링 참고용"
         }
       ]

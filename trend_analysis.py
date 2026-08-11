@@ -297,6 +297,9 @@ def load_baseline_maps():
     c_map = {}             # (column, group_key) -> {threshold, risky_direction, matched_defect}
     e_value_map = {}       # column -> baseline_value (이론상수)
     e_std_map = {}         # column -> reference_OK_std (E유형 fallback std)
+    # (26.08.11) column -> reference_OK_mean (정상일 때 실제로 나오는 값).
+    # 이론상수와 다를 수 있고, CUSUM은 이쪽을 target으로 써야 한다 — 아래 CUSUM 블록 주석 참고.
+    e_ok_mean_map = {}
 
     for row in ab.itertuples(index=False):
         col = row.column
@@ -319,8 +322,10 @@ def load_baseline_maps():
         column_type[col] = "E"
         e_value_map[col] = row.baseline_value
         e_std_map[col] = row.reference_OK_std
+        e_ok_mean_map[col] = row.reference_OK_mean
 
-    return column_type, direction_map, ab_value_map, c_map, e_value_map, e_std_map
+    return (column_type, direction_map, ab_value_map, c_map,
+            e_value_map, e_std_map, e_ok_mean_map)
 
 
 # ----------------------------------------------------------------------
@@ -453,8 +458,8 @@ def compute_c_type_baseline_rate(df, column_type, c_map):
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
-                  ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
-                  stratum_target_map, state):
+                  ab_value_map, c_map, e_value_map, e_std_map, e_ok_mean_map,
+                  fallback_std_map, stratum_target_map, state):
     df = pd.read_csv(path)
     n_input_rows = len(df)
 
@@ -614,8 +619,34 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
             # 전 컬럼 측정 결과 no_trend 장비에서의 CUSUM 오경보율이 0.000~0.364%로
             # 35개 전부 C_DANGER_ALPHA(1%) 미만이라, 붙여서 해로운 컬럼이 없다.
             # 유형이 "어떤 경보를 받는지"를 정하지 않게 하는 것이 목적이다(김시우님 지적).
-            if not np.isnan(baseline) and ref_std_scalar and ref_std_scalar > 0:
-                z_full = (values - baseline) / ref_std_scalar
+            #
+            # (26.08.11) **E유형의 CUSUM target을 이론상수가 아니라 reference_OK_mean으로
+            # 바꾼다.** CUSUM은 "지금 있어야 할 자리에서 밀려났나"를 재는 도구인데, E유형만
+            # target이 이론값(Kerf_Angle=90, Package_Size=5)이라 정상 상태에서도 항상 얼마간
+            # 벗어나 있었다. 그 고정 편차는 드리프트가 아닌데 CUSUM은 방향이 안 바뀌는
+            # 편차를 계속 누적하므로, 영원히 끝나지 않는 드리프트로 읽힌다.
+            #
+            # 실측 — Kerf_Angle은 이론값 90 대비 정상 평균이 90.0329로 **+0.317σ 고정
+            # 치우침**이 있다(00_baseline_E.csv). 그 결과:
+            #   · 4대 경보행 457/462/662/654 — 시나리오 없는 정상 장비 DP01에도 똑같이 뜬다
+            #     (진짜 시나리오 컬럼은 CLN_Flow 170배 / Laser_Power 45배로 갈린다)
+            #   · 순수 잡음 시뮬레이션(추세 0)에서 치우침 0.317σ면 경보 샷 2.06%,
+            #     장비당 514건 — 실측 457~662와 일치한다. 즉 신호가 안 들어 있다.
+            #   · 치우침 0σ면 0.15%(장비당 39건)로 떨어진다. **0.317σ 하나로 오경보 14배.**
+            # 0.317σ는 CUSUM_K(0.7)보다 작아 "감지"된 게 아니다 — 누적합이 0으로 되돌아가는
+            # 힘이 약해져서 잡음이 H를 넘는 빈도가 올라간 것이다.
+            #
+            # 다른 E컬럼은 치우침이 0.001~0.036σ라 사실상 안 바뀐다. Kerf_Angle만 고쳐진다.
+            # 이론값은 버리지 않고 baseline_arr(=출력의 baseline/difference/
+            # normalized_deviation)에 그대로 남긴다 — "설계값에서 얼마나 비껴 있나"는
+            # 여전히 볼 값이고, 다만 그건 매일 울릴 경보가 아니라 한 번 보고할 사실이다.
+            cusum_target = baseline
+            if col_type == "E":
+                ok_mean = e_ok_mean_map.get(col, np.nan)
+                if ok_mean is not None and not np.isnan(ok_mean):
+                    cusum_target = ok_mean
+            if not np.isnan(cusum_target) and ref_std_scalar and ref_std_scalar > 0:
+                z_full = (values - cusum_target) / ref_std_scalar
                 s_pos_full, s_neg_full = compute_cusum(z_full)
                 cusum_pos, cusum_neg = s_pos_full[WINDOW - 1:], s_neg_full[WINDOW - 1:]
 
@@ -739,9 +770,16 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 early_warning |= ew
                 for i in np.where(ew)[0]:
                     trend_direction[i] = "up" if cusum_pos[i] > CUSUM_H else "down"
+                    # (26.08.11) 문구도 target과 맞춘다 — 판정은 정상 수준(cusum_target)
+                    # 대비인데 "이론 기준값 대비"라고 쓰면 근거를 잘못 읽게 된다.
+                    # 이론값은 다를 때만 괄호로 같이 보여준다(Kerf_Angle 90 vs 90.0328).
+                    theo = (f" (이론 기준값 {baseline_arr[i]:.4f})"
+                            if not np.isnan(baseline_arr[i])
+                            and abs(baseline_arr[i] - cusum_target) > 1e-9 else "")
                     messages[i] = (
                         f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
-                        f"이론 기준값({baseline_arr[i]:.4f}) 대비 지속적으로 벌어지는 편차가 감지되었습니다."
+                        f"정상 수준({cusum_target:.4f}){theo} 대비 지속적으로 벌어지는 "
+                        f"편차가 감지되었습니다."
                     )
             # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
             # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
@@ -935,7 +973,8 @@ def main():
     print(f"[분석 대상 연속형 컬럼] 총 {len(analysis_columns)}개")
     print(analysis_columns)
 
-    column_type, direction_map, ab_value_map, c_map, e_value_map, e_std_map = load_baseline_maps()
+    (column_type, direction_map, ab_value_map, c_map,
+     e_value_map, e_std_map, e_ok_mean_map) = load_baseline_maps()
     fallback_std_map, stratum_target_map = load_stratum_reference_maps()
 
     mapped = [c for c in analysis_columns if c in column_type]
@@ -951,8 +990,8 @@ def main():
         try:
             n_in, n_out, n_warn, samples = process_file(
                 source_name, path, analysis_columns, column_type, direction_map,
-                ab_value_map, c_map, e_value_map, e_std_map, fallback_std_map,
-                stratum_target_map, state,
+                ab_value_map, c_map, e_value_map, e_std_map, e_ok_mean_map,
+                fallback_std_map, stratum_target_map, state,
             )
         except Exception as exc:
             print(f"[오류] {source_name} 처리 중 예외 발생: {exc}", file=sys.stderr)
