@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>공정 품질 통합 관리 — 대시보드</title>
+<style>
+:root{
+  --bg:#f5f4f8; --surface:#ffffff; --surface-2:#eeecf5;
+  --ink:#171523; --ink-muted:#6b6785; --ink-faint:#a4a0bd;
+  --accent:#5b54e8; --accent-soft:#eeecfc;
+  --border:#e1dff0;
+  --good:#0ca30c; --warn:#d98324; --critical:#d03b3b;
+  --font-ui: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "D2Coding", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    --bg:#0e0c16; --surface:#17142a; --surface-2:#1e1a35;
+    --ink:#ede9fb; --ink-muted:#a49dc9; --ink-faint:#726c99;
+    --accent:#9089f7; --accent-soft:#242052; --border:#2c2650;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
+  -webkit-font-smoothing:antialiased;overflow:hidden;font-size:14px}
+
+.app{display:flex;flex-direction:column;height:100%}
+
+/* ---------- 장비 스트립: 질문 전에도 항상 보이는 4대 상태 ---------- */
+.strip{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);flex:0 0 auto}
+.mcard{flex:1;background:var(--bg);padding:11px 16px;cursor:pointer;border-top:3px solid transparent}
+.mcard:hover{background:var(--surface-2)}
+.mcard.active{background:var(--surface);border-top-color:var(--accent)}
+.mcard.disabled{cursor:default;opacity:.55}
+.mcard-top{display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.mcard-id{font:600 12px var(--font-mono);color:var(--ink-muted)}
+.mcard-hi{font-size:26px;font-weight:700;line-height:1.25}
+.mcard-sub{font-size:11.5px;color:var(--ink-muted)}
+.mcard-f{font:11.5px var(--font-mono);color:var(--ink-faint)}
+
+.body{flex:1;display:flex;min-height:0}
+
+/* ---------- 사이드바: 스코프 선택 ---------- */
+/* 그룹 이름에 (FDC)/(Response)/(Equipment)가 붙어서 214px에선 잘렸다 — 이름을 줄이는
+   대신 폭을 넓혔다. 용어 자체가 이 화면에서 설명 역할을 한다. */
+.side{flex:0 0 248px;border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;background:var(--surface)}
+.side-h{font:600 10.5px var(--font-mono);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-faint);padding:8px 14px 5px}
+.side.locked{opacity:.4;pointer-events:none}
+.grp{margin-bottom:6px}
+/* 그룹 헤더와 변수 이름이 같은 크기·굵기면 목록이 한 덩어리로 보인다. 헤더는 크고
+   굵게, 변수는 작고 고정폭으로 — 계층이 글자에서 바로 읽혀야 한다. */
+.grp-h{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:9px 14px 5px;
+  font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer;user-select:none;
+  white-space:nowrap}
+.grp-h>span:first-child{overflow:hidden;text-overflow:ellipsis}
+.grp-h:hover{color:var(--accent)}
+.grp-n{font:11px var(--font-mono);color:var(--ink-faint);font-weight:400}
+.item{display:flex;align-items:center;gap:7px;padding:5px 14px 5px 18px;cursor:pointer;font-size:12.5px}
+.item:hover{background:var(--surface-2)}
+.item.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.item.blocked{opacity:.5}
+.item-name{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-muted);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item.active .item-name{color:var(--accent)}
+.badge{font:10.5px var(--font-mono);padding:1px 5px;border-radius:3px;flex:0 0 auto}
+.badge.alert{background:rgba(208,59,59,.15);color:var(--critical)}
+.score{font:600 12.5px var(--font-mono);flex:0 0 auto;min-width:34px;text-align:right}
+.side-h .score{font-weight:400}
+.chk{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:12.5px;cursor:pointer}
+.chk:hover{background:var(--surface-2)}
+.chk input{accent-color:var(--accent)}
+
+/* ---------- 본문: 뷰 ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid var(--border);flex:0 0 auto}
+.tab{padding:11px 15px;font-size:13px;color:var(--ink-muted);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.view{flex:1;overflow-y:auto;padding:18px 22px}
+.vhead{display:flex;align-items:baseline;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.vtitle{font-size:18px;font-weight:700}
+.vsub{font-size:12.5px;color:var(--ink-muted)}
+.rngbar{display:flex;align-items:center;gap:6px;margin-left:auto}
+.rng{font-size:12px;padding:4px 10px;border-radius:14px;cursor:pointer;color:var(--ink-muted);
+  border:1px solid var(--border)}
+.rng:hover{border-color:var(--accent);color:var(--accent)}
+.rng.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rng-n{font-size:11px;color:var(--ink-faint);margin-left:4px}
+.empty{color:var(--ink-faint);text-align:center;padding:60px 20px;font-size:13px;line-height:1.8}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;margin-bottom:14px}
+.nums{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:13px}
+.num-l{font-size:11px;color:var(--ink-faint)}
+.num-v{font:16px var(--font-mono);margin-top:1px}
+.pill{font-size:11px;padding:3px 9px;border-radius:5px;font-weight:600}
+.pill.t1{background:rgba(208,59,59,.14);color:var(--critical)}
+.pill.t2{background:rgba(217,131,36,.16);color:var(--warn)}
+.pill.mon{background:var(--accent-soft);color:var(--accent)}
+.pill.na{background:var(--surface-2);color:var(--ink-muted)}
+
+.gauge-l{font-size:11px;color:var(--ink-faint);margin-bottom:4px}
+.gauge{height:11px;background:var(--surface-2);border-radius:6px;overflow:hidden;position:relative}
+.gauge-fill{height:100%}
+.gauge-ax{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-top:4px}
+.note{font-size:12px;color:var(--ink-muted);background:var(--surface-2);
+  padding:7px 11px;border-radius:6px;margin-top:10px;line-height:1.6}
+
+/* 위험/정상 구간을 글자로 나열하면 두 범위의 관계(어디가 위고 어디가 아래인지, 지금 값이
+   어느 쪽에 붙어 있는지)가 안 읽힌다 — 같은 축 위에 그려서 위치로 보여준다. */
+.band{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+.band-h{font-size:11px;color:var(--ink-faint);margin-bottom:7px}
+.band-foot{font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.6}
+.swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.dtable{border-collapse:collapse;font-size:12.5px;margin-top:4px;min-width:340px}
+.dtable th{font-size:11px;font-weight:400;color:var(--ink-faint);text-align:left;
+  padding:0 16px 4px 0;border-bottom:1px solid var(--border)}
+.dtable td{padding:6px 16px 6px 0;font-family:var(--font-mono);color:var(--ink-muted)}
+.dtable td:first-child{font-family:var(--font-ui);color:var(--ink)}
+.dtable td.hot{color:var(--critical);font-weight:600}
+.dtable tr.nowrow td{border-top:1px solid var(--border)}
+.meta{border-top:1px solid var(--border);margin-top:12px;padding-top:9px;
+  font-size:12px;color:var(--ink-muted);line-height:1.85}
+.meta code{font-family:var(--font-mono);font-size:11.5px;background:var(--accent-soft);
+  color:var(--accent);padding:1px 5px;border-radius:3px}
+
+/* ---------- 히트맵 ---------- */
+.hm{display:grid;gap:2px;margin-top:6px}
+.hm-cell{aspect-ratio:1.7;display:flex;align-items:center;justify-content:center;
+  font:11.5px var(--font-mono);border-radius:3px}
+.hm-lab{font-size:11px;color:var(--ink-muted);display:flex;align-items:center;justify-content:center}
+.hm-lab.row{justify-content:flex-end;padding-right:8px}
+.legend{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;color:var(--ink-muted)}
+.legend-bar{height:10px;width:170px;border-radius:5px;
+  background:linear-gradient(to right, var(--surface-2), var(--critical))}
+
+.chart svg{display:block;width:100%}
+.chart-t{font-size:12px;color:var(--ink-muted);margin-bottom:5px}
+
+/* ---------- 에이전트 패널 ---------- */
+.agent{flex:0 0 316px;border-left:1px solid var(--border);display:flex;flex-direction:column;
+  background:var(--surface)}
+.app.agent-closed .agent{display:none}
+.agent-h{padding:12px 15px;border-bottom:1px solid var(--border);display:flex;
+  justify-content:space-between;align-items:center}
+.agent-h b{font-size:13px}
+.agent-h button{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:16px;padding:0 2px}
+.msgs{flex:1;overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+.m{font-size:12.5px;line-height:1.65;padding:9px 12px;border-radius:10px;max-width:94%}
+.m.u{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.m.a{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:3px}
+.m.a.err{color:var(--critical)}
+.m code{font-family:var(--font-mono);font-size:11.5px}
+.m h3{font-size:13px;margin:10px 0 4px}
+.m h3:first-child{margin-top:0}
+.m ul{margin:5px 0;padding-left:17px}
+.m p{margin:5px 0}
+.m table{border-collapse:collapse;width:100%;font-size:11.5px;margin:6px 0}
+.m th,.m td{border:1px solid var(--border);padding:3px 6px;text-align:left}
+.jump{align-self:flex-start;font-size:11.5px;color:var(--accent);background:var(--accent-soft);
+  padding:5px 10px;border-radius:6px}
+.hints{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px}
+.hint{font-size:11.5px;background:var(--bg);border:1px solid var(--border);padding:5px 9px;
+  border-radius:14px;color:var(--ink-muted);cursor:pointer}
+.hint:hover{border-color:var(--accent);color:var(--accent)}
+.inbar{display:flex;gap:7px;padding:11px 14px;border-top:1px solid var(--border)}
+.inbar textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:8px;
+  padding:8px 10px;font:12.5px var(--font-ui);background:var(--bg);color:var(--ink);height:38px}
+.inbar textarea:focus{outline:none;border-color:var(--accent)}
+.inbar button{background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:0 14px;font:600 12.5px var(--font-ui);cursor:pointer}
+.inbar button:disabled{opacity:.5;cursor:default}
+.foot{font-size:10.5px;color:var(--ink-faint);padding:0 14px 11px;line-height:1.6}
+.reopen{position:fixed;right:14px;bottom:14px;background:var(--accent);color:#fff;border:none;
+  border-radius:18px;padding:9px 15px;font:600 12.5px var(--font-ui);cursor:pointer;display:none}
+.app.agent-closed .reopen{display:block}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <div class="strip" id="strip"></div>
+
+  <div class="body">
+    <div class="side" id="side"></div>
+
+    <div class="main">
+      <div class="tabs" id="tabs"></div>
+      <div class="view" id="view"><div class="empty">불러오는 중…</div></div>
+    </div>
+
+    <div class="agent">
+      <div class="agent-h">
+        <b>AI Agent</b>
+        <button id="closeAgent" title="닫기">×</button>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="hints" id="hints"></div>
+      <div class="inbar">
+        <textarea id="q" rows="1" placeholder="예: DP04 왜 그렇게 낮아?"></textarea>
+        <button id="send">전송</button>
+      </div>
+      <p class="foot">점수 기준선은 Shewhart 관리한계(정상값 ± 3σ)입니다. 스펙과는 다른 축입니다. SOP는 아직 수령 전이라 조치 문구는 만들지 않고 긴급도와 위험구간만 전달합니다.</p>
+    </div>
+  </div>
+</div>
+<button class="reopen" id="reopenAgent">AI Agent</button>
+
+<script>
+// ===================================================================
+// 뷰 상태 — 화면이 가질 수 있는 상태는 이 객체 하나로 전부 표현된다.
+// 사이드바 클릭도, 챗봇 답변도 결국 이걸 만들고 /api/view로 보낸다.
+//   {view, machine, factor, defects}
+// 뷰마다 필요한 스코프가 달라서(VIEWS 참고) 선택기를 켜고 끄는 근거가 된다.
+// ===================================================================
+const VIEWS = [
+  {id:'trend',   label:'추세',        needs:{machine:'single', factor:true}},
+  {id:'defect',  label:'불량 발생',    needs:{machine:'single', defects:true}},
+  {id:'heatmap', label:'레시피 히트맵', needs:{machine:'single', factor:true}},
+  {id:'compare', label:'장비 비교',    needs:{machine:'all',    factor:true}},
+];
+const DEFECT_COLORS = {Chipping:'#5b54e8', Remain_Coat:'#d98324', Particle:'#0ca30c', Micro_Crack:'#d03b3b'};
+const MACHINE_COLORS = {DP01:'#5b54e8', DP02:'#0ca30c', DP03:'#d98324', DP04:'#d03b3b'};
+
+let BOOT = null;
+let state = {view:'trend', machine:null, factor:null, defects:['Chipping','Remain_Coat','Particle','Micro_Crack']};
+// 관계 미확정 37개는 기본 접힘 — 원인/감시지표를 먼저 보게 한다(그룹 이름은 views.py의
+// GROUP_OTHER와 정확히 같아야 한다).
+const collapsed = {'관계 미확정 (안전망)': true};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const hiColor = v => v == null ? 'var(--ink-faint)' : v < 50 ? 'var(--critical)' : v < 80 ? 'var(--warn)' : 'var(--good)';
+const needs = () => VIEWS.find(v => v.id === state.view).needs;
+
+// ---------- 부팅 ----------
+async function boot(){
+  try{
+    BOOT = await (await fetch('/api/bootstrap')).json();
+  }catch(err){
+    $('view').innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
+    return;
+  }
+  if(BOOT.error){ $('view').innerHTML = `<div class="empty">${esc(BOOT.error)}</div>`; return; }
+  Object.assign(state, BOOT.default_state);
+  renderTabs(); renderStrip(); renderSide(); renderHints();
+  load();
+}
+
+// ---------- 장비 스트립 ----------
+function renderStrip(){
+  const all = needs().machine === 'all';
+  $('strip').innerHTML = BOOT.machines.map(m => `
+    <div class="mcard ${all ? 'disabled' : (m.machine_id === state.machine ? 'active' : '')}" data-m="${m.machine_id}">
+      <div class="mcard-top">
+        <span class="dot" style="background:${hiColor(m.health_index)}"></span>
+        <span class="mcard-id">${m.machine_id}</span>
+      </div>
+      <div class="mcard-hi" style="color:${hiColor(m.health_index)}">${m.health_index ?? '—'}</div>
+      <div class="mcard-sub">${esc(m.worst_defect ?? '—')}</div>
+      <div class="mcard-f">${esc(m.worst_factor ?? '')}</div>
+    </div>`).join('');
+  if(!all){
+    $('strip').querySelectorAll('.mcard').forEach(el =>
+      el.onclick = () => setState({machine: el.dataset.m}));
+  }
+}
+
+// ---------- 탭 ----------
+function renderTabs(){
+  $('tabs').innerHTML = VIEWS.map(v =>
+    `<div class="tab ${v.id === state.view ? 'active' : ''}" data-v="${v.id}">${v.label}</div>`).join('');
+  $('tabs').querySelectorAll('.tab').forEach(el =>
+    el.onclick = () => setState({view: el.dataset.v}));
+}
+
+// ---------- 사이드바 (뷰에 따라 내용이 바뀐다) ----------
+function renderSide(){
+  const n = needs();
+  const side = $('side');
+
+  if(n.defects){
+    side.className = 'side';
+    side.innerHTML = `<div class="side-h">불량 항목</div>` + BOOT.defects.map(d => `
+      <label class="chk">
+        <input type="checkbox" data-d="${d}" ${state.defects.includes(d) ? 'checked' : ''}>
+        <span class="dot" style="background:${DEFECT_COLORS[d]}"></span>
+        <span>${d}</span>
+      </label>`).join('');
+    side.querySelectorAll('input').forEach(el => el.onchange = () => {
+      const picked = [...side.querySelectorAll('input:checked')].map(i => i.dataset.d);
+      setState({defects: picked.length ? picked : state.defects});
+    });
+    return;
+  }
+
+  // compare 뷰는 장비를 안 쓰지만 변수는 쓴다 — 변수 목록은 대표로 첫 장비 것을 보여준다
+  // (변수 집합은 4대가 같고, 경보 배지만 장비별로 다르다).
+  const machine = n.machine === 'all' ? BOOT.machines[0].machine_id : state.machine;
+  const tree = BOOT.variables[machine] || [];
+  side.className = 'side';
+  side.innerHTML = `<div class="side-h" style="display:flex;justify-content:space-between">
+      <span>변수</span><span>점수</span></div>` + tree.map(g => {
+    const open = !collapsed[g.group];
+    const items = open ? g.items.map(it => {
+      const blocked = !it.defects.length && it.blocked_defects.length;
+      const title = blocked
+        ? `관계DB가 이 짝으로는 경보를 못 걸게 막아둠 (${it.blocked_defects.join(', ')})`
+        : (it.defects.length ? `원인: ${it.defects.join(', ')}` : '확정 원인 아님 — 안전망 감시');
+      // 목록에 점수를 바로 실어서, 추세 탭을 눌러보지 않아도 어느 변수가 급한지 보이게
+      // 한다(정렬도 이 점수 기준). tier(T1/T2)는 처음 보는 사람이 못 읽으므로 뺐다 —
+      // 조치 긴급도는 변수를 고르면 추세 화면 헤더에 한국어로 나온다.
+      const hi = it.health_index;
+      return `<div class="item ${it.factor === state.factor ? 'active' : ''} ${blocked ? 'blocked' : ''}"
+                   data-f="${it.factor}" title="${esc(title)}">
+          <span class="item-name">${it.factor}</span>
+          ${it.early_warning_active ? `<span class="badge alert">경보</span>` : ''}
+          <span class="score" style="color:${hiColor(hi)}">${hi == null ? '—' : hi.toFixed(1)}</span>
+        </div>`;
+    }).join('') : '';
+    // 접힌 그룹에도 경보가 있다는 걸 알려야 하지만, "경보 N" 글자는 그룹 이름과 경쟁해서
+    // 헤더가 시끄러웠다. 빨간 불 하나로 줄인다 — 개수는 툴팁으로.
+    const alerts = g.alert_count
+      ? `<span class="dot" style="background:var(--critical)" title="경보 ${g.alert_count}개"></span>` : '';
+    return `<div class="grp">
+        <div class="grp-h" data-g="${esc(g.group)}">
+          <span>${open ? '▾' : '▸'} ${esc(g.group)}</span>
+          <span style="display:flex;align-items:center;gap:6px;flex:0 0 auto">${alerts}<span class="grp-n">${g.items.length}</span></span>
+        </div>${items}
+      </div>`;
+  }).join('');
+
+  side.querySelectorAll('.grp-h').forEach(el => el.onclick = () => {
+    collapsed[el.dataset.g] = !collapsed[el.dataset.g];
+    renderSide();
+  });
+  side.querySelectorAll('.item').forEach(el =>
+    el.onclick = () => setState({factor: el.dataset.f}));
+}
+
+function renderHints(){
+  const hints = ['DP04 왜 그렇게 낮아?', 'DP01이랑 DP03 비교해줘', 'Particle 불량 원인이 뭐야?'];
+  $('hints').innerHTML = hints.map(h => `<div class="hint">${esc(h)}</div>`).join('');
+  $('hints').querySelectorAll('.hint').forEach(el => el.onclick = () => ask(el.textContent));
+}
+
+// ---------- 상태 전이 ----------
+function setState(patch){
+  Object.assign(state, patch);
+  renderTabs(); renderStrip(); renderSide();
+  load();
+}
+
+// 요청 토큰 — 사이드바를 빠르게 연속 클릭하면 먼저 보낸 요청이 나중에 도착해서 최신
+// 화면을 덮어쓸 수 있다(변수 목록은 클릭이 빠르다). 마지막 요청의 응답만 그린다.
+let loadToken = 0;
+async function load(){
+  const token = ++loadToken;
+  $('view').innerHTML = '<div class="empty">불러오는 중…</div>';
+  try{
+    const res = await fetch('/api/view', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(state)
+    });
+    const d = await res.json();
+    if(token !== loadToken) return;  // 그 사이 더 최신 요청이 나갔다
+    if(d.error){ $('view').innerHTML = `<div class="empty">${esc(d.error)}</div>`; return; }
+    ({trend:renderTrend, defect:renderDefect, heatmap:renderHeatmap, compare:renderCompare}[d.view])(d);
+  }catch(err){
+    // 서버가 내려가 있으면 여기로 온다. 안 잡으면 "불러오는 중…"에서 영영 멈춘다.
+    if(token !== loadToken) return;
+    $('view').innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
+  }
+}
+
+// ===================================================================
+// 뷰 1 — 추세. 카드에는 숫자와 그림만 둔다(설명 문장은 에이전트 몫).
+// ===================================================================
+function renderTrend(d){
+  const c = d.chart, det = d.detail || {}, meta = d.meta || {};
+  const margin = det.margin_used_pct;
+  // 조치 긴급도는 tier 코드(T1/T2)가 아니라 한국어 그대로 보여준다 — 처음 보는 사람이
+  // T1을 못 읽는다. 색은 여전히 긴급도별로 다르게 준다.
+  const urgency = meta.action_type;
+  const urgCls = ['즉시조치','급락알람'].includes(urgency) ? 't1'
+               : urgency === '조건부조치' ? 't2'
+               : String(urgency || '').startsWith('감시') ? 'mon' : 'na';
+
+  // 스펙 위치를 %로 환산해 설명하던 문구는 뺐다 — 스펙선은 그래프에 이미 그려지고,
+  // 점수 기준선(관리한계)도 같이 그려지므로 두 축의 차이는 그림에서 바로 보인다.
+
+  const num = (l, v, color) => v == null ? '' :
+    `<div><div class="num-l">${l}</div><div class="num-v" ${color ? `style="color:${color}"` : ''}>${v}</div></div>`;
+
+  $('view').innerHTML = `
+    <div class="vhead">
+      <div class="vtitle">${d.machine} · ${d.factor}</div>
+      ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
+      ${d.defect ? `<div class="vsub">${meta.actionable === false ? '감시지표' : '원인'} → ${d.defect}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="nums">
+        ${num('현재값', det.current_value ?? c.series.at(-1).value)}
+        ${num('정상값', c.baseline_median, 'var(--ink-muted)')}
+        ${num('관리하한', c.control_lsl, c.score_side !== 'upper' ? 'var(--critical)' : 'var(--ink-faint)')}
+        ${num('관리상한', c.control_usl, c.score_side !== 'lower' ? 'var(--critical)' : 'var(--ink-faint)')}
+        ${num('Health Index', det.health_index, hiColor(det.health_index))}
+      </div>
+      ${margin == null ? '' : `
+        <div class="gauge-l">여유 소진 ${margin}%</div>
+        <div class="gauge"><div class="gauge-fill" style="width:${Math.min(margin,100)}%;
+          background:${margin >= 80 ? 'var(--critical)' : margin >= 40 ? 'var(--warn)' : 'var(--good)'}"></div></div>
+        <div class="gauge-ax"><span>0% 정상값</span><span>100% 관리한계</span></div>`}
+      ${renderChart(c, meta.threshold_raw)}
+      <div class="meta">
+        ${c.early_warning_active && c.alert_since
+          ? `경보 <b>${c.alert_active_days}일째</b> (${c.alert_since}부터)` : '추세 경보 없음'}
+        ${det.defect_zone_rate_pct != null
+          ? ` · 위험구간 진입률 <b>${det.defect_zone_rate_pct}%</b> <span style="color:var(--ink-faint)">(평소 ${det.defect_zone_baseline_pct}%)</span>` : ''}
+        ${det.estimated_days_to_spec_out != null
+          ? ` · 이 추세면 <b>${det.estimated_days_to_spec_out}일</b> 뒤 관리한계 도달` : ''}
+        ${meta.mechanism ? `<br>메커니즘 <code>${esc(meta.mechanism)}</code>` : ''}
+      </div>
+      ${renderRiskBand(meta, det, d.defect)}
+    </div>`;
+}
+
+// "불량률이 갈리는 경계값"을 보여준다.
+//
+// 판정 기준은 **선 하나**(threshold_raw)다. risky_range/normal_range는 기준이 아니라
+// 각 쪽에 떨어진 샷들이 실제로 놓인 범위(p5~p95)이고, 양쪽 꼬리 5%씩을 잘라낸 값이라
+// 두 범위 사이에 빈 구간이 생긴다. 예전엔 두 범위만 색칠해서 그 빈 구간이 "중립지대"처럼
+// 읽혔다 — 경계선을 같이 그리고, 범위가 무엇인지 글로 밝힌다.
+function renderRiskBand(meta, det, defect){
+  const parse = s => {
+    const m = String(s || '').match(/(-?[\d.]+)\s*~\s*(-?[\d.]+)/);
+    return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+  };
+  const risky = parse(meta.risky_range), normal = parse(meta.normal_range);
+  if(!risky || !normal) return '';
+
+  const now = det.current_value, thr = meta.threshold_raw;
+  const riskyIsAbove = risky[0] > normal[0];
+  const crossed = (now != null && thr != null) && (riskyIsAbove ? now > thr : now < thr);
+  const nR = meta.rate_in_risky_pct, nN = meta.rate_in_normal_pct;
+  const rate = v => v == null ? '—' : `${v}%`;
+
+  return `<div class="band">
+    <div class="band-h">불량이 갈리는 경계 — 경계값 <b style="color:var(--ink)">${thr ?? '—'}</b>${defect ? ` · ${defect}` : ''}</div>
+    <table class="dtable">
+      <thead><tr><th></th><th>값 범위</th><th>불량률</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="swatch" style="background:var(--critical)"></span>불량 난 쪽</td>
+          <td>${meta.risky_range}</td><td class="hot">${rate(nR)}</td>
+        </tr>
+        <tr>
+          <td><span class="swatch" style="background:var(--good)"></span>괜찮은 쪽</td>
+          <td>${meta.normal_range}</td><td>${rate(nN)}</td>
+        </tr>
+        ${now == null ? '' : `<tr class="nowrow">
+          <td><span class="swatch" style="background:var(--ink)"></span>지금</td>
+          <td>${now}</td><td>${crossed ? '경계 넘음' : '아직 안 넘음'}</td>
+        </tr>`}
+      </tbody>
+    </table>
+    <div class="band-foot">
+      ${meta.risk_ratio ? `경계를 넘은 쪽이 <b>${meta.risk_ratio}배</b>. ` : ''}값 범위는 판정 기준이 아니라 각 쪽 샷들이 실제로 놓였던 구간(가운데 90%)입니다 — 판정은 경계값 하나로만 합니다.
+    </div>
+  </div>`;
+}
+
+// chat.html의 렌더러를 그대로 가져왔다 — 관리한계/스펙 두 축 구분, 짝지어진 defect
+// 불량률 겹쳐 그리기, 경보 시작 세로선은 이 데이터에만 있는 요구라 검증된 코드를 유지한다.
+function renderChart(cd, threshold){
+  const W=640,H=210,padL=52,padR=16,padT=14,padB=26;
+  const n=cd.series.length; if(n<2) return '';
+  const has=v=>v!==null&&v!==undefined;
+  const values=cd.series.map(p=>p.value);
+  const hasLsl=has(cd.control_lsl), hasUsl=has(cd.control_usl);
+  const side=cd.score_side||'both';
+  const scoresUp=side==='both'||side==='upper', scoresLo=side==='both'||side==='lower';
+  // 불량이 갈리는 경계값은 시계열과 같은 단위라 이 그래프 위에 그대로 그릴 수 있다 —
+  // 값이 그 선을 언제 넘나드는지가 한눈에 보여야 표로 읽는 것보다 낫다.
+  const hasThr=has(threshold);
+  const allVals=values.concat([cd.baseline_median], hasLsl?[cd.control_lsl]:[], hasUsl?[cd.control_usl]:[],
+                              hasThr?[threshold]:[]);
+  let vMin=Math.min(...allVals), vMax=Math.max(...allVals);
+  const pad=(vMax-vMin)*0.08||Math.abs(vMax)*0.05||1; vMin-=pad; vMax+=pad;
+  const x=i=>padL+(i/(n-1))*(W-padL-padR);
+  const y=v=>padT+(1-(v-vMin)/(vMax-vMin))*(H-padT-padB);
+  const linePath=cd.series.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const last=cd.series[n-1];
+
+  let defectArea='';
+  if(cd.defect_series&&cd.defect_series.length===n){
+    const dv=cd.defect_series.map(p=>p.value).filter(has);
+    const dMax=Math.max(...dv);
+    if(dv.length&&dMax>0){
+      const dTop=padT+(H-padT-padB)*0.60, dBot=H-padB;
+      const dy=v=>dBot-(v/dMax)*(dBot-dTop);
+      const pts=cd.defect_series.map((p,i)=>has(p.value)?`${x(i).toFixed(1)},${dy(p.value).toFixed(1)}`:null).filter(Boolean);
+      if(pts.length>1){
+        defectArea=`<polygon points="${x(0).toFixed(1)},${dBot} ${pts.join(' ')} ${x(n-1).toFixed(1)},${dBot}" fill="var(--warn)" opacity="0.16"/>`
+          +`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--warn)" stroke-width="1.2" opacity="0.75"/>`
+          +`<text x="${padL+2}" y="${(dTop-3).toFixed(1)}" font-size="8.5" fill="var(--warn)">${cd.defect} 불량률 (우축 최대 ${(dMax*100).toFixed(2)}%)</text>`;
+      }
+    }
+  }
+  const hline=(v,color,dashed)=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed?' stroke-dasharray="4 3"':''}/>`;
+  const inRange=v=>has(v)&&v>=vMin&&v<=vMax;
+  const specLine=(v,label)=>inRange(v)
+    ? `<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2 4"/>`
+      +`<text x="${padL+2}" y="${(y(v)-3).toFixed(1)}" font-size="8.5" fill="var(--ink-faint)">${label} ${v}</text>` : '';
+  const specLines=String(cd.spec_source||'').startsWith('mentor_spec')
+    ? specLine(cd.usl,'스펙USL')+specLine(cd.lsl,'스펙LSL') : '';
+  let alertMark='';
+  if(cd.alert_since){
+    const ai=cd.series.findIndex(p=>p.date>=cd.alert_since);
+    if(ai>0){
+      const ax=x(ai).toFixed(1);
+      alertMark=`<line x1="${ax}" y1="${padT}" x2="${ax}" y2="${H-padB}" stroke="var(--critical)" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>`
+        +`<text x="${(x(ai)+3).toFixed(1)}" y="${padT+9}" font-size="8.5" fill="var(--critical)">경보 ${cd.alert_since}</text>`;
+    }
+  }
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+    ${defectArea}${specLines}${alertMark}
+    ${hasUsl?hline(cd.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
+    ${hasLsl?hline(cd.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
+    ${hline(cd.baseline_median,'var(--ink-faint)',false)}
+    ${hasThr?`<line x1="${padL}" y1="${y(threshold).toFixed(1)}" x2="${W-padR}" y2="${y(threshold).toFixed(1)}" stroke="var(--warn)" stroke-width="1.4"/>`
+      +`<text x="${padL+2}" y="${(y(threshold)-4).toFixed(1)}" font-size="8.5" fill="var(--warn)">불량 경계 ${threshold}</text>`:''}
+    <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.2" fill="var(--accent)"/>
+    <text x="${padL}" y="${H-6}" font-size="9" fill="var(--ink-faint)">${cd.series[0].date}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${last.date}</text>
+    ${hasUsl?`<text x="${W-padR}" y="${(y(cd.control_usl)-4).toFixed(1)}" font-size="9" fill="${scoresUp?'var(--critical)':'var(--ink-faint)'}" text-anchor="end">관리상한 ${cd.control_usl}</text>`:''}
+    ${hasLsl?`<text x="${W-padR}" y="${(y(cd.control_lsl)+11).toFixed(1)}" font-size="9" fill="${scoresLo?'var(--critical)':'var(--ink-faint)'}" text-anchor="end">관리하한 ${cd.control_lsl}</text>`:''}
+    <text x="${W-padR}" y="${(y(cd.baseline_median)-4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${cd.baseline_median}</text>
+  </svg></div>`;
+}
+
+// ===================================================================
+// 뷰 2 — 실제 불량 발생. Health Index(조짐)와 축이 다르므로 뷰를 분리했다.
+// ===================================================================
+function renderDefect(d){
+  const W=640,H=250,padL=46,padR=14,padT=14,padB=44;
+  const n=d.dates.length;
+  const flat=d.series.flatMap(s=>s.values).filter(v=>v!=null);
+  const vMax=Math.max(...flat,0.001)*1.1;
+  const x=i=>padL+(i/(n-1))*(W-padL-padR);
+  const y=v=>padT+(1-v/vMax)*(H-padT-padB);
+
+  const paths=d.series.map(s=>{
+    const color=DEFECT_COLORS[s.defect]||'var(--ink-muted)';
+    let path='',pen=false;
+    s.values.forEach((v,i)=>{
+      if(v==null){pen=false;return;}
+      path+=`${pen?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)} `; pen=true;
+    });
+    return `<path d="${path.trim()}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.9"/>`;
+  }).join('');
+
+  const legend=d.series.map((s,i)=>{
+    const color=DEFECT_COLORS[s.defect]||'var(--ink-muted)';
+    const lx=padL+i*146;
+    return `<line x1="${lx}" y1="${H-12}" x2="${lx+13}" y2="${H-12}" stroke="${color}" stroke-width="2.5"/>`
+      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${s.defect} 평균 ${s.mean_pct}%</text>`;
+  }).join('');
+
+  // 감시 수단이 없는 defect는 빈칸으로 두지 않고 명시한다 — 가짜 100점보다 정직하다.
+  const noWatch=d.series.filter(s=>!s.usable_factors.length);
+  // 기간 선택 — 89일 전체를 늘 보면 최근 변화가 뭉개진다. state.days로 서버에 넘긴다.
+  const ranges = [[null,'전체'],[30,'최근 30일'],[7,'최근 7일']];
+  const picker = ranges.map(([v,label]) =>
+    `<span class="rng ${(state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+
+  $('view').innerHTML=`
+    <div class="vhead">
+      <div class="vtitle">${d.machine} · 실제 불량 발생</div>
+      <div class="vsub">Health Index(터지기 전 조짐)와 분리된 축입니다</div>
+      <div class="rngbar">${picker}<span class="rng-n">${d.dates.length}일 / 전체 ${d.total_days}일</span></div>
+    </div>
+    <div class="card">
+      <div class="chart-t">일별 불량률 (%)</div>
+      <div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="var(--border)"/>
+        <line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--border)"/>
+        <text x="${padL-6}" y="${padT+4}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${vMax.toFixed(1)}%</text>
+        <text x="${padL-6}" y="${H-padB}" font-size="9" fill="var(--ink-faint)" text-anchor="end">0</text>
+        ${paths}
+        <text x="${padL}" y="${H-28}" font-size="9" fill="var(--ink-faint)">${d.dates[0]}</text>
+        <text x="${W-padR}" y="${H-28}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${d.dates.at(-1)}</text>
+        ${legend}
+      </svg></div>
+      ${noWatch.length ? `<div class="note"><b>감시 수단 없음</b> — ${noWatch.map(s=>s.defect).join(', ')}은 관계DB에 경보로 쓸 수 있는 원인 인자가 없습니다. 불량은 실제로 나고 있지만 Health Index로는 미리 잡히지 않습니다.</div>` : ''}
+      <div class="meta">${d.series.map(s=>`${s.defect} 최대 <b>${s.max_pct}%</b>`).join(' · ')}</div>
+    </div>`;
+
+  $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
+    setState({days: el.dataset.days ? Number(el.dataset.days) : null}));
+}
+
+// ===================================================================
+// 뷰 3 — Product×Recipe 히트맵. 장비는 격자에 안 넣는다(216칸이 되면 못 읽는다).
+// ===================================================================
+function renderHeatmap(d){
+  // 색 눈금 천장은 이 변수의 4대 공통 최댓값이다 — 장비를 바꿔가며 봤을 때 색이
+  // 비교 가능해야 한다(장비별 최댓값으로 정규화하면 어느 장비든 격자가 새빨개진다).
+  const max=d.scale_max||d.max||1;
+  const cells=d.products.map((p,i)=>{
+    const row=`<div class="hm-lab row">${p}</div>` + d.recipes.map((r,j)=>{
+      const v=d.rows[i][j];
+      if(v==null) return `<div class="hm-cell" style="background:var(--surface-2);color:var(--ink-faint)">–</div>`;
+      const t=Math.round((v/max)*100);
+      return `<div class="hm-cell" title="${p} × ${r} — ${v}%"
+        style="background:color-mix(in srgb, var(--critical) ${t}%, var(--surface-2));
+               color:${t>55?'#fff':'var(--ink)'}">${v}</div>`;
+    }).join('');
+    return row;
+  }).join('');
+  const header=`<div class="hm-lab"></div>` + d.recipes.map(r=>`<div class="hm-lab">${r.replace('RCP_','R')}</div>`).join('');
+
+  $('view').innerHTML=`
+    <div class="vhead">
+      <div class="vtitle">${d.machine} · ${d.factor}</div>
+      <div class="vsub">Product × Recipe 조합별 ${d.unit}</div>
+    </div>
+    <div class="card">
+      <div class="hm" style="grid-template-columns:64px repeat(${d.recipes.length}, 1fr)">
+        ${header}${cells}
+      </div>
+      <div class="legend">
+        <span>0%</span><span class="legend-bar"></span><span>${max}%</span>
+        <span style="margin-left:10px">이 장비 최고 ${d.max}% · 평균 ${d.mean}%</span>
+        <span style="margin-left:auto;color:var(--ink-faint)">눈금은 4대 공통</span>
+      </div>
+      <div class="note">
+        ${d.concentrated
+          ? `<b>${d.hotspot.product} × ${d.hotspot.recipe}</b>에 집중돼 있습니다 (${d.hotspot.value}%, 평균의 ${(d.hotspot.value/d.mean).toFixed(1)}배) — 이 조합을 점검 대상으로 지목할 수 있습니다.`
+          : `특정 조합에 몰려 있지 않고 <b>${d.products.length * d.recipes.length}개 조합 전반</b>에 고르게 퍼져 있습니다 (최고 ${d.max}% / 평균 ${d.mean}%) — 레시피 문제가 아니라 설비·공정 전반의 문제로 읽어야 합니다.`}
+      </div>
+    </div>`;
+}
+
+// ===================================================================
+// 뷰 4 — 장비 비교. 기준선은 4대 공통이다(baseline이 Product×Recipe 층에서 잡히므로).
+// ===================================================================
+function renderCompare(d){
+  const W=640,H=250,padL=52,padR=16,padT=14,padB=44;
+  const n=d.dates.length;
+  const has=v=>v!==null&&v!==undefined;
+  const flat=d.machines.flatMap(m=>m.values).filter(has);
+  const allVals=flat.concat([d.baseline_median], has(d.control_lsl)?[d.control_lsl]:[], has(d.control_usl)?[d.control_usl]:[]);
+  let vMin=Math.min(...allVals), vMax=Math.max(...allVals);
+  const pad=(vMax-vMin)*0.08||Math.abs(vMax)*0.05||1; vMin-=pad; vMax+=pad;
+  const x=i=>padL+(i/(n-1))*(W-padL-padR);
+  const y=v=>padT+(1-(v-vMin)/(vMax-vMin))*(H-padT-padB);
+  const hline=(v,color,dashed)=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="${color}" stroke-width="1"${dashed?' stroke-dasharray="4 3"':''}/>`;
+  const side=d.score_side||'both';
+  const scoresUp=side==='both'||side==='upper', scoresLo=side==='both'||side==='lower';
+
+  const paths=d.machines.map(m=>{
+    const color=MACHINE_COLORS[m.machine_id]||'var(--ink-muted)';
+    let path='',pen=false,lastI=-1;
+    m.values.forEach((v,i)=>{
+      if(!has(v)){pen=false;return;}
+      path+=`${pen?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)} `; pen=true; lastI=i;
+    });
+    const dot=lastI>=0?`<circle cx="${x(lastI).toFixed(1)}" cy="${y(m.values[lastI]).toFixed(1)}" r="3" fill="${color}"/>`:'';
+    return `<path d="${path.trim()}" fill="none" stroke="${color}" stroke-width="1.6" opacity="0.9"/>${dot}`;
+  }).join('');
+
+  const legend=d.machines.map((m,i)=>{
+    const color=MACHINE_COLORS[m.machine_id]||'var(--ink-muted)';
+    const lx=padL+i*128;
+    return `<line x1="${lx}" y1="${H-12}" x2="${lx+13}" y2="${H-12}" stroke="${color}" stroke-width="2.5"/>`
+      +`<text x="${lx+17}" y="${H-9}" font-size="9.5" fill="var(--ink-muted)">${m.machine_id}${m.alert_active_days!=null?` 경보 ${m.alert_active_days}일`:''}</text>`;
+  }).join('');
+
+  $('view').innerHTML=`
+    <div class="vhead">
+      <div class="vtitle">${d.factor} · 장비 4대 비교</div>
+      <div class="vsub">기준선은 4대 공통입니다 — 같은 자로 재서 어느 장비가 벗어났는지 봅니다</div>
+    </div>
+    <div class="card">
+      <div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+        ${has(d.control_usl)?hline(d.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
+        ${has(d.control_lsl)?hline(d.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
+        ${hline(d.baseline_median,'var(--ink-faint)',false)}
+        ${paths}
+        <text x="${padL}" y="${H-28}" font-size="9" fill="var(--ink-faint)">${d.dates[0]}</text>
+        <text x="${W-padR}" y="${H-28}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${d.dates.at(-1)}</text>
+        ${has(d.control_usl)?`<text x="${W-padR}" y="${(y(d.control_usl)-4).toFixed(1)}" font-size="9" fill="${scoresUp?'var(--critical)':'var(--ink-faint)'}" text-anchor="end">관리상한 ${d.control_usl}</text>`:''}
+        ${has(d.control_lsl)?`<text x="${W-padR}" y="${(y(d.control_lsl)+11).toFixed(1)}" font-size="9" fill="${scoresLo?'var(--critical)':'var(--ink-faint)'}" text-anchor="end">관리하한 ${d.control_lsl}</text>`:''}
+        <text x="${W-padR}" y="${(y(d.baseline_median)-4).toFixed(1)}" font-size="9" fill="var(--ink-faint)" text-anchor="end">정상값 ${d.baseline_median}</text>
+        ${legend}
+      </svg></div>
+    </div>`;
+}
+
+// ===================================================================
+// 에이전트 — 자연어를 "선택 UI의 단축키"로 쓴다. 답변에 딸려온 view_state로
+// 화면을 옮기므로, 질문이 갈 수 있는 곳은 여전히 위 4개 뷰뿐이다.
+// ===================================================================
+function md(s){
+  const inline=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
+  let html='',inList=false;
+  for(const line of String(s).split('\n')){
+    if(/^#{1,3}\s+/.test(line)){ if(inList){html+='</ul>';inList=false;} html+=`<h3>${inline(line.replace(/^#{1,3}\s+/,''))}</h3>`; }
+    else if(/^\s*-\s+/.test(line)){ if(!inList){html+='<ul>';inList=true;} html+=`<li>${inline(line.replace(/^\s*-\s+/,''))}</li>`; }
+    else { if(inList){html+='</ul>';inList=false;} if(line.trim()) html+=`<p>${inline(line)}</p>`; }
+  }
+  return html + (inList?'</ul>':'');
+}
+
+let sending=false;
+async function ask(question){
+  if(sending || !question.trim()) return;
+  sending=true; $('send').disabled=true;
+  const msgs=$('msgs');
+  msgs.insertAdjacentHTML('beforeend', `<div class="m u">${esc(question)}</div>`);
+  $('q').value='';
+  const typing=document.createElement('div');
+  typing.className='m a'; typing.textContent='…';
+  msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
+  try{
+    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question})});
+    const data=await res.json();
+    typing.remove();
+    if(!res.ok || data.error){
+      msgs.insertAdjacentHTML('beforeend', `<div class="m a err">${esc(data.error||'오류가 발생했습니다.')}</div>`);
+    } else {
+      msgs.insertAdjacentHTML('beforeend', `<div class="m a">${md(data.answer||'(응답 없음)')}</div>`);
+      if(data.view_state){
+        const s=data.view_state;
+        msgs.insertAdjacentHTML('beforeend',
+          `<div class="jump">화면을 ${s.machine?s.machine+' · ':''}${esc(s.factor||'')}로 옮겼습니다</div>`);
+        setState(s);
+      }
+    }
+  }catch(err){
+    typing.remove();
+    msgs.insertAdjacentHTML('beforeend', `<div class="m a err">서버에 연결할 수 없습니다: ${esc(err.message)}</div>`);
+  }finally{
+    sending=false; $('send').disabled=false; msgs.scrollTop=msgs.scrollHeight; $('q').focus();
+  }
+}
+
+$('send').onclick=()=>ask($('q').value);
+$('q').onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); ask($('q').value); } };
+$('closeAgent').onclick=()=>$('app').classList.add('agent-closed');
+$('reopenAgent').onclick=()=>$('app').classList.remove('agent-closed');
+
+boot();
+</script>
+</body>
+</html>
