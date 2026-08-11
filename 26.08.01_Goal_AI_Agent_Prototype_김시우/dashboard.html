@@ -89,6 +89,31 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .tab:hover{color:var(--ink)}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 .view{flex:1;overflow-y:auto;padding:18px 22px}
+
+/* ---------- 패널 그리드 ----------
+   1개는 한 칸, 2개는 좌우, 3개부터는 2열이고 넘치는 만큼 아래로 쌓여 세로 스크롤이
+   된다(2x2가 화면에 들어오고 5번째부터는 스크롤). 열을 3개 이상으로 쪼개면 축
+   글자가 못 읽을 크기가 돼서 여기서 멈춘다. */
+.panes{display:grid;gap:16px;align-items:start}
+.panes.n1{grid-template-columns:1fr}
+.panes.n2,.panes.n3{grid-template-columns:1fr 1fr}
+
+.pane{min-width:0;border:1px solid transparent;border-radius:12px}
+/* 조작 중인 패널이 어느 것인지 보이게 — 고정된 것과 섞이면 사이드바가 무엇을
+   바꾸는지 알 수 없다. */
+.pane.live{border-color:var(--accent)}
+.pane.pinned{border-color:var(--border);background:rgba(127,127,127,.04)}
+
+.pane-head{display:flex;align-items:center;gap:8px;padding:7px 10px 0}
+.pane-tag{font:600 11px var(--font-mono);letter-spacing:.04em}
+.pane.live .pane-tag{color:var(--accent)}
+.pane.pinned .pane-tag{color:var(--ink-faint)}
+.pane-acts{margin-left:auto;display:flex;gap:3px}
+.pane-acts button{background:none;border:1px solid transparent;border-radius:7px;
+  padding:3px 9px;font:600 11.5px var(--font-ui);line-height:1.5;cursor:pointer;color:var(--ink-faint)}
+.pane-acts button:hover{background:var(--surface-2);color:var(--ink)}
+.pane-acts button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.pane-body{padding:4px 10px 10px}
 .vhead{display:flex;align-items:baseline;gap:9px;margin-bottom:14px;flex-wrap:wrap}
 .vtitle{font-size:18px;font-weight:700}
 .vsub{font-size:12.5px;color:var(--ink-muted)}
@@ -146,7 +171,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 .legend-bar{height:10px;width:170px;border-radius:5px;
   background:linear-gradient(to right, var(--surface-2), var(--critical))}
 
-.chart svg{display:block;width:100%}
+/* height 속성을 안 준다 — viewBox 비율대로 폭에 맞춰 높이가 따라온다.
+   예전엔 height=210으로 고정돼 있어서, 카드가 640보다 넓으면 배율이 1로 묶이고
+   그림이 가운데 640px에만 그려졌다(좌우 400px씩 빈 공간). 패널을 2x2로 쪼개면
+   반대로 배율이 0.7까지 떨어져 축 글자가 안 읽혔다. 비율을 따라가게 두면 둘 다 없다. */
+.chart svg{display:block;width:100%;height:auto}
 .chart svg.ix{cursor:crosshair}
 .chart-t{font-size:12px;color:var(--ink-muted);margin-bottom:5px}
 
@@ -245,7 +274,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);
 
     <div class="main">
       <div class="tabs" id="tabs"></div>
-      <div class="view" id="view"><div class="empty">불러오는 중…</div></div>
+      <div class="view" id="view"><div class="panes n1" id="panes"></div></div>
     </div>
 
     <div class="agent">
@@ -286,7 +315,39 @@ const DEFECT_COLORS = {Chipping:'#5b54e8', Remain_Coat:'#d98324', Particle:'#0ca
 const MACHINE_COLORS = {DP01:'#5b54e8', DP02:'#0ca30c', DP03:'#d98324', DP04:'#d03b3b'};
 
 let BOOT = null;
-let state = {view:'trend', machine:null, factor:null, defects:['Chipping','Remain_Coat','Particle','Micro_Crack']};
+
+// ── 패널 ────────────────────────────────────────────────────────────
+// 화면은 패널 여러 개다. 예전에 "화면 하나"가 전역으로 들고 있던 것(선택 상태 ·
+// 받아온 데이터 · 확대 구간 · 요청 토큰)을 패널마다 따로 갖는다.
+//
+// 규칙이 하나뿐이라 단순하다: **고정되지 않은 패널이 항상 정확히 하나 있고,
+// 사이드바·탭·스트립은 그 패널만 바꾼다.** 고정(📌)하면 그 패널은 얼어붙고
+// 같은 내용의 새 패널이 옆에 생긴다 — 그다음 선택부터는 새 패널이 받는다.
+const DEFAULT_STATE = {view:'trend', machine:null, factor:null,
+                       defects:['Chipping','Remain_Coat','Particle','Micro_Crack']};
+let panes = [];
+let paneSeq = 0;
+
+const newPane = init => ({
+  id: 'pane' + (++paneSeq),
+  el: null, body: null,          // DOM
+  pinned: false,
+  state: JSON.parse(JSON.stringify(init)),
+  data: null,                    // /api/view 응답
+  zoom: null,                    // {from,to} — 드래그 확대
+  token: 0,                      // 늦게 도착한 응답이 최신 화면을 덮지 않게
+});
+
+// 고정 안 된 패널 = 지금 조작 중인 패널. 항상 하나 있다(pinPane이 보장한다).
+const livePane = () => panes.find(p => !p.pinned) || panes[panes.length - 1];
+
+panes.push(newPane(DEFAULT_STATE));
+
+// 기존 코드가 읽던 `state`는 이제 **조작 중인 패널의 상태**를 가리키는 별칭이다.
+// 사이드바·탭·스트립·needs()가 전부 이걸 읽으므로, 그 코드들은 그대로 둔다.
+// (패널을 지정해서 그려야 하는 곳 — renderTrend의 기간 선택기 등 — 은 별칭 대신
+//  p.state를 직접 쓴다. 활성이 아닌 패널을 그릴 때 값이 섞이면 안 되기 때문이다.)
+Object.defineProperty(globalThis, 'state', {get: () => livePane().state, configurable: true});
 // 관계 미확정 37개는 기본 접힘 — 원인/감시지표를 먼저 보게 한다(그룹 이름은 views.py의
 // GROUP_OTHER와 정확히 같아야 한다).
 const collapsed = {'관계 미확정 (안전망)': true};
@@ -319,13 +380,14 @@ async function boot(){
   try{
     BOOT = await (await fetch('/api/bootstrap')).json();
   }catch(err){
-    $('view').innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
+    $('panes').innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
     return;
   }
-  if(BOOT.error){ $('view').innerHTML = `<div class="empty">${esc(BOOT.error)}</div>`; return; }
-  Object.assign(state, BOOT.default_state);
-  renderTabs(); renderStrip(); renderSide(); renderHints(); renderIntro();
-  load();
+  if(BOOT.error){ $('panes').innerHTML = `<div class="empty">${esc(BOOT.error)}</div>`; return; }
+  Object.assign(livePane().state, BOOT.default_state);
+  syncGlobalUI(); renderHints(); renderIntro();
+  renderPanes();
+  loadPane(livePane());
 }
 
 // ---------- 장비 스트립 ----------
@@ -450,39 +512,97 @@ function renderIntro(){
 
 // ---------- 상태 전이 ----------
 function setState(patch){
-  Object.assign(state, patch);
-  renderTabs(); renderStrip(); renderSide();
-  load();
+  Object.assign(livePane().state, patch);
+  syncGlobalUI();
+  loadPane(livePane());
+}
+
+// 사이드바·탭·스트립은 "조작 중인 패널" 하나를 비추는 거울이다.
+function syncGlobalUI(){ renderTabs(); renderStrip(); renderSide(); }
+
+// ---------- 패널 그리기 ----------
+const gridClass = n => n <= 1 ? 'n1' : n === 2 ? 'n2' : 'n3';
+
+function renderPanes(){
+  const host = $('panes');
+  host.className = 'panes ' + gridClass(panes.length);
+  host.innerHTML = '';
+  for(const p of panes){
+    const el = document.createElement('section');
+    el.className = 'pane ' + (p.pinned ? 'pinned' : 'live');
+    el.dataset.id = p.id;
+    el.innerHTML = `<div class="pane-head">
+        <span class="pane-tag">${p.pinned ? '📌 고정됨' : '● 선택 중'}</span>
+        <div class="pane-acts">
+          ${p.pinned
+            ? `<button data-close title="이 패널 닫기">✕ 닫기</button>`
+            : `<button data-pin title="지금 화면을 고정하고, 다음 선택은 새 패널에 띄웁니다">📌 고정</button>`}
+        </div>
+      </div><div class="pane-body"></div>`;
+    host.appendChild(el);
+    p.el = el;
+    p.body = el.querySelector('.pane-body');
+    el.querySelector('[data-pin]')?.addEventListener('click', () => pinPane(p));
+    el.querySelector('[data-close]')?.addEventListener('click', () => closePane(p));
+    paintPane(p);
+  }
+}
+
+// 데이터가 있으면 그걸로 그리고, 없으면 안내만 띄운다(로딩은 loadPane이 건다).
+function paintPane(p){
+  if(!p.body) return;
+  if(!p.data){ p.body.innerHTML = '<div class="empty">불러오는 중…</div>'; return; }
+  ({trend:renderTrend, defect:renderDefect,
+    heatmap:renderHeatmap, compare:renderCompare}[p.data.view])(p.data, p);
+}
+
+// 고정 = 이 패널을 얼리고, 같은 내용의 새 패널을 옆에 연다. 그다음 선택부터는
+// 새 패널이 받으므로 둘이 나란히 비교된다.
+function pinPane(p){
+  p.pinned = true;
+  const np = newPane(p.state);
+  np.data = p.data;          // 같은 내용으로 시작 — 다시 불러올 필요가 없다
+  panes.push(np);
+  renderPanes();
+  syncGlobalUI();
+}
+
+function closePane(p){
+  const i = panes.indexOf(p);
+  if(i < 0) return;
+  panes.splice(i, 1);
+  if(!panes.length) panes.push(newPane(DEFAULT_STATE));   // 최소 하나는 남긴다
+  renderPanes();
+  syncGlobalUI();
 }
 
 // 요청 토큰 — 사이드바를 빠르게 연속 클릭하면 먼저 보낸 요청이 나중에 도착해서 최신
-// 화면을 덮어쓸 수 있다(변수 목록은 클릭이 빠르다). 마지막 요청의 응답만 그린다.
-let loadToken = 0;
-async function load(){
-  const token = ++loadToken;
-  $('view').innerHTML = '<div class="empty">불러오는 중…</div>';
+// 화면을 덮어쓸 수 있다(변수 목록은 클릭이 빠르다). 패널마다 따로 센다.
+async function loadPane(p){
+  const token = ++p.token;
+  if(p.body) p.body.innerHTML = '<div class="empty">불러오는 중…</div>';
   try{
     const res = await fetch('/api/view', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(state)
+      body: JSON.stringify(p.state)
     });
     const d = await res.json();
-    if(token !== loadToken) return;  // 그 사이 더 최신 요청이 나갔다
-    if(d.error){ $('view').innerHTML = `<div class="empty">${esc(d.error)}</div>`; return; }
+    if(token !== p.token) return;  // 그 사이 더 최신 요청이 나갔다
+    if(d.error){ p.body.innerHTML = `<div class="empty">${esc(d.error)}</div>`; return; }
     // 새로 받아온 구간이므로 이전 화면의 확대는 푼다(인덱스 기준이 달라진다)
-    chartZoom = null; lastFull = d;
-    ({trend:renderTrend, defect:renderDefect, heatmap:renderHeatmap, compare:renderCompare}[d.view])(d);
+    p.zoom = null; p.data = d;
+    paintPane(p);
   }catch(err){
     // 서버가 내려가 있으면 여기로 온다. 안 잡으면 "불러오는 중…"에서 영영 멈춘다.
-    if(token !== loadToken) return;
-    $('view').innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
+    if(token !== p.token) return;
+    p.body.innerHTML = `<div class="empty">서버에 연결할 수 없습니다 — ${esc(err.message)}<br>server.py가 떠 있는지 확인하세요.</div>`;
   }
 }
 
 // ===================================================================
 // 뷰 1 — 추세. 카드에는 숫자와 그림만 둔다(설명 문장은 에이전트 몫).
 // ===================================================================
-function renderTrend(d){
+function renderTrend(d, p){
   const c = d.chart, det = d.detail || {}, meta = d.meta || {};
   const margin = det.margin_used_pct;
   // 조치 긴급도는 tier 코드(T1/T2)가 아니라 한국어 그대로 보여준다 — 처음 보는 사람이
@@ -504,10 +624,10 @@ function renderTrend(d){
   // 잡는 것(경보 시작 14일 전~, 경보가 없으면 최근 30일)이고, "전체"는 89일 전부다.
   const ranges = [[null,'기본'],[89,'전체'],[30,'30일'],[7,'7일']];
   const picker = ranges.map(([v,label]) =>
-    `<span class="rng ${!chartZoom && (state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
-  const zc = zoomedChart(c);   // 드래그로 확대 중이면 그 구간만 그린다
+    `<span class="rng ${!p.zoom && (p.state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+  const zc = zoomedChart(c, p.zoom);   // 드래그로 확대 중이면 그 구간만 그린다
 
-  $('view').innerHTML = `
+  p.body.innerHTML = `
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       ${urgency ? `<span class="pill ${urgCls}">${esc(urgency)}</span>` : '<span class="pill na">확정 원인 아님</span>'}
@@ -531,7 +651,7 @@ function renderTrend(d){
         return out;
       })()}
       <div class="rngbar">${picker}<span class="rng-n">${
-        chartZoom ? `확대 ${zc.series.length}일 · 그래프 더블클릭으로 복귀`
+        p.zoom ? `확대 ${zc.series.length}일 · 그래프 더블클릭으로 복귀`
                   : `${c.series.length}일${d.total_days ? ` / 전체 ${d.total_days}일` : ''} · 드래그하면 확대`
       }</span></div>
     </div>
@@ -570,10 +690,10 @@ function renderTrend(d){
       ${renderRiskBand(meta, det, d.defect, d.factor)}
     </div>`;
 
-  $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
-    setState({days: el.dataset.days ? Number(el.dataset.days) : null}));
+  p.body.querySelectorAll('.rng').forEach(el => el.onclick = () =>
+    setPaneDays(p, el.dataset.days ? Number(el.dataset.days) : null));
   // 툴팁이 인덱스로 값을 찾으므로, 화면에 실제로 그린 구간(zc)을 넘겨야 어긋나지 않는다
-  wireChart({...d, chart: zc});
+  wireChart({...d, chart: zc}, p);
 }
 
 // "불량률이 갈리는 경계값"을 보여준다.
@@ -702,7 +822,7 @@ function renderChart(cd, threshold){
   // 기간이 바뀌어 다시 그려질 때 자동으로 갱신된다.
   const geom = JSON.stringify({W,H,padL,padR,padT,padB,n,vMin,vMax,kind:'single'});
 
-  return `<div class="chart"><svg class="ix" data-geom='${geom}' viewBox="0 0 ${W} ${H}" height="${H}">
+  return `<div class="chart"><svg class="ix" data-geom='${geom}' viewBox="0 0 ${W} ${H}">
     ${defectArea}${specLines}${alertMark}
     ${hasUsl?hline(cd.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
     ${hasLsl?hline(cd.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
@@ -722,7 +842,7 @@ function renderChart(cd, threshold){
 // ===================================================================
 // 뷰 2 — 실제 불량 발생. Health Index(조짐)와 축이 다르므로 뷰를 분리했다.
 // ===================================================================
-function renderDefect(d){
+function renderDefect(d, p){
   const W=640,H=250,padL=46,padR=14,padT=14,padB=44;
   const n=d.dates.length;
   const flat=d.series.flatMap(s=>s.values).filter(v=>v!=null);
@@ -752,9 +872,9 @@ function renderDefect(d){
   // 기간 선택 — 89일 전체를 늘 보면 최근 변화가 뭉개진다. state.days로 서버에 넘긴다.
   const ranges = [[null,'전체'],[30,'최근 30일'],[7,'최근 7일']];
   const picker = ranges.map(([v,label]) =>
-    `<span class="rng ${(state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
+    `<span class="rng ${(p.state.days ?? null) === v ? 'on' : ''}" data-days="${v ?? ''}">${label}</span>`).join('');
 
-  $('view').innerHTML=`
+  p.body.innerHTML=`
     <div class="vhead">
       <div class="vtitle">${d.machine} · 실제 불량 발생</div>
       <div class="vsub">Health Index(터지기 전 조짐)와 분리된 축입니다</div>
@@ -762,7 +882,7 @@ function renderDefect(d){
     </div>
     <div class="card">
       <div class="chart-t">일별 불량률 (%)</div>
-      <div class="chart"><svg viewBox="0 0 ${W} ${H}" height="${H}">
+      <div class="chart"><svg viewBox="0 0 ${W} ${H}">
         <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="var(--border)"/>
         <line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--border)"/>
         <text x="${padL-6}" y="${padT+4}" font-size="9" fill="var(--ink-faint)" text-anchor="end">${vMax.toFixed(1)}%</text>
@@ -776,14 +896,14 @@ function renderDefect(d){
       <div class="meta">${d.series.map(s=>`${s.defect} 최대 <b>${s.max_pct}%</b>`).join(' · ')}</div>
     </div>`;
 
-  $('view').querySelectorAll('.rng').forEach(el => el.onclick = () =>
-    setState({days: el.dataset.days ? Number(el.dataset.days) : null}));
+  p.body.querySelectorAll('.rng').forEach(el => el.onclick = () =>
+    setPaneDays(p, el.dataset.days ? Number(el.dataset.days) : null));
 }
 
 // ===================================================================
 // 뷰 3 — Product×Recipe 히트맵. 장비는 격자에 안 넣는다(216칸이 되면 못 읽는다).
 // ===================================================================
-function renderHeatmap(d){
+function renderHeatmap(d, p){
   // 색 눈금 천장은 이 변수의 4대 공통 최댓값이다 — 장비를 바꿔가며 봤을 때 색이
   // 비교 가능해야 한다(장비별 최댓값으로 정규화하면 어느 장비든 격자가 새빨개진다).
   const max=d.scale_max||d.max||1;
@@ -800,7 +920,7 @@ function renderHeatmap(d){
   }).join('');
   const header=`<div class="hm-lab"></div>` + d.recipes.map(r=>`<div class="hm-lab">${r.replace('RCP_','R')}</div>`).join('');
 
-  $('view').innerHTML=`
+  p.body.innerHTML=`
     <div class="vhead">
       <div class="vtitle">${d.machine} · ${d.factor}</div>
       <div class="vsub">Product × Recipe 조합별 ${d.unit}</div>
@@ -825,8 +945,8 @@ function renderHeatmap(d){
 // ===================================================================
 // 뷰 4 — 장비 비교. 기준선은 4대 공통이다(baseline이 Product×Recipe 층에서 잡히므로).
 // ===================================================================
-function renderCompare(d){
-  d = zoomedCompare(d);   // 드래그로 확대 중이면 그 구간만 — 아래 전부가 이걸 쓴다
+function renderCompare(d, p){
+  d = zoomedCompare(d, p.zoom);   // 드래그로 확대 중이면 그 구간만 — 아래 전부가 이걸 쓴다
   const W=640,H=250,padL=52,padR=16,padT=14,padB=44;
   const n=d.dates.length;
   const has=v=>v!==null&&v!==undefined;
@@ -863,19 +983,19 @@ function renderCompare(d){
                  fill="${m.alert_level==='full'?'var(--critical)':'var(--ink-faint)'}"> 경보 ${alertDays(m.alert_active_days)}</text>`);
   }).join('');
 
-  $('view').innerHTML=`
+  p.body.innerHTML=`
     <div class="vhead">
       <div class="vtitle">${d.factor} · 장비 4대 비교</div>
       <div class="vsub">기준선은 4대 공통입니다 — 같은 자로 재서 어느 장비가 벗어났는지 봅니다</div>
       <div class="rngbar"><span class="rng-n">${
-        chartZoom ? `확대 ${n}일 · 그래프 더블클릭으로 복귀` : `${n}일 · 드래그하면 확대`}</span></div>
+        p.zoom ? `확대 ${n}일 · 그래프 더블클릭으로 복귀` : `${n}일 · 드래그하면 확대`}</span></div>
     </div>
     <div class="card">
       <div class="chart-acts">
         <button data-png title="그래프를 PNG로 저장">⬇ PNG</button>
         <button data-copy title="현재값을 텍스트로 복사">📋 복사</button>
       </div>
-      <div class="chart"><svg class="ix" data-geom='${JSON.stringify({W,H,padL,padR,padT,padB,n,vMin,vMax,kind:'compare'})}' viewBox="0 0 ${W} ${H}" height="${H}">
+      <div class="chart"><svg class="ix" data-geom='${JSON.stringify({W,H,padL,padR,padT,padB,n,vMin,vMax,kind:'compare'})}' viewBox="0 0 ${W} ${H}">
         ${has(d.control_usl)?hline(d.control_usl,scoresUp?'var(--critical)':'var(--ink-faint)',true):''}
         ${has(d.control_lsl)?hline(d.control_lsl,scoresLo?'var(--critical)':'var(--ink-faint)',true):''}
         ${hline(d.baseline_median,'var(--ink-faint)',false)}
@@ -889,7 +1009,7 @@ function renderCompare(d){
       </svg></div>
     </div>`;
 
-  wireChart(d);
+  wireChart(d, p);
 }
 
 // ===================================================================
@@ -906,26 +1026,25 @@ const hideTip = () => { $('chartTip').style.display = 'none'; };
 // 부르지 않고 화면에서만 잘라서 즉시 반응한다(기간 버튼은 서버 왕복이라 성격이
 // 다르다 — 버튼은 "얼마나 받아올지", 드래그는 "받아온 것 중 어디를 볼지").
 // 다른 변수/장비를 고르거나 기간 버튼을 누르면 load()에서 풀린다.
-let chartZoom = null;
-let lastFull = null;   // 확대 해제 시 되돌릴 원본 뷰 데이터
+// 확대 구간은 패널마다 따로다(p.zoom) — 한쪽은 7일, 한쪽은 전체를 볼 수 있어야 비교가 된다.
+const zoomSlice = (arr, z) => z ? arr.slice(z.from, z.to + 1) : arr;
 
-const zoomSlice = arr => chartZoom ? arr.slice(chartZoom.from, chartZoom.to + 1) : arr;
-
-function zoomedChart(c){
-  if(!chartZoom) return c;
-  const out = {...c, series: zoomSlice(c.series)};
-  if(c.defect_series) out.defect_series = zoomSlice(c.defect_series);
+function zoomedChart(c, z){
+  if(!z) return c;
+  const out = {...c, series: zoomSlice(c.series, z)};
+  if(c.defect_series) out.defect_series = zoomSlice(c.defect_series, z);
   return out;
 }
-function zoomedCompare(d){
-  if(!chartZoom) return d;
-  return {...d, dates: zoomSlice(d.dates),
-          machines: d.machines.map(m => ({...m, values: zoomSlice(m.values)}))};
+function zoomedCompare(d, z){
+  if(!z) return d;
+  return {...d, dates: zoomSlice(d.dates, z),
+          machines: d.machines.map(m => ({...m, values: zoomSlice(m.values, z)}))};
 }
-function redrawChart(){
-  if(!lastFull) return;
-  ({trend: renderTrend, defect: renderDefect,
-    heatmap: renderHeatmap, compare: renderCompare}[lastFull.view])(lastFull);
+// 기간 버튼은 그 패널만 바꾼다 — 고정된 패널도 기간은 바꿔볼 수 있어야 한다.
+function setPaneDays(p, days){
+  p.state.days = days;
+  if(!p.pinned) syncGlobalUI();
+  loadPane(p);
 }
 
 function fmtNum(v){
@@ -979,7 +1098,7 @@ function buildTip(d, i){
   return h;
 }
 
-function attachCrosshair(svg, d){
+function attachCrosshair(svg, d, p){
   let geom;
   try{ geom = JSON.parse(svg.dataset.geom || '{}'); }catch(_){ return; }
   if(!geom.n || geom.n < 2) return;
@@ -1105,13 +1224,13 @@ function attachCrosshair(svg, d){
     const a = Math.min(dragStart, i), b = Math.max(dragStart, i);
     if(b - a < 1) return;                      // 그냥 클릭 — 확대하지 않는다
     // 지금 보이는 구간의 인덱스를 원본(로드된 시리즈) 인덱스로 되돌린다
-    const base = chartZoom ? chartZoom.from : 0;
-    chartZoom = {from: base + a, to: base + b};
-    redrawChart();
+    const base = p.zoom ? p.zoom.from : 0;
+    p.zoom = {from: base + a, to: base + b};
+    paintPane(p);
   });
   svg.addEventListener('dblclick', e => {
     e.stopPropagation();
-    if(chartZoom){ chartZoom = null; redrawChart(); }
+    if(p.zoom){ p.zoom = null; paintPane(p); }
   });
 }
 
@@ -1271,11 +1390,11 @@ function toast(msg){
 }
 
 // 뷰를 그린 뒤 한 번 호출 — 크로스헤어와 내보내기 버튼을 연결한다.
-function wireChart(d){
+function wireChart(d, p){
   hideTip();
-  const svg = $('view').querySelector('svg.ix');
-  if(svg) attachCrosshair(svg, d);
-  const acts = $('view').querySelector('.chart-acts');
+  const svg = p.body.querySelector('svg.ix');
+  if(svg) attachCrosshair(svg, d, p);
+  const acts = p.body.querySelector('.chart-acts');
   if(!acts) return;
   const title = d.view === 'compare' ? `${d.factor} · 장비 4대 비교` : `${d.machine} · ${d.factor}`;
   acts.querySelector('[data-png]').onclick = () => exportPNG(svg, d, title);
