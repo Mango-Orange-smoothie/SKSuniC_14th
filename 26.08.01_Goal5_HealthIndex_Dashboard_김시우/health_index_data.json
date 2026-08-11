@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T21:21:13.926974",
+  "generated_at": "2026-08-11T22:23:48.223443",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -120,7 +120,7 @@
       "mechanism": "CLN_Pressure 감소 → Remain_Coat 증가",
       "tier": "T1",
       "role": "원인(FDC)",
-      "action_type": "급락알람",
+      "action_type": "즉시조치",
       "actionable": true,
       "cliffs_delta": -0.2466,
       "rf_rank": "3/39",
@@ -135,7 +135,7 @@
       "per_defect": {
         "Remain_Coat": {
           "tier": "T1",
-          "action_type": "급락알람",
+          "action_type": "즉시조치",
           "threshold_raw": 297.272,
           "normal_range": "297.63 ~ 303.34",
           "risky_range": "294.65 ~ 297.04",
