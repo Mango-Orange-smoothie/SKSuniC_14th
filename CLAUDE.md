@@ -77,6 +77,14 @@ C유형 경계값은 Product×Recipe 54개 그룹마다 따로 학습하는데, 
 
 ## 검증 방법
 
+**먼저 유닛 테스트** — 2초, 원자료를 안 읽습니다. 위 규칙들(3·5 / 1·2 / 6)을 함수 단위로
+검사하므로 깨진 지점을 바로 짚어줍니다. 아래 전체 실행은 이게 통과한 뒤에 하세요.
+```bash
+python3 -m pytest tests -q
+```
+무엇을 왜 검사하는지는 `tests/README.md`.
+
+전체 실행:
 ```bash
 python3 "26.08.01_Goal5_HealthIndex_Dashboard_김시우/build_health_index.py"
 ```
