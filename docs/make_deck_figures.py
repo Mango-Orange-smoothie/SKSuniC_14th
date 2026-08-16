@@ -222,8 +222,63 @@ def fig_overlap():
     save(fig, "발표_그림_판정분담.png")
 
 
+# ====================================================== ⑤ 경보 행 → 경보 건수
+# 51,037 / 41,714 / 5,927 / 128 / 44 / 9 는 전부 실측이다:
+#   행    = trend_analysis_results.csv 행 수
+#   샷    = (장비,제품,레시피,컬럼,DateTime) 중복 제거
+#   사건  = (장비,제품,레시피,컬럼,episode_id) 고유 수
+#   조합  = (장비,컬럼) 고유 수
+#   화면  = 01_level_trend의 early_warning_active 합계, full은 alert_level
+def fig_funnel():
+    steps = [
+        ("100,000", "샷 전체", "34개 컬럼 전부에 판정을 돌린다", None, MUTED, "#EDF1F5"),
+        ("51,037", "저장된 경보 행", "경보가 켜진 행만 파일에 쓴다",
+         "경보 켜진 행만 남긴다", INK, BOX_BG),
+        ("41,714", "경보 샷", "한 컬럼이 두 defect의 원인이면 같은 샷이 두 행이 된다",
+         "짝(인자, defect) 중복을 접는다", INK, BOX_BG),
+        ("5,927", "독립 사건 (episode)",
+         "(장비, 제품, 레시피, 컬럼) 안에서 끊기지 않은 구간 하나 = 사건 하나",
+         "연속된 경보를 사건 하나로 묶는다", INK, BOX_BG),
+        ("128", "(장비, 컬럼) 조합",
+         "엔지니어가 보는 건 레시피별 조각이 아니라 \"이 장비의 이 변수\"다",
+         "제품 · 레시피 축을 접는다", INK, BOX_BG),
+        ("44", "화면에 뜨는 경보", "마지막 경보가 하루 안쪽이면 지금도 켜져 있는 것으로 본다",
+         "지금도 진행 중인 것만 남긴다", GREEN, GREEN_BG),
+        ("9", "그중 full", "세기 ≥ 1.0 — 점수를 최대폭까지 깎은 경보만 강조 표시",
+         "세기로 한 번 더 가른다", GREEN, GREEN_BG),
+    ]
+    ROW, GAP = 0.86, 0.40
+    W = 11.4
+    H = 0.30 + len(steps) * ROW + (len(steps) - 1) * GAP + 1.30
+    fig, ax = canvas(W, H)
+    y = H - 0.30
+    for i, (num, label, why, action, tc, bg) in enumerate(steps):
+        yb = y - ROW
+        box(ax, 0, yb, W, ROW, fc=bg)
+        ax.text(2.05, yb + ROW * 0.60, num, fontsize=19, color=tc,
+                fontweight="bold", ha="right", va="center")
+        ax.text(2.30, yb + ROW * 0.62, label, fontsize=11.5, color=tc,
+                fontweight="bold", va="center")
+        ax.text(2.30, yb + ROW * 0.26, why, fontsize=9.6, color=MUTED, va="center")
+        y = yb
+        if i < len(steps) - 1:
+            _, nxt_action = steps[i + 1][0], steps[i + 1][3]
+            arrow(ax, 1.15, y - 0.06, y - GAP + 0.06)
+            ax.text(1.38, y - GAP / 2, nxt_action, fontsize=10, color=INK_SOFT,
+                    va="center")
+            y -= GAP
+    ax.text(0, y - 0.22,
+            "사건 5,927개인데 조합이 128개인 이유 — 제품·레시피가 날마다 바뀌므로 "
+            "한 그룹의 경보는 자연히 끊긴다.\n"
+            "그래서 사건 단위로 지속일을 재면 DP03 Surface_Roughness가 224조각으로 "
+            "쪼개져 \"0.1일째\"로 표시됐다. 조합 단위로 이어붙여 고쳤다.",
+            fontsize=9.4, color=MUTED, va="top", linespacing=1.6)
+    save(fig, "발표_그림_경보건수.png")
+
+
 if __name__ == "__main__":
     fig_flow()
     fig_stump()
     fig_persist()
     fig_overlap()
+    fig_funnel()

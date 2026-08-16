@@ -310,56 +310,53 @@ const T = (v, o = {}) => ({ text: v, options: { fontFace: F, fontSize: 11, color
 
 /* ═══════════════════════════════ 6. 사건화 · 세기 */
 {
-  const s = slide("결론", "PIPELINE 02", "경보를 사건으로, 그리고 세기로",
-    "❖ early_warning은 상태다. 이상이 지속되면 매 샷 True가 되므로 그대로 세면 안 된다.");
+  const s = slide("결론", "PIPELINE 02", "경보 행 51,037에서 경보 44건까지",
+    "❖ early_warning은 상태다. 이상이 지속되면 매 샷 True가 되므로 행을 그대로 세면 안 된다.");
 
-  stat(s, M, 1.82, 3.0, 1.10, "51,037", "경보 행", INK, BG);
-  s.addText("→", { x: 3.72, y: 2.16, w: 0.5, h: 0.4, fontFace: F, fontSize: 18, color: MUTED, align: "center" });
-  stat(s, 4.22, 1.82, 3.0, 1.10, "5,927", "독립 사건 (episode)", INK, BG);
-  s.addText("→", { x: 7.32, y: 2.16, w: 0.5, h: 0.4, fontFace: F, fontSize: 18, color: MUTED, align: "center" });
-  stat(s, 7.82, 1.82, 3.0, 1.10, "44", "화면에 뜨는 경보", GREEN, GBG);
+  s.addImage({ path: D + "발표_그림_경보건수.png", x: M, y: 1.74, w: 5.51, h: 4.86 });
 
-  s.addText("같은 (장비, 제품, 레시피, 컬럼) 안에서 early_warning이 False → True로 바뀔 때마다 episode_id + 1", {
-    x: M, y: 3.06, w: CW, h: 0.30, fontFace: F, fontSize: 11, color: SOFT,
-  });
-
-  s.addShape(pptx.ShapeType.line, { x: M, y: 3.52, w: CW, h: 0, line: { color: HAIR, width: 0.75 } });
-  s.addText("그리고 세기 — 44건이 다 같은 경보가 아니다", {
-    x: M, y: 3.66, w: CW, h: 0.32, fontFace: F, fontSize: 15, color: INK, bold: true,
+  const bx = 6.42, bw = W - M - bx;
+  s.addText("44건이 다 같은 경보가 아니다", {
+    x: bx, y: 1.78, w: bw, h: 0.32, fontFace: F, fontSize: 15, color: INK, bold: true,
   });
 
   s.addShape(pptx.ShapeType.roundRect, {
-    x: M, y: 4.08, w: 6.1, h: 1.32, fill: { color: BG }, line: { type: "none" }, rectRadius: 0.08,
+    x: bx, y: 2.20, w: bw, h: 1.30, fill: { color: BG }, line: { type: "none" }, rectRadius: 0.08,
   });
   s.addText([
-    { text: "성숙도 = min(1,  경보 지속일 / 14)      증거가 쌓였나", options: { breakLine: true } },
-    { text: "긴급도 = min(1,  14 / 도달 예상일)      곧 넘나", options: { breakLine: true } },
+    { text: "성숙도 = min(1,  지속일 / 14)     증거가 쌓였나", options: { breakLine: true } },
+    { text: "긴급도 = min(1,  14 / 도달예상일)  곧 넘나", options: { breakLine: true } },
     { text: "세기   = max(성숙도, 긴급도)", options: {} },
   ], {
-    x: M + 0.24, y: 4.24, w: 5.6, h: 1.0, fontFace: "Courier New", fontSize: 11,
+    x: bx + 0.22, y: 2.34, w: bw - 0.44, h: 1.02, fontFace: "Courier New", fontSize: 10.5,
     color: INK, lineSpacingMultiple: 1.5,
   });
 
-  s.addShape(pptx.ShapeType.roundRect, { x: 7.05, y: 4.08, w: 2.72, h: 1.32, fill: { color: GBG }, line: { type: "none" }, rectRadius: 0.08 });
-  s.addText("full", { x: 7.05, y: 4.20, w: 2.72, h: 0.30, fontFace: F, fontSize: 15, color: GREEN, bold: true, align: "center" });
-  s.addText("세기 ≥ 1.0 · 9건", { x: 7.05, y: 4.56, w: 2.72, h: 0.26, fontFace: F, fontSize: 10.5, color: SOFT, align: "center" });
-  s.addText("지속 25.4 ~ 59.5일", { x: 7.05, y: 4.84, w: 2.72, h: 0.26, fontFace: F, fontSize: 10.5, color: MUTED, align: "center" });
-  s.addText("점수를 최대폭까지 깎음", { x: 7.05, y: 5.08, w: 2.72, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, align: "center" });
+  s.addShape(pptx.ShapeType.roundRect, { x: bx, y: 3.62, w: bw / 2 - 0.10, h: 1.36, fill: { color: GBG }, line: { type: "none" }, rectRadius: 0.08 });
+  s.addText("full", { x: bx, y: 3.74, w: bw / 2 - 0.10, h: 0.32, fontFace: F, fontSize: 16, color: GREEN, bold: true, align: "center" });
+  s.addText("9건", { x: bx, y: 4.10, w: bw / 2 - 0.10, h: 0.28, fontFace: F, fontSize: 12.5, color: GREEN, bold: true, align: "center" });
+  s.addText("지속 25.4 ~ 59.5일", { x: bx, y: 4.42, w: bw / 2 - 0.10, h: 0.26, fontFace: F, fontSize: 10, color: SOFT, align: "center" });
+  s.addText("점수를 최대폭까지 깎음", { x: bx, y: 4.66, w: bw / 2 - 0.10, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, align: "center" });
 
-  s.addShape(pptx.ShapeType.roundRect, { x: 9.99, y: 4.08, w: 2.72, h: 1.32, fill: { color: BG }, line: { type: "none" }, rectRadius: 0.08 });
-  s.addText("early", { x: 9.99, y: 4.20, w: 2.72, h: 0.30, fontFace: F, fontSize: 15, color: MUTED, bold: true, align: "center" });
-  s.addText("세기 < 1.0 · 35건", { x: 9.99, y: 4.56, w: 2.72, h: 0.26, fontFace: F, fontSize: 10.5, color: SOFT, align: "center" });
-  s.addText("지속 0.0 ~ 5.2일", { x: 9.99, y: 4.84, w: 2.72, h: 0.26, fontFace: F, fontSize: 10.5, color: MUTED, align: "center" });
-  s.addText("흐리게 표시", { x: 9.99, y: 5.08, w: 2.72, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, align: "center" });
+  const bx2 = bx + bw / 2 + 0.10;
+  s.addShape(pptx.ShapeType.roundRect, { x: bx2, y: 3.62, w: bw / 2 - 0.10, h: 1.36, fill: { color: BG }, line: { type: "none" }, rectRadius: 0.08 });
+  s.addText("early", { x: bx2, y: 3.74, w: bw / 2 - 0.10, h: 0.32, fontFace: F, fontSize: 16, color: MUTED, bold: true, align: "center" });
+  s.addText("35건", { x: bx2, y: 4.10, w: bw / 2 - 0.10, h: 0.28, fontFace: F, fontSize: 12.5, color: SOFT, bold: true, align: "center" });
+  s.addText("지속 0.0 ~ 5.2일", { x: bx2, y: 4.42, w: bw / 2 - 0.10, h: 0.26, fontFace: F, fontSize: 10, color: SOFT, align: "center" });
+  s.addText("흐리게 표시", { x: bx2, y: 4.66, w: bw / 2 - 0.10, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, align: "center" });
 
-  s.addText("5.2일과 25.4일 사이가 비어 있다 — 14일 선이 경계 사례를 하나도 만들지 않는다.", {
-    x: M, y: 5.56, w: CW, h: 0.30, fontFace: F, fontSize: 12, color: INK, bold: true,
+  s.addShape(pptx.ShapeType.roundRect, {
+    x: bx, y: 5.10, w: bw, h: 0.62, fill: { color: "FFFFFF" }, line: { color: GREEN, width: 1.1 }, rectRadius: 0.06,
   });
-  note(s, [
-    "· 이 구분이 없던 때는 활성 경보 76건 중 63건이 세기 0.5 미만이었고 그 63건의 HI가 전부 96 이상이었다 — 'HI 99인데 빨간 경보'가 화면의 기본 상태였다.",
-  ], 5.94);
+  s.addText("5.2일과 25.4일 사이가 비어 있다", {
+    x: bx + 0.20, y: 5.22, w: bw - 0.40, h: 0.38, fontFace: F, fontSize: 12.5, color: GREEN, bold: true, align: "center",
+  });
+  s.addText("14일 선이 경계 사례를 하나도 만들지 않는다 — 12일이나 20일로 바꿔도 같은 분류가 나온다.", {
+    x: bx, y: 5.82, w: bw, h: 0.52, fontFace: F, fontSize: 10, color: MUTED, lineSpacingMultiple: 1.35,
+  });
 
   concl(s, "→ boolean 하나로 칠하면 '39.6일째'와 '0.2일째'가 같은 배지를 받는다.");
+  note(s, ["· 이 구분이 없던 때는 활성 경보 76건 중 63건이 세기 0.5 미만이었고 그 63건의 HI가 전부 96 이상이었다 — 'HI 99인데 빨간 경보'가 화면의 기본 상태였다."], CONCL + 0.52);
   s.addNotes("세기는 새로 만든 기준이 아니라 점수가 이미 쓰고 있는 값을 그대로 표시로 보낸 것이다. 그래야 배지와 점수가 다른 말을 할 수 없다.");
 }
 
