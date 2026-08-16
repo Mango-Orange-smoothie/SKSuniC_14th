@@ -223,13 +223,13 @@ const T = (v, o = {}) => ({ text: v, options: { fontFace: F, fontSize: 11, color
   s.addImage({ path: D + "발표_표_KH격자.png", x: M, y: 1.76, w: 5.69, h: 4.62 });
 
   const bx = 6.60, bw = W - M - bx;
-  s.addText("쪼개도 경계가 같아야 과적합이 아니다", {
+  s.addText("검증 세 가지 — 성격이 다르다", {
     x: bx, y: 1.80, w: bw, h: 0.28, fontFace: F, fontSize: 12.5, color: INK, bold: true,
   });
   [["교과서값 K0.5 / H4.0", "DP01 32 vs DP02 32 — 안 갈림", RED, RBG],
-   ["컬럼 홀/짝 반으로", "경계 K  0.60 / 0.55", SOFT, BG],
-   ["기간 전/후 반으로", "경계 K  0.60 / 0.55", SOFT, BG],
-   ["장비 하나씩 빼고 학습", "세 폴드 전부 0.7 생존", GREEN, GBG]].forEach(([a, b, c, bg], i) => {
+   ["안정성 — 컬럼 홀/짝 반으로", "경계 K  0.60 / 0.55", SOFT, BG],
+   ["안정성 — 기간 전/후 반으로", "경계 K  0.60 / 0.55", SOFT, BG],
+   ["교차검증 — 장비 하나씩 빼고", "세 폴드 전부 0.7 생존", GREEN, GBG]].forEach(([a, b, c, bg], i) => {
     const yy = 2.20 + i * 0.80;
     s.addShape(pptx.ShapeType.roundRect, { x: bx, y: yy, w: bw, h: 0.68, fill: { color: bg }, line: { type: "none" }, rectRadius: 0.06 });
     s.addText(a, { x: bx + 0.16, y: yy + 0.06, w: bw - 0.32, h: 0.26, fontFace: F, fontSize: 10.5, color: MUTED });
@@ -238,12 +238,12 @@ const T = (v, o = {}) => ({ text: v, options: { fontFace: F, fontSize: 11, color
   s.addShape(pptx.ShapeType.roundRect, {
     x: bx, y: 5.44, w: bw, h: 0.94, fill: { color: ABG }, line: { type: "none" }, rectRadius: 0.06,
   });
-  s.addText("H는 K만큼 강한 근거가 아니다", { x: bx + 0.16, y: 5.52, w: bw - 0.32, h: 0.26, fontFace: F, fontSize: 11, color: AMBER, bold: true });
-  s.addText("4.0 ~ 4.5는 이 데이터로 우열을 못 가린다 —\n4.0이 Head_Temp를 2일 빨리 잡고, 4.5가 경보를 13% 적게 낸다.", {
+  s.addText("검증 못 한 것 — 먼저 말한다", { x: bx + 0.16, y: 5.52, w: bw - 0.32, h: 0.26, fontFace: F, fontSize: 11, color: AMBER, bold: true });
+  s.addText("정상 장비가 DP01 하나뿐이라 오탐 기준은 홀드아웃이 불가능하다.\n교차검증된 건 탐지 쪽이고, 오탐 쪽은 안정성 검사까지다.", {
     x: bx + 0.16, y: 5.80, w: bw - 0.32, h: 0.52, fontFace: F, fontSize: 9.8, color: SOFT, lineSpacingMultiple: 1.35,
   });
 
-  concl(s, "→ (0.70, 4.5)는 상하좌우 이웃이 모두 통과다. 경계에 걸친 값이 아니다.");
+  concl(s, "→ K는 손잡이가 하나고 단조라 맞출 자유도가 애초에 작다. (0.70, 4.5)는 이웃이 모두 통과다.");
   s.addNotes("탐지 지연 상한을 7일·10일·14일 어디로 잡아도 (0.70, 4.5)는 통과한다. 격자의 판정 기준을 물어보면 10일이라고 답한다.");
 }
 
