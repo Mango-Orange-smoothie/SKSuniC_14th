@@ -1,0 +1,449 @@
+<title>티어표 방어 슬라이드</title>
+<style>
+:root{
+  --ground:#FBFCFD; --surface:#FFFFFF; --surface-2:#F1F5F9; --surface-3:#E7EEF4;
+  --ink:#16202B; --ink-2:#44586B; --muted:#7A8C9C; --rule:#DCE5EC; --rule-2:#C3D2DE;
+  --accent:#1B5FA8; --accent-soft:#E4EDF7;
+  --pass:#166F52; --fail:#A93B29; --warn:#8A6011;
+  --pass-bg:#E3F2EB; --fail-bg:#FAE7E3; --warn-bg:#FAF0DC;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1218; --surface:#141C24; --surface-2:#1A242E; --surface-3:#22303C;
+    --ink:#E7EDF3; --ink-2:#AABCC9; --muted:#78909F; --rule:#25323E; --rule-2:#33454F;
+    --accent:#74B3EC; --accent-soft:#152838;
+    --pass:#54C594; --fail:#EC8570; --warn:#D8A64E;
+    --pass-bg:#12291F; --fail-bg:#2C1712; --warn-bg:#2A2110;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1218; --surface:#141C24; --surface-2:#1A242E; --surface-3:#22303C;
+  --ink:#E7EDF3; --ink-2:#AABCC9; --muted:#78909F; --rule:#25323E; --rule-2:#33454F;
+  --accent:#74B3EC; --accent-soft:#152838;
+  --pass:#54C594; --fail:#EC8570; --warn:#D8A64E;
+  --pass-bg:#12291F; --fail-bg:#2C1712; --warn-bg:#2A2110;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Malgun Gothic","맑은 고딕",system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.65; margin:0; padding:clamp(20px,4vw,56px) clamp(16px,4vw,40px);
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:44px;}
+code,.mono{font-family:"Cascadia Mono",Consolas,"SF Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+/* ── 헤더 ─────────────────────────────────────────── */
+.head{display:flex;flex-direction:column;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:22px;}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;}
+h1{font-size:clamp(28px,4.6vw,42px);line-height:1.18;margin:0;letter-spacing:-.02em;text-wrap:balance;font-weight:800;}
+.sub{color:var(--ink-2);font-size:16px;max-width:62ch;margin:0;}
+.spine{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.chip{font-size:12.5px;padding:5px 11px;border:1px solid var(--rule-2);border-radius:2px;
+  background:var(--surface);color:var(--ink-2);white-space:nowrap;}
+.chip b{color:var(--ink);font-weight:700;}
+
+/* ── 슬라이드 블록 ────────────────────────────────── */
+.block{display:flex;flex-direction:column;gap:0;}
+.blockbar{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-left:4px solid var(--accent);padding:2px 0 2px 14px;margin-bottom:16px;}
+.blockbar .no{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--accent);}
+.blockbar h2{font-size:22px;margin:0;font-weight:800;letter-spacing:-.01em;}
+.blockbar .time{margin-left:auto;font-size:12.5px;color:var(--muted);}
+
+.slide{
+  container-type:inline-size; aspect-ratio:16/9; background:var(--surface);
+  border:1px solid var(--rule-2); border-radius:3px; padding:4.2cqw 4.6cqw;
+  display:flex;flex-direction:column;gap:2.4cqw;overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,40,60,.05);
+}
+.s-title{font-size:3.1cqw;font-weight:800;line-height:1.25;margin:0;letter-spacing:-.02em;text-wrap:balance;}
+.s-kicker{font-size:1.35cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 -1.2cqw;}
+.s-body{font-size:1.85cqw;color:var(--ink-2);margin:0;}
+.s-foot{margin-top:auto;font-size:1.45cqw;color:var(--muted);border-top:1px solid var(--rule);padding-top:1.6cqw;}
+.s-foot b{color:var(--ink);}
+
+/* 슬라이드 내부 표 */
+.stab{width:100%;border-collapse:collapse;font-size:1.75cqw;}
+.stab th{font-size:1.35cqw;letter-spacing:.06em;color:var(--muted);font-weight:700;
+  text-align:left;padding:0 1.2cqw 1cqw;border-bottom:1px solid var(--rule-2);}
+.stab td{padding:1.35cqw 1.2cqw;border-bottom:1px solid var(--rule);vertical-align:middle;}
+.stab tr:last-child td{border-bottom:none;}
+.stab .num{text-align:right;font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.f{font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-weight:600;color:var(--ink);}
+.ok{color:var(--pass);font-weight:800;}
+.no{color:var(--fail);font-weight:800;}
+.wn{color:var(--warn);font-weight:800;}
+
+/* 판정 배지 */
+.badge{display:inline-flex;align-items:center;gap:.4em;font-size:1.45cqw;font-weight:700;
+  padding:.35em .7em;border-radius:2px;white-space:nowrap;}
+.b-ok{background:var(--pass-bg);color:var(--pass);}
+.b-no{background:var(--fail-bg);color:var(--fail);}
+.b-wn{background:var(--warn-bg);color:var(--warn);}
+
+/* 두 검정 대비 헤더 */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:2.2cqw;}
+.duo>div{background:var(--surface-2);border:1px solid var(--rule);padding:2cqw 2.2cqw;border-radius:2px;}
+.duo h3{font-size:1.9cqw;margin:0 0 .6cqw;font-weight:800;}
+.duo p{font-size:1.6cqw;margin:0;color:var(--ink-2);line-height:1.55;}
+.duo .q{color:var(--accent);font-weight:700;}
+
+.big{font-size:5.4cqw;font-weight:800;letter-spacing:-.03em;line-height:1;
+  font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+/* 순위 리스트 (M0') */
+.rankgrid{display:grid;grid-template-columns:1fr 1fr;gap:2.6cqw;}
+.rankcard{border:1px solid var(--rule-2);border-radius:2px;overflow:hidden;}
+.rankcard header{background:var(--surface-3);padding:1.1cqw 1.6cqw;font-size:1.6cqw;font-weight:800;}
+.rankcard ol{margin:0;padding:1.2cqw 1.6cqw;list-style:none;display:flex;flex-direction:column;gap:.75cqw;}
+.rankcard li{display:flex;align-items:baseline;gap:1cqw;font-size:1.65cqw;}
+.rankcard .r{font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;color:var(--muted);
+  font-size:1.4cqw;min-width:3.2cqw;}
+.rankcard li.hit .r{color:var(--accent);font-weight:800;}
+.rankcard li.hit{font-weight:700;}
+.star{color:var(--accent);font-size:1.35cqw;font-weight:800;margin-left:auto;}
+
+/* ── 대본 ─────────────────────────────────────────── */
+.notes{margin-top:14px;border:1px solid var(--rule);border-left:3px solid var(--rule-2);
+  background:var(--surface-2);border-radius:2px;padding:18px 22px;}
+.notes h4{margin:0 0 10px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+.notes p{margin:0 0 10px;font-size:15px;line-height:1.75;}
+.notes p:last-child{margin-bottom:0;}
+.notes strong{color:var(--ink);font-weight:700;}
+.warnbox{margin-top:12px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+  border-radius:2px;padding:13px 17px;font-size:14px;color:var(--ink);}
+.warnbox b{color:var(--warn);}
+
+/* ── 백업 / 금지어 ────────────────────────────────── */
+.panel{border:1px solid var(--rule-2);border-radius:3px;background:var(--surface);overflow:hidden;}
+.panel>header{background:var(--surface-3);padding:14px 22px;font-size:15px;font-weight:800;
+  border-bottom:1px solid var(--rule-2);}
+.panel .inner{padding:20px 22px;}
+table.data{width:100%;border-collapse:collapse;font-size:14.5px;}
+table.data th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;padding:0 12px 9px;border-bottom:1px solid var(--rule-2);}
+table.data td{padding:11px 12px;border-bottom:1px solid var(--rule);vertical-align:top;}
+table.data tr:last-child td{border-bottom:none;}
+table.data .num{text-align:right;font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.scroll{overflow-x:auto;}
+ul.bans{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px;}
+ul.bans li{display:flex;gap:12px;align-items:flex-start;font-size:15px;}
+ul.bans .x{color:var(--fail);font-weight:800;flex:none;}
+ul.bans .why{color:var(--muted);font-size:13.5px;display:block;margin-top:2px;}
+.foot{border-top:1px solid var(--rule);padding-top:18px;color:var(--muted);font-size:13px;}
+@media (max-width:720px){
+  .duo,.rankgrid{grid-template-columns:1fr;}
+  .slide{aspect-ratio:auto;}
+}
+</style>
+
+<div class="wrap">
+
+<div class="head">
+  <div class="eyebrow">본선 발표 · 원인인자 검증</div>
+  <h1>티어표가 타당하다고 말할 자격</h1>
+  <p class="sub">확정 도메인 11쌍을 통계검정과 RandomForest 두 관문으로 등급화한 표를, 심사 앞에서 어떻게 방어할 것인가. 슬라이드 4장 · 약 2분 50초.</p>
+  <div class="spine">
+    <span class="chip"><b>1</b> 두 검정은 다른 질문에 답한다 · 40초</span>
+    <span class="chip"><b>2</b> 가려진 인자 — 매개 구조 · 45초</span>
+    <span class="chip"><b>3</b> 틀렸다고 말할 줄 아는 표 · 50초</span>
+    <span class="chip"><b>4</b> 데이터만으로도 같은 곳 · 35초</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 1 ══════════════════════════════ -->
+<section class="block">
+  <div class="blockbar"><span class="no">SLIDE 1</span><h2>두 검정은 다른 질문에 답한다</h2><span class="time">40초</span></div>
+
+  <div class="slide">
+    <p class="s-kicker">왜 두 개를 쓰는가</p>
+    <h2 class="s-title">한쪽만 썼으면 각각 하나씩 놓쳤습니다</h2>
+
+    <div class="duo">
+      <div>
+        <h3>통계검정</h3>
+        <p><span class="q">이 인자 하나만</span> 봤을 때<br>불량과 정상의 값이 다른가<br>
+        <span style="color:var(--muted)">Mann-Whitney U → Cliff's delta</span></p>
+      </div>
+      <div>
+        <h3>RandomForest</h3>
+        <p><span class="q">나머지 38개를 다 알고도</span><br>이 인자가 여전히 필요한가<br>
+        <span style="color:var(--muted)">순열중요도 · PR-AUC 하락폭</span></p>
+      </div>
+    </div>
+
+    <table class="stab">
+      <tr><th>확정 도메인 쌍</th><th style="text-align:center">통계검정</th><th style="text-align:center">RandomForest</th><th style="text-align:center">판정</th></tr>
+      <tr>
+        <td><span class="f">Cooling_Flow</span> → Chipping</td>
+        <td style="text-align:center"><span class="ok">통과</span> <span class="mono">−0.512</span></td>
+        <td style="text-align:center"><span class="no">불합격</span> <span class="mono">합격선 밖</span></td>
+        <td style="text-align:center"><span class="badge b-wn">T2</span></td>
+      </tr>
+      <tr>
+        <td><span class="f">CLN_Flow</span> → Particle</td>
+        <td style="text-align:center"><span class="no">미달</span> <span class="mono">−0.150</span></td>
+        <td style="text-align:center"><span class="ok">통과</span> <span class="mono">2 / 39위</span></td>
+        <td style="text-align:center"><span class="badge b-wn">T2</span></td>
+      </tr>
+    </table>
+
+    <p class="s-foot">두 줄이 <b>정확히 반대로</b> 갈렸습니다. 그래서 둘 다 통과한 것만 T1로 올립니다.</p>
+  </div>
+
+  <div class="notes">
+    <h4>말할 것</h4>
+    <p>저희는 검정을 두 개 썼습니다. 많이 쓰면 좋아서가 아니라 <strong>서로 다른 질문에 답하기 때문</strong>입니다.</p>
+    <p>통계검정은 이 인자 하나만 봅니다. 불량일 때와 정상일 때 값이 다른가. RandomForest는 39개를 한꺼번에 봅니다. 나머지를 다 알고도 이게 필요한가.</p>
+    <p>그래서 실제로 판정이 갈립니다. 표에 두 줄이 있습니다. <strong><code>Cooling_Flow</code>는 통계에선 통과하는데 RF에선 합격선 밖입니다. <code>CLN_Flow</code>는 정반대입니다.</strong> 한쪽만 썼으면 각각 하나씩 놓쳤습니다.</p>
+  </div>
+
+  <div class="warnbox">
+    <b>문구 주의 —</b> “39개 중 39위, 꼴찌”라고 말하지 마십시오. <code>Cooling_Flow</code>의 중요도는 사실상 0이라 0 근처끼리의 순위가 흔들립니다(설정에 따라 14~39위). 백업 슬라이드의 깊이 스윕 표와 모순이 생깁니다. <b>“합격선 밖”</b>은 어떤 설정에서도 참입니다.
+  </div>
+</section>
+
+<!-- ══════════════════════════════ 2 ══════════════════════════════ -->
+<section class="block">
+  <div class="blockbar"><span class="no">SLIDE 2</span><h2>가려진 인자 — 매개 구조</h2><span class="time">45초</span></div>
+
+  <div class="slide">
+    <p class="s-kicker">RF가 떨어뜨린 이유</p>
+    <h2 class="s-title">관계가 없어서가 아니라 가려져서입니다</h2>
+
+    <svg viewBox="0 0 1000 300" style="width:100%;height:auto;flex:1;min-height:0" role="img"
+         aria-label="칠러 이상에서 냉각 유량 감소, 헤드 온도 상승, 빔 틀어짐을 거쳐 치핑에 이르는 인과 사슬">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,1 L9,5 L0,9 z" fill="var(--rule-2)"/>
+        </marker>
+        <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,1 L9,5 L0,9 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- 사슬 -->
+      <g font-family="Malgun Gothic, system-ui, sans-serif">
+        <rect x="4" y="52" width="132" height="52" rx="2" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="70" y="83" text-anchor="middle" font-size="18" fill="var(--ink-2)">칠러 이상</text>
+
+        <line x1="140" y1="78" x2="196" y2="78" stroke="var(--rule-2)" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="200" y="46" width="196" height="64" rx="2" fill="var(--surface)" stroke="var(--fail)" stroke-width="2"/>
+        <text x="298" y="72" text-anchor="middle" font-size="19" font-weight="700"
+              font-family="Cascadia Mono, Consolas, monospace" fill="var(--ink)">Cooling_Flow</text>
+        <text x="298" y="95" text-anchor="middle" font-size="16" fill="var(--ink-2)">유량 감소 ↓</text>
+
+        <line x1="400" y1="78" x2="456" y2="78" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arA)"/>
+
+        <rect x="460" y="46" width="180" height="64" rx="2" fill="var(--surface)" stroke="var(--pass)" stroke-width="2"/>
+        <text x="550" y="72" text-anchor="middle" font-size="19" font-weight="700"
+              font-family="Cascadia Mono, Consolas, monospace" fill="var(--ink)">Head_Temp</text>
+        <text x="550" y="95" text-anchor="middle" font-size="16" fill="var(--ink-2)">온도 상승 ↑</text>
+
+        <line x1="644" y1="78" x2="700" y2="78" stroke="var(--rule-2)" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="704" y="52" width="130" height="52" rx="2" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="769" y="76" text-anchor="middle" font-size="15" fill="var(--ink-2)">빔 shape</text>
+        <text x="769" y="94" text-anchor="middle" font-size="15" fill="var(--ink-2)">centering 틀어짐</text>
+
+        <line x1="838" y1="78" x2="884" y2="78" stroke="var(--rule-2)" stroke-width="2" marker-end="url(#ar)"/>
+
+        <rect x="888" y="52" width="108" height="52" rx="2" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="942" y="83" text-anchor="middle" font-size="18" font-weight="700" fill="var(--accent)">Chipping</text>
+
+        <!-- 상관 -->
+        <path d="M298,120 L298,142 L550,142 L550,120" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="424" y="164" text-anchor="middle" font-size="16" font-weight="700" fill="var(--accent)">실측 상관 −0.422</text>
+
+        <!-- 배지 -->
+        <g font-size="15">
+          <rect x="200" y="196" width="196" height="76" rx="2" fill="var(--fail-bg)"/>
+          <text x="216" y="221" fill="var(--ink-2)">통계검정</text>
+          <text x="380" y="221" text-anchor="end" font-weight="700" fill="var(--pass)">통과 −0.512</text>
+          <text x="216" y="252" fill="var(--ink-2)">RandomForest</text>
+          <text x="380" y="252" text-anchor="end" font-weight="700" fill="var(--fail)">합격선 밖</text>
+
+          <rect x="460" y="196" width="180" height="76" rx="2" fill="var(--pass-bg)"/>
+          <text x="476" y="221" fill="var(--ink-2)">통계검정</text>
+          <text x="624" y="221" text-anchor="end" font-weight="700" fill="var(--pass)">통과 +0.936</text>
+          <text x="476" y="252" fill="var(--ink-2)">RandomForest</text>
+          <text x="624" y="252" text-anchor="end" font-weight="700" fill="var(--pass)">8 / 39위</text>
+        </g>
+
+        <text x="704" y="228" font-size="17" font-weight="700" fill="var(--ink)">Head_Temp를 알면</text>
+        <text x="704" y="252" font-size="17" font-weight="700" fill="var(--ink)">Cooling_Flow는 더 줄 정보가 없다</text>
+      </g>
+    </svg>
+
+    <p class="s-foot">멘토님 SOP의 인과사슬과 <b>데이터가 독립적으로 같은 구조</b>를 가리켰습니다. 그래서 지우지 않고 T2로 남기고, 조치는 <b>칠러 계통 하나</b>로 냅니다.</p>
+  </div>
+
+  <div class="notes">
+    <h4>말할 것</h4>
+    <p><code>Cooling_Flow</code>가 RF에서 떨어진 건 <strong>매개변수</strong>이기 때문입니다. 칠러가 나빠지면 냉각 유량이 떨어지고, 그게 헤드 온도를 올리고, 헤드 온도가 빔을 틀어지게 해서 치핑이 납니다.</p>
+    <p>모델은 이미 <code>Head_Temp</code>를 갖고 있습니다. 그러면 <strong><code>Cooling_Flow</code>는 추가로 알려주는 게 없습니다.</strong> 실제로 둘의 상관이 −0.422입니다. 냉각 유량이 낮은 구간일수록 헤드 온도 중앙값이 단조적으로 올라갑니다.</p>
+    <p>중요한 건 이겁니다. <strong>이 인과사슬은 멘토님이 SOP로 주신 것이고, 상관 −0.422는 저희가 데이터에서 따로 확인한 것입니다.</strong> 둘이 같은 구조를 가리켰습니다.</p>
+    <p>그래서 <code>Cooling_Flow</code>를 지우지 않고 T2 조건부조치로 남겼습니다. 조치는 인자별로 따로 내지 않고 <strong>칠러 계통 하나</strong>로 냅니다.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ 3 ══════════════════════════════ -->
+<section class="block">
+  <div class="blockbar"><span class="no">SLIDE 3</span><h2>틀렸다고 말할 줄 아는 표</h2><span class="time">50초</span></div>
+
+  <div class="slide">
+    <p class="s-kicker">이 표가 주장하는 것</p>
+    <h2 class="s-title">“무엇이 원인이다”가 아니라<br>“무엇을 얼마나 믿어도 되는가”</h2>
+
+    <table class="stab">
+      <tr><th>사례</th><th>도메인</th><th>데이터</th><th style="text-align:center">우리 처리</th></tr>
+      <tr>
+        <td><span class="f">Cooling_Water_Temp</span><br><span style="font-size:1.35cqw;color:var(--muted)">→ Micro_Crack</span></td>
+        <td>수온 ↑ 이면 크랙 ↑</td>
+        <td><span class="mono">delta −0.007</span> · <span class="mono">p 0.271</span><br>
+            <span style="font-size:1.4cqw;color:var(--fail)">위험구간이 오히려 낮다 (0.96배)</span></td>
+        <td style="text-align:center"><span class="badge b-no">T4 판단보류</span><br>
+            <span style="font-size:1.35cqw;color:var(--muted)">경보 차단</span></td>
+      </tr>
+      <tr>
+        <td>Chipping <span class="f">T1 3건</span></td>
+        <td>멘토 확정</td>
+        <td>통계 ⭕ RF ⭕ · <b>재현성 검정 불가</b><br>
+            <span style="font-size:1.4cqw;color:var(--warn)">원본 데이터에 순수 표본 3건</span></td>
+        <td style="text-align:center"><span class="badge b-wn">판정불가로 표기</span><br>
+            <span style="font-size:1.35cqw;color:var(--muted)">“실패”와 구분</span></td>
+      </tr>
+    </table>
+
+    <p class="s-foot"><b>T1 즉시조치 5 · T2 조건부조치 4 · T4 판단보류 1 · M1 감시지표 1</b> — 11쌍을 전부 “원인”이라고 부르지 않았습니다.</p>
+  </div>
+
+  <div class="notes">
+    <h4>말할 것</h4>
+    <p>저희 표는 11쌍을 전부 원인이라고 부르지 않습니다. <strong>재현까지 된 건 T1, 한쪽 검정만 통과한 건 T2, 데이터가 도메인과 반대로 나온 건 T4로 내리고 경보를 막았습니다.</strong></p>
+    <p><code>Cooling_Water_Temp</code>가 그 경우입니다. 도메인은 수온이 오르면 크랙이 는다고 하는데, 데이터는 부호가 반대고 11건 중 유일하게 통계적으로 유의하지 않습니다. 위험구간의 불량률이 정상구간보다 오히려 낮습니다. <strong>이 상태로 경보를 걸면 안 되므로 코드가 자동으로 막습니다.</strong></p>
+    <p>다만 삭제하지는 않았습니다. 이 값은 89일 내내 1도 안에서만 움직였습니다. <strong>영향이 없는 게 아니라 확인할 수가 없는 겁니다.</strong> 그래서 목록에 남기고 판단을 보류했습니다.</p>
+    <p><strong>그리고 저희 표의 한계를 하나 먼저 말씀드리겠습니다.</strong> Chipping의 T1 세 건은 재현성 검정을 <strong>못 했습니다.</strong> 원본 데이터에 순수 Chipping 표본이 3건뿐이라 검정을 돌릴 수가 없었습니다. 실패한 것과 못 돌린 것은 다르기 때문에 상태값을 네 개로 쪼개서 표에 그대로 적어뒀습니다. 데이터를 더 받으면 풀립니다.</p>
+  </div>
+
+  <div class="warnbox">
+    <b>이 슬라이드의 승부처는 마지막 문단입니다.</b> Chipping T1 3건의 미검증은 심사가 표를 열면 보입니다. <b>물어서 답하는 것과 먼저 말하는 것은 전혀 다른 인상을 줍니다.</b> 반드시 우리 입으로 먼저 말하십시오.
+  </div>
+</section>
+
+<!-- ══════════════════════════════ 4 ══════════════════════════════ -->
+<section class="block">
+  <div class="blockbar"><span class="no">SLIDE 4</span><h2>데이터만으로도 같은 곳</h2><span class="time">35초</span></div>
+
+  <div class="slide">
+    <p class="s-kicker">답을 받아서 푼 것 아닌가</p>
+    <h2 class="s-title">도메인을 빼고 데이터만으로 줄을 세워봤습니다</h2>
+
+    <div class="rankgrid" style="flex:1;min-height:0">
+      <div class="rankcard">
+        <header>Remain_Coat &nbsp;<span style="font-weight:400;color:var(--muted);font-size:1.35cqw">RF 순위 · 39개 중</span></header>
+        <ol>
+          <li class="hit"><span class="r">1위</span><span class="f">CLN_Flow</span><span class="star">★ 멘토 확정</span></li>
+          <li class="hit"><span class="r">2위</span><span class="f">CLN_Pressure</span><span class="star">★ 멘토 확정</span></li>
+          <li><span class="r">3위</span><span class="f" style="color:var(--muted)">Surface_Roughness</span></li>
+          <li><span class="r">4위</span><span class="f" style="color:var(--muted)">Cleaning_Load_Ratio</span></li>
+        </ol>
+      </div>
+      <div class="rankcard">
+        <header>Particle &nbsp;<span style="font-weight:400;color:var(--muted);font-size:1.35cqw">RF 순위 · 39개 중</span></header>
+        <ol>
+          <li class="hit"><span class="r">1위</span><span class="f">Surface_Roughness</span><span class="star">★ 멘토 확정</span></li>
+          <li class="hit"><span class="r">2위</span><span class="f">CLN_Flow</span><span class="star">★ 멘토 확정</span></li>
+          <li class="hit"><span class="r">3위</span><span class="f">CLN_Pressure</span><span class="star">★ 멘토 확정</span></li>
+          <li><span class="r">4위</span><span class="f" style="color:var(--muted)">Cleaning_Load_Ratio</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <p class="s-foot">멘토 확정 11쌍 중 <b>7건이 상위 3위 이내</b>, <b>8건이 상위 10위 이내</b>입니다. 답을 받아서 푼 게 아니라, 따로 풀어도 같은 곳에 도착했습니다.</p>
+  </div>
+
+  <div class="notes">
+    <h4>말할 것</h4>
+    <p>여기까지 들으시면 이런 생각이 드실 수 있습니다. <strong>“멘토가 확정한 11쌍만 검정했으면, 답을 받아놓고 푼 것 아니냐.”</strong></p>
+    <p>그래서 도메인을 <strong>모르는 척하고</strong> 데이터만으로 39개를 줄 세워봤습니다. RF 순위 계산에는 도메인 정보가 한 글자도 들어가지 않습니다.</p>
+    <p><strong>Remain_Coat는 1위와 2위가 멘토님 확정 인자 두 개였습니다. Particle은 1·2·3위가 멘토님 확정 인자 세 개였습니다.</strong> 11건 중 7건이 상위 3위 안에 있습니다.</p>
+    <p>덧붙이면, 통계와 RF만 보면 Chipping 원인 후보가 열 개까지 나옵니다. 저희는 그중 멘토 확정 세 개만 원인이라고 부릅니다. <strong>데이터가 허용하는 것보다 적게 주장하고 있습니다.</strong></p>
+  </div>
+
+  <div class="warnbox">
+    <b>정직하게 —</b> 물으면 답할 것: Micro_Crack 2건은 23위·31위로 <b>못 잡았습니다.</b> 감시 데이터에 크랙이 41건뿐이고, <code>Cooling_Flow</code>는 앞 슬라이드의 매개 구조 때문입니다. 먼저 꺼내지는 말되, 물으면 이 두 이유를 그대로 말하십시오.
+  </div>
+</section>
+
+<!-- ══════════════════════════════ 백업 ══════════════════════════════ -->
+<section class="panel">
+  <header>백업 슬라이드 — 질문 받았을 때만 넘김</header>
+  <div class="inner scroll">
+    <table class="data">
+      <tr><th>예상 질문</th><th>꺼낼 것</th><th>핵심 숫자</th></tr>
+      <tr>
+        <td>“그 기준, 아무 인자나 통과하는 것 아닙니까”</td>
+        <td><b>플라시보 테스트</b><br>가짜 인자 3개를 진짜 39개와 같은 판에서 경쟁시킴</td>
+        <td class="num">12번 중 통과 <b>0번</b><br>최고 <b>14 / 42위</b><br>합격선 10위</td>
+      </tr>
+      <tr>
+        <td>“상위 25%는 왜 25%입니까”</td>
+        <td><b>깊이 스윕</b> · 깊이 3~무제한<br>임의값임은 인정하고 시작할 것</td>
+        <td class="num">11건 중 <b>10건 불변</b><br>흔들린 1건은<br>통계 delta <b>+0.936</b></td>
+      </tr>
+      <tr>
+        <td>“한 데이터에서 찾은 경계값이 다른 데이터에서도 먹힙니까”</td>
+        <td><b>경계값 외부 적용</b><br>Remain_Coat · Particle에서만 작동함을 함께 말할 것</td>
+        <td class="num"><span class="f">CLN_Pressure</span><br>원본 <b>6.705%</b><br>r1 <b>6.55%</b></td>
+      </tr>
+      <tr>
+        <td>“정확도는 얼마입니까”</td>
+        <td><b>PR-AUC를 쓴 이유</b><br>정확도로 재면 4개 중 3개가 “전부 정상 찍기”보다 낮음</td>
+        <td class="num">Chipping<br>PR-AUC <b>0.911</b><br>찍기 0.121</td>
+      </tr>
+      <tr>
+        <td>“Micro_Crack은 왜 확정 원인이 없습니까”</td>
+        <td><b>표본 부족</b><br>기준을 50건으로 올린 시뮬레이션 결과까지</td>
+        <td class="num">크랙 <b>41건</b><br>검정력 <b>34.1%</b><br>(2배 차이 가정)</td>
+      </tr>
+      <tr>
+        <td>“순열중요도를 쓴 이유가 뭡니까”</td>
+        <td><b>내장 중요도와 대조</b><br>“결과가 달라졌다”가 아니라 “둘 다 재봤고 같았다”</td>
+        <td class="num">11건 <b>전부 동일</b></td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <header>절대 하면 안 되는 말</header>
+  <div class="inner">
+    <ul class="bans">
+      <li><span class="x">✕</span><div>“<span class="f">Cooling_Flow</span>는 39개 중 꼴찌입니다”
+        <span class="why">중요도가 0 근처라 설정에 따라 14~39위로 흔들립니다. 백업의 깊이 스윕 표와 모순됩니다. → <b>“합격선 밖”</b></span></div></li>
+      <li><span class="x">✕</span><div>“순열중요도를 써서 결과가 달라졌습니다”
+        <span class="why">11건 전부 내장 중요도와 판정이 같습니다. → <b>“두 방식으로 다 재봤고 결론이 같았습니다”</b></span></div></li>
+      <li><span class="x">✕</span><div>“Micro_Crack이 감시 대상으로 복귀했습니다”
+        <span class="why">복귀하지 않았습니다. 재현성 상태가 ‘실패’이고 확정 원인은 0건입니다.</span></div></li>
+      <li><span class="x">✕</span><div>“상위 25%는 통계적 근거가 있습니다”
+        <span class="why">없습니다. 임의값입니다. 인정하고 흔들어본 결과를 대신 내십시오.</span></div></li>
+      <li><span class="x">✕</span><div>“<span class="f">Cooling_Water_Temp</span>는 영향이 없습니다”
+        <span class="why">영향이 없는 것과 확인할 수 없는 것은 다릅니다. 89일간 1도 안에서만 움직였습니다.</span></div></li>
+      <li><span class="x">✕</span><div>“장비 4대를 4대 다 맞췄습니다”를 <b>검증의 본체</b>로 쓰는 것
+        <span class="why">Health Index는 이 파트의 산출물이 아닙니다. 그리고 시나리오가 주입된 데이터라 “심어놓은 답 아니냐”로 되돌아옵니다. 마지막에 한 줄로 넘기십시오.</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<p class="foot">
+  숫자 출처 — <code>origin/main</code> <code>rel_20_tier_table.csv</code> (T1 5 · T2 4 · T4 1 · M1 1) ·
+  플라시보/순위 검증은 <code>a4_negative_control.py</code> 실측 (2026-08-17) ·
+  깊이 스윕과 PR-AUC는 <code>발표_QnA_숫자모음.md</code>.
+  저장소에는 아무것도 반영하지 않았습니다.
+</p>
+
+</div>
