@@ -36,7 +36,28 @@ WINDOW = 10
 # (26.08.06) Z_THRESHOLD(=2.0) 상수는 A/B/E 판정이 CUSUM으로, C 판정이 danger_rate로
 # 바뀌면서 아무 데서도 안 쓰이게 돼 제거했다. 지금 판정 임계값은 CUSUM_K/CUSUM_H(A/B/E)와
 # C_DANGER_RATE_MULTIPLE(C)이다.
-VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
+# (26.08.17) VOLATILITY_RATIO_THRESHOLD(=1.5)와 변동성 확대 경보를 제거했다.
+# 지우는 근거는 "CUSUM이 대신한다"가 아니다 — CUSUM은 z를 평소 std로 나눌 뿐이라
+# 평균이 그대로면 E[z-K] = -K로 누적합이 계속 0으로 리셋된다. 원리적으로 순수 산포
+# 증가는 못 잡는다. 지운 이유는 이 탐지기가 산포 증가를 잡고 있지 않았기 때문이다.
+#
+#   · 이 데이터에 산포 증가가 없다. 초반 30일 대비 후반 30일 std 비를 4대 x 35컬럼
+#     140조합 전부 재보면 최대가 1.031배(DP02)고 1.2배를 넘는 조합이 0개다. 주입된
+#     세 시나리오는 전부 평균을 미는 고장이지 산포를 키우는 고장이 아니다.
+#   · 그런데 89일 중 86일, 4대 x 31컬럼 전부에서 울렸다(10,200행 = 경보행의 16.7%).
+#   · 정상 장비를 못 가린다. DP01(시나리오 없음) 2,468행 vs DP04(고장) 2,446행 —
+#     정상 장비가 더 많이 울렸다. 임계값을 S관리도 B4(n=10 -> 1.716)로 올려도
+#     519 vs 545로 여전히 안 갈린다. 1.5가 문제가 아니라는 뜻이다.
+#   · 원인은 10샷 표본 std의 추정 노이즈다. 산포가 안 변해도 s/sigma >= 1.5가
+#     우연히 나올 확률이 1.643%(chi2(9))인데, 창이 1샷씩 밀리며 9개를 공유하므로
+#     한 번 커지면 10행 유지된다. PERSIST_WINDOW=5 조건이 이걸 거르는 게 아니라
+#     겹친 창에서 자동 충족돼 오히려 사건 하나를 다섯 번 세고 있었다.
+#   · 아무도 안 읽었다. build_health_index / agent / views 어디도 이 컬럼을 안 본다.
+#     점수·화면·챗봇에 안 들어가고 경보행 수만 부풀렸다.
+#
+# 산포가 커지는 고장을 감시하려면 겹치지 않는 부분군에 S관리도를 제대로 붙여야 한다
+# (n=10이면 상한 B4=1.716). 지금 것은 그게 아니었으므로 되살릴 때도 그대로 되살리면
+# 안 된다. std_slope도 이 판정에만 쓰이던 값이라 같이 뺀다.
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
 PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "진짜 상태"로 볼지 —
 # 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
@@ -241,8 +262,8 @@ OUTPUT_COLUMNS = [
     # 그 행의 current_value(샷 값) 기준 "OUT_OF_SPEC"/"OK".
     "spec_lsl", "spec_usl", "spec_status",
     "current_value", "rolling_mean", "rolling_std",
-    "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "spec_violation_warning", "external_limit_warning",
+    "difference", "slope", "normalized_deviation", "trend_direction",
+    "spec_violation_warning", "external_limit_warning",
     "early_warning", "episode_id", "message",
 ]
 # (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
@@ -371,33 +392,14 @@ def compute_group_rolling(values):
 
 
 # ----------------------------------------------------------------------
-# 5-1. 변동성(std) 확대 추세 계산
-#      rolling_std 시계열 자체에 다시 같은 크기(WINDOW)의 창을 대고 기울기를 구한다.
-#      앞쪽 (WINDOW-1)개는 변동성 추세를 판단할 이력이 부족해 NaN으로 둔다.
-# ----------------------------------------------------------------------
-def compute_std_trend(rolling_std):
-    n = len(rolling_std)
-    std_slope = np.full(n, np.nan)
-    if n < WINDOW:
-        return std_slope
-
-    windows = np.lib.stride_tricks.sliding_window_view(rolling_std, WINDOW)
-    w_mean = windows.mean(axis=1)
-    x = np.arange(WINDOW, dtype=float)
-    x_mean = x.mean()
-    denom = ((x - x_mean) ** 2).sum()
-    slope = ((windows - w_mean.reshape(-1, 1)) * (x - x_mean)).sum(axis=1) / denom
-
-    std_slope[WINDOW - 1:] = slope
-    return std_slope
-
-
-# ----------------------------------------------------------------------
-# 5-2. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
+# 5-1. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
 #      (26.08.05 추가) Type C(위험 threshold)의 entered_first가 임계값 근처 노이즈로
-#      계속 새로 트리거되던 문제, variability_warning이 10행 표본의 std 추정 자체가
-#      원래 흔들림이 커서(표본 10개로 분산 추정은 노이즈가 큼) 너무 자주 뜨던 문제를
-#      같은 방식으로 고친다.
+#      계속 새로 트리거되던 문제를 고친다.
+#
+#      (26.08.17) 이 필터는 겹치는 창 위에서는 지속성을 확인해주지 못한다 —
+#      연속된 rolling 창은 WINDOW-1개 샷을 공유하므로 한 번 만족되면 자동으로
+#      이어진다. 제거된 변동성 경보가 그 사례였다(위 상수 주석 참고). 여기 남은
+#      C유형 진입/접근은 판정 대상이 rolling 통계가 아니라 개별 샷이라 해당 없다.
 # ----------------------------------------------------------------------
 def _sustained_state(condition: np.ndarray, persist_n: int) -> np.ndarray:
     """condition이 최근 persist_n행 연속 True인 시점부터를 True로 표시(그 구간 전체, 상태형)."""
@@ -576,22 +578,6 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 local_slope_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
                 trend_direction = local_slope_direction.copy()
 
-                # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
-                std_slope = compute_std_trend(rolling_std)
-                ref_std = fallback_std_map.get((product_id, recipe_id, col), np.nan)
-                if ref_std is not None and not (isinstance(ref_std, float) and np.isnan(ref_std)) and ref_std > 0:
-                    std_ratio = rolling_std / ref_std
-                else:
-                    std_ratio = np.full(len(current_value), np.nan)
-                variability_raw = (
-                    ~np.isnan(std_slope) & (std_slope > 0)
-                    & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
-                )
-                # 10행 표본으로 구한 std는 그 자체로 추정 노이즈가 커서, 1행짜리 순간 판정 대신
-                # PERSIST_WINDOW행 연속 유지될 때만 "진짜 변동성 확대"로 본다(상태형 — 지속되는
-                # 동안 계속 표시).
-                variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
-
                 early_warning = np.zeros(len(current_value), dtype=bool)
                 messages = np.array([""] * len(current_value), dtype=object)
 
@@ -728,7 +714,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                         approaching_raw = (
                             (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
                         )
-                        # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
+                        # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 진입과
                         # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
                         approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
                         ew = entered_first | approaching
@@ -794,14 +780,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                             f"편차가 감지되었습니다."
                         )
                 # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
-                # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
-                for i in np.where(variability_warning)[0]:
-                    vmsg = (
-                        f"{machine_id} / {product_id} / {recipe_id}의 {col} 변동성이 "
-                        f"정상 대비 지속적으로 확대되고 있습니다."
-                    )
-                    messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
-                # 멘토 스펙 위반도 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
+                # 멘토 스펙 위반은 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
                 # 뜰 수 있으므로(예: CUSUM 드리프트 끝에 실제로 스펙을 벗어남) 메시지를 덧붙인다.
                 # 이게 제일 급한 신호라 앞에 붙인다.
                 for i in np.where(spec_violation)[0]:
@@ -832,8 +811,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                         )
                         messages[i] = f"{emsg} {messages[i]}".strip() if messages[i] else emsg
 
-                early_warning = (early_warning | variability_warning | spec_violation
-                                 | external_limit_warning)
+                early_warning = early_warning | spec_violation | external_limit_warning
 
                 matched_defect_val = extra.get("matched_defect", "") if extra else ""
                 matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
@@ -855,12 +833,10 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     "current_value": current_value,
                     "rolling_mean": rolling_mean,
                     "rolling_std": rolling_std,
-                    "std_slope": std_slope,
                     "difference": difference,
                     "slope": slope,
                     "normalized_deviation": normalized_deviation,
                     "trend_direction": trend_direction,
-                    "variability_warning": variability_warning,
                     "spec_violation_warning": spec_violation,
                     "external_limit_warning": external_limit_warning,
                     "early_warning": early_warning,
