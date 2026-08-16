@@ -14,8 +14,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -704,
-        -80
+        -720,
+        -208
       ],
       "webhookId": "run-health-pipeline"
     },
@@ -47,6 +47,47 @@
     },
     {
       "parameters": {
+        "fromEmail": "tldn6850@gmail.com",
+        "toEmail": "seungyeonlee27@gmail.com",
+        "subject": "={{ '[SUGENT] Health Index 리포트 - 위험 ' + $json.warnings.length + '대' }}",
+        "html": "={{ $json.report_html }}",
+        "options": {
+          "attachments": "={{ $json.chart_cids }}"
+        }
+      },
+      "id": "61a75e81-6fb0-42c9-af8f-7ffebe417c7f",
+      "name": "위험 메일 발송",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        -176
+      ],
+      "webhookId": "5e1291cb-02e4-46ab-8899-61fc2e301692",
+      "credentials": {
+        "smtp": {
+          "id": "mhofBlKoV3osKgNY",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "f2dfcf4c-acad-4b1f-84d4-b00a9d86b00f",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        464,
+        -80
+      ]
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -71,7 +112,7 @@
         "options": {}
       },
       "id": "0cbf428a-0318-466d-9ce2-7ffe79e288c9",
-      "name": "위험 장비 있음?",
+      "name": "위험 장비 여부",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
@@ -81,44 +122,23 @@
     },
     {
       "parameters": {
-        "fromEmail": "tldn6850@gmail.com",
-        "toEmail": "seungyeonlee27@gmail.com",
-        "subject": "={{ '[SUGENT] Health Index 리포트 - 위험 ' + $json.warnings.length + '대' }}",
-        "html": "={{ $json.report_html }}",
-        "options": {
-          "attachments": "={{ $json.chart_cids }}"
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 17,
+              "triggerAtMinute": 14
+            }
+          ]
         }
       },
-      "id": "61a75e81-6fb0-42c9-af8f-7ffebe417c7f",
-      "name": "위험 메일 발송",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
       "position": [
-        272,
-        -176
+        -720,
+        -16
       ],
-      "webhookId": "5e1291cb-02e4-46ab-8899-61fc2e301692",
-      "credentials": {
-        "smtp": {
-          "id": "mhofBlKoV3osKgNY",
-          "name": "SMTP account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {}
-      },
-      "id": "f2dfcf4c-acad-4b1f-84d4-b00a9d86b00f",
-      "name": "Respond",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [
-        432,
-        -80
-      ]
+      "id": "005c790c-15cb-4a6f-92b2-712071e05680",
+      "name": "Schedule Trigger"
     }
   ],
   "connections": {
@@ -148,14 +168,25 @@
       "main": [
         [
           {
-            "node": "위험 장비 있음?",
+            "node": "위험 장비 여부",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "위험 장비 있음?": {
+    "위험 메일 발송": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "위험 장비 여부": {
       "main": [
         [
           {
@@ -173,11 +204,11 @@
         ]
       ]
     },
-    "위험 메일 발송": {
+    "Schedule Trigger": {
       "main": [
         [
           {
-            "node": "Respond",
+            "node": "Run Pipeline",
             "type": "main",
             "index": 0
           }
@@ -186,6 +217,11 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Seoul",
+    "callerPolicy": "workflowsFromSameOwner"
   }
 }

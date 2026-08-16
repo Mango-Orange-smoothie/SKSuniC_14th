@@ -65,10 +65,59 @@ Options → Attachments (Inline)   ← "(File)" 아님. (File)은 본문에 안 
 그날 그래프 수가 다르면 예외가 난다. Code 노드가 실제로 만든 개수만 문자열로 넘겨주고,
 그래프가 없는 날은 빈 문자열(falsy)이라 n8n이 첨부 처리를 건너뛴다.
 
+### 스케줄 자동 실행 — 함정 2개를 지나야 실제로 울린다
+
+`Schedule Trigger` 노드로 매일 자동 실행한다(`Webhook`은 그대로 둬서 수동 테스트도 병행).
+그런데 노드만 붙여서는 **울리지 않는다.** 실측으로 확인한 함정이 둘 있다.
+
+**1. 발행만으로는 등록이 안 된다 — n8n 재시작이 필요하다**
+Webhook은 요청이 올 때마다 최신 발행본을 읽지만, `Schedule Trigger`는 **서버가 뜰 때
+등록**된다. 서버를 띄운 뒤에 스케줄 노드를 추가·발행하면 그 프로세스는 스케줄의 존재를
+모른다(발화 시각이 지나도 실행 기록이 아예 안 생긴다). 노드를 추가·수정했으면 반드시
+n8n을 재시작하고, 기동 로그에 `Activated workflow ...`가 뜨는지 확인할 것.
+
+**2. n8n 기본 타임존이 `America/New_York`이다 — 반드시 바꿀 것**
+`@n8n/config`의 기본값이 뉴욕이고, `~/.n8n/config`에도 DB settings에도 타임존이 없으면
+그 값이 그대로 쓰인다. 이 상태로 "새벽 3시"를 설정하면 **뉴욕 기준 3시 = 한국 오후 4시**에
+울린다. 발표 전까지 못 찾으면 "매일 새벽 자동 발송"이라는 설명이 사실과 달라진다.
+
+바꾸는 방법 두 가지 중 **워크플로우 단위 설정을 권한다**(환경변수는 켤 때마다 빠뜨리기 쉽다):
+```
+워크플로우 → ⋯ → Settings → Timezone → Asia/Seoul     ← 권장. JSON에도 남아 팀원이 볼 수 있다
+또는 n8n 실행 시  $env:GENERIC_TIMEZONE = 'Asia/Seoul'
+```
+
+**검증 결과(실행 20번)**: `mode=trigger`로 발화 → 파이프라인 → 메일 발송 → `Respond`까지
+전부 통과, 20분 45초 소요. 스케줄 실행에는 응답할 HTTP 요청이 없어서 마지막 `Respond`
+노드가 깨질까 우려했는데 문제없었다 — `No Webhook node found` 검사는 실행 경로가 아니라
+**그래프 구조상 조상**을 보므로 Webhook 노드가 남아 있으면 통과하고, `sendResponse`는
+`hooks?.runHook(...)` 옵셔널 체이닝이라 훅이 없으면 그냥 넘어간다.
+
+> ⚠️ 저장소의 JSON에 들어 있는 발화 시각은 **테스트용 값**일 수 있다. 실제 운영 시각으로
+> 맞춰 쓸 것. 파이프라인이 20분 안팎 걸리므로 원하는 수신 시각보다 그만큼 앞당겨 잡는다.
+
+### 보조 배치 파일 2개 (Windows)
+
+| 파일 | 용도 |
+|---|---|
+| `start_n8n.bat` | n8n 서버 기동. `NODES_EXCLUDE=[]` 등 필수 환경변수를 넣어주고, 이미 떠 있으면 중복 실행하지 않는다. 로그인 시 자동 시작하도록 작업 스케줄러에 등록할 수 있다(파일 안 주석 참고) |
+| `run_daily_report.bat` | **수동** 트리거. 스케줄을 기다리지 않고 지금 한 번 돌려볼 때 쓴다 |
+
+> ⚠️ **정기 실행은 Schedule Trigger 하나만 쓴다.** `run_daily_report.bat`을 작업 스케줄러에
+> 등록하면 스케줄이 이중으로 걸려 하루 두 번 돌고, 20분씩 걸리는 두 실행이 같은 산출물
+> 파일을 덮어쓸 수 있다. 실제로 `SUGENT Health Report` 작업과 Schedule Trigger가 동시에
+> 살아 있던 적이 있어 작업 쪽을 해제했다(2026-08-16).
+
 ### 팀원이 그대로 쓸 수 없는 부분
 워크플로우 JSON에 **이 컴퓨터의 절대경로**와 개인 SMTP credential id가 들어 있다. 다른
 사람이 import하면 최소한 (1) Run Pipeline의 두 경로, (2) SMTP credential 재등록,
 (3) 수신 이메일 주소를 각자 환경에 맞게 고쳐야 한다.
+
+### PC가 꺼지면 안 돈다
+n8n을 로컬(`localhost:5678`)에서 직접 띄워 쓰는 구조라, 전원이 꺼지거나 절전으로 들어가면
+스케줄도 멈춘다. 서버 배포가 필요한데 n8n Cloud(SaaS)는 `Execute Command` 노드를 아예
+차단하므로 그쪽으로는 지금 구조를 못 옮긴다 — 자체 VPS에 self-host하고 데이터(104MB)·
+코드·파이썬 환경을 함께 올려야 한다.
 
 ---
 
@@ -77,9 +126,11 @@ Options → Attachments (Inline)   ← "(File)" 아님. (File)은 본문에 안 
 `health_index_pipeline_workflow.json` (n8n에서 export한 파일, import 가능):
 
 ```
-Webhook(POST) → Execute Command(파이프라인 실행 + payload JSON을 type으로 출력)
-             → Code(위험<50 / 주의 50~80 / 정상≥80 3단계 분류 + HTML 리포트 + PNG 첨부 생성)
-             → IF(위험 장비 있음?) → Email(SMTP) → Respond to Webhook
+Schedule Trigger(매일) ─┐
+                        ├→ Execute Command(파이프라인 실행 + payload JSON을 type으로 출력)
+Webhook(POST) ──────────┘
+   → Code(위험<50 / 주의 50~80 / 정상≥80 3단계 분류 + HTML 리포트 + PNG 첨부 생성)
+   → IF(위험 장비 여부) → Email(SMTP) → Respond to Webhook
 ```
 
 ## 실행 방법
