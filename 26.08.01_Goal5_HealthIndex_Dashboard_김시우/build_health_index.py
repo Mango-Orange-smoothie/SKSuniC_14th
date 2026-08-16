@@ -842,9 +842,14 @@ def compute_level_and_trend(
             zg = zg.set_index("date").sort_index()
             zone_lookup[(m, c)] = zg["defect_zone_rate"]
             zone_shots[(m, c)] = zg["n_shots"]
-    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷) — 근거는
-    # trend_analysis.py compute_c_type_baseline_rate 주석 참고(희귀 사건에서 median이
-    # 0으로 붕괴해 DP04 CLN_Flow의 크기 정보가 사라졌다).
+    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷)을 쓴다. median은 원래
+    # "한 그룹이 튀어도 안 흔들리게" 고른 것이었는데, 희귀 사건에서 0으로 붕괴한다 —
+    # DP04 CLN_Flow는 54개 그룹 중 49개가 진입 0건이라 median이 0.000%가 되고(실제
+    # 15,604샷 중 5건 = 0.032%), 그러면 "평소 대비 몇 배"가 정의 불가라 이진 판정으로
+    # 빠져 Health Index가 saturate했다. 나머지 11개 조합은 두 방식 차이가 0.8% 이내다.
+    # (26.08.17) 이 근거는 원래 trend_analysis.compute_c_type_baseline_rate 주석에
+    # 있었다. 거기는 "접근" 판정용이었는데 그 판정이 없어져 함수째 지웠으므로, 살아 있는
+    # 유일한 소비자인 여기로 옮긴다.
     entry_path = config.PREPROCESSING_DIR / "00_baseline_C_entry_rate.csv"
     if entry_path.exists():
         entry = pd.read_csv(entry_path)

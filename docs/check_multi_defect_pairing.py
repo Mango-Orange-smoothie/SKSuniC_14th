@@ -173,8 +173,10 @@ def main() -> None:
                 print(f"  (참고: {factor}↔{d}의 도메인 방향은 {directions.get((factor, d))} — "
                       f"반대로 학습된 {int(wide[factor][d].isna().sum())}개 그룹은 "
                       f"compute_baseline_type_c가 행을 안 만든다. CLAUDE.md 규칙 6)")
-    print(f"  (참고: trend_analysis의 C유형 진입률 조회 키는 "
-          f"(장비, 컬럼, defect) — {trend_analysis.compute_c_type_baseline_rate.__name__} 주석 참고)")
+    print("  (참고: C유형 진입률 조회 키는 (장비, 컬럼, defect)다 — 한 컬럼이 두 defect의"
+          " 원인이면 경계값이 둘이라 '평소 얼마나 그 구간에 있었나'도 둘이다."
+          " 근거는 build_health_index.py의 zone_base_rate 주석. 26.08.17까지는"
+          " trend_analysis.compute_c_type_baseline_rate에 있었으나 '접근' 판정과 함께 제거됐다.)")
 
     print()
     if failures:

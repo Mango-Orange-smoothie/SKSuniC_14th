@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-17T01:22:17.370897",
+  "generated_at": "2026-08-17T02:19:15.611805",
   "recent_window_days": 14,
   "anomaly_margin_threshold_pct": 50.0,
   "cause_factors": {
@@ -348,8 +348,8 @@
                   "warning_count": 25
                 }
               ],
-              "n_product_recipe_combos_affected": 10.0,
-              "recipe_hotspot_concentrated": true,
+              "n_product_recipe_combos_affected": 9.0,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma",
@@ -513,8 +513,8 @@
                   "warning_count": 25
                 }
               ],
-              "n_product_recipe_combos_affected": 10.0,
-              "recipe_hotspot_concentrated": true,
+              "n_product_recipe_combos_affected": 9.0,
+              "recipe_hotspot_concentrated": false,
               "direction": "down",
               "mechanism": "CLN_Flow 감소 → Remain_Coat 증가",
               "source": "JHdaimma",
