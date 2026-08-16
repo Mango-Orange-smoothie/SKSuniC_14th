@@ -30,23 +30,51 @@ function chartImg(machineId, factorName) {
 
 // rel_20_tier_table.csv (JHdaimma님 관계DB, 11행) — 파일이 작아 코드에 직접 박아둠.
 // 테이블이 바뀌면 이 상수도 같이 업데이트해야 함.
-const TIER_LOOKUP = {
-  'Chipping|Power_Efficiency': '즉시조치',
-  'Chipping|Laser_Power': '즉시조치',
-  'Chipping|Head_Temp': '즉시조치',
-  'Remain_Coat|CLN_Pressure': '급락알람',
-  'Remain_Coat|CLN_Flow': '즉시조치',
-  'Chipping|Cooling_Flow': '조건부조치',
-  'Particle|CLN_Flow': '조건부조치',
-  'Micro_Crack|Cooling_Flow': '감시',
-  'Micro_Crack|Cooling_Water_Temp': '판단보류',
-  'Particle|CLN_Pressure': '판단보류',
-  'Particle|Surface_Roughness': '감시(경보)',
+//
+// 2026-08-16 동기화: 커밋 5d966e5(8/11 22:48 "라벨 확장안(안 '다') 적용")에서 라벨이 3개
+// 바뀌었는데 이 상수가 26분 먼저 작성돼 옛 값을 들고 있었다. 메일에 CLN_Pressure가
+// "판단보류"로 나가던 원인. 현재 판단보류(T4)로 남은 짝은 Cooling_Water_Temp 하나뿐이다.
+const TIER_TABLE = {
+  'Chipping|Power_Efficiency': { tier: 'T1', action: '즉시조치' },
+  'Chipping|Laser_Power': { tier: 'T1', action: '즉시조치' },
+  'Chipping|Head_Temp': { tier: 'T1', action: '즉시조치' },
+  'Remain_Coat|CLN_Pressure': { tier: 'T1', action: '즉시조치' },
+  'Remain_Coat|CLN_Flow': { tier: 'T1', action: '즉시조치' },
+  'Chipping|Cooling_Flow': { tier: 'T2', action: '조건부조치' },
+  'Particle|CLN_Flow': { tier: 'T2', action: '조건부조치' },
+  'Micro_Crack|Cooling_Flow': { tier: 'T2', action: '조건부조치' },
+  'Micro_Crack|Cooling_Water_Temp': { tier: 'T4', action: '판단보류' },
+  'Particle|CLN_Pressure': { tier: 'T2', action: '조건부조치' },
+  'Particle|Surface_Roughness': { tier: 'M1', action: '감시(경보)' },
 };
+
+// 에이전트(views.py `_urgent_tier`)와 같은 규칙 — 한 변수가 여러 불량에 걸리면
+// "쓸 수 있는 짝 중 가장 급한 것" 하나만 보여준다. 카드가 속한 defect로 고르면
+// 같은 CLN_Flow가 메일에선 조건부조치(Particle 짝), 화면에선 즉시조치(Remain_Coat 짝)로
+// 갈린다 — 나란히 놓고 보는 자리에서 둘이 다르면 그게 먼저 눈에 띈다.
+const TIER_RANK = { T1: 0, T2: 1, T3: 2, T4: 3, M1: 4 };
+function urgentTierOf(factor) {
+  let best = null;
+  for (const [pair, v] of Object.entries(TIER_TABLE)) {
+    if (pair.split('|')[1] !== factor) continue;
+    if (best === null || (TIER_RANK[v.tier] ?? 9) < (TIER_RANK[best.tier] ?? 9)) best = v;
+  }
+  return best;
+}
+
+// 배지 색도 에이전트(dashboard.html의 .pill)와 맞춘다. 색은 action_type 문구가 아니라
+// tier로 고른다 — 문구는 관계DB에서 바뀔 수 있고(급락알람 -> 즉시조치) tier가 취급법의
+// 단일 근거다. 화면은 rgba로 깔지만 메일은 클라이언트 호환을 위해 흰 배경에 합성한
+// 불투명 값으로 박아둔다(같은 색이다).
+const TIER_STYLE = {
+  T1: 'background:#f8e4e4;color:#d03b3b;',   // rgba(208,59,59,.14)
+  T2: 'background:#f9ebdc;color:#d98324;',   // rgba(217,131,36,.16)
+  M1: 'background:#dbeafb;color:#1763bd;',
+};
+const NO_TIER_STYLE = 'background:#e4effb;color:#54687e;';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const trendLabel = (dir) => dir === 'up' ? '상승 추세' : dir === 'down' ? '하강 추세' : '-';
-const tierOf = (defect, factor) => TIER_LOOKUP[`${defect}|${factor}`] || null;
 const tierColor = (hi) => hi === null ? '#9aa3ac' : hi < CRITICAL_THRESHOLD ? '#b3362b' : hi < WATCH_THRESHOLD ? '#a8721c' : '#9aa3ac';
 const tierName = (hi) => hi === null ? 'ok' : hi < CRITICAL_THRESHOLD ? 'critical' : hi < WATCH_THRESHOLD ? 'watch' : 'ok';
 
@@ -100,15 +128,17 @@ function renderMachineCard(m, tierClass, includeChart) {
     let chartHtml = '';
     let isFirst = true;
     for (const [factorName, c] of factorsSorted) {
-      const t = tierName(c.health_index);
       const color = tierColor(c.health_index);
       const margin = c.health_index !== null ? Math.max(0, Math.min(100, 100 - c.health_index)) : 0;
-      // 조치 태그(즉시조치/급락알람 등)는 관계DB에 박힌 "변수-불량 쌍의 고정 속성"이라
-      // 건강도와 무관하다. 그대로 다 붙이면 HI 100인 변수에도 "즉시조치"가 달려서
-      // 지금 당장 손대라는 뜻으로 오해된다 — 위험/주의 구간(HI < 80)일 때만 표시한다.
-      const tier = (t === 'ok') ? null : tierOf(defect, factorName);
+      // 조치 태그는 관계DB에 박힌 "변수의 고정 속성"이라 건강도와 무관하다. 예전엔 HI가
+      // 좋은 변수에까지 빨간 "즉시조치"가 달려 오해를 사서 HI < 80일 때만 붙였는데,
+      // 이제 색이 긴급도(tier)를 나르므로 에이전트 화면처럼 항상 붙인다 — 감시지표는
+      // 파란 배지라 조치 지시로 읽히지 않는다.
+      const tierInfo = urgentTierOf(factorName);
+      const badgeStyle = tierInfo ? (TIER_STYLE[tierInfo.tier] || NO_TIER_STYLE) : NO_TIER_STYLE;
+      const badgeText = tierInfo ? tierInfo.action : '확정 원인 아님';
       rowsHtml += `<div style="padding:6px 0;border-top:1px solid #dde1e4;">
-        <div style="font-size:12px;font-weight:600;">${esc(factorName)}${tier ? ` <span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;border:1px solid #e7bcb6;color:#b3362b;letter-spacing:0.02em;">${esc(tier)}</span>` : ''}
+        <div style="font-size:12px;font-weight:600;">${esc(factorName)} <span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;${badgeStyle}letter-spacing:0.02em;">${esc(badgeText)}</span>
           <span style="float:right;font-family:monospace;font-weight:700;color:${color};">${c.health_index}</span></div>
         <div style="height:6px;border-radius:3px;background:#dde1e4;overflow:hidden;margin:4px 0 2px;">
           <div style="height:6px;border-radius:3px;background:${color};width:${margin}%;"></div>
