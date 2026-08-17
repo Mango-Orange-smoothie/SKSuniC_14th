@@ -8,7 +8,6 @@ from scipy import stats
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 from pipeline import config
-from pipeline.common import binomial_alert_count
 from pipeline.mentor import SPEC  # 멘토 실측 LSL/TARGET/USL (26.08.05 수령, 10개 컬럼)
 
 RAW_INPUT_FILES = [
@@ -25,7 +24,6 @@ MACHINE_TREND_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", 
 BASELINE_AB_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_AB.csv")
 BASELINE_C_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C.csv")
 BASELINE_E_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_E.csv")
-BASELINE_C_ENTRY_RATE_CSV = os.path.join(BASE_DIR, "analysis_outputs", "preprocessing", "00_baseline_C_entry_rate.csv")
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "trend_analysis_results.csv")
@@ -36,21 +34,39 @@ WINDOW = 10
 # (26.08.06) Z_THRESHOLD(=2.0) 상수는 A/B/E 판정이 CUSUM으로, C 판정이 danger_rate로
 # 바뀌면서 아무 데서도 안 쓰이게 돼 제거했다. 지금 판정 임계값은 CUSUM_K/CUSUM_H(A/B/E)와
 # C_DANGER_RATE_MULTIPLE(C)이다.
-VOLATILITY_RATIO_THRESHOLD = 1.5  # 정상(참조) std 대비 이 배수 이상이면 변동성 확대 후보
+# (26.08.17) VOLATILITY_RATIO_THRESHOLD(=1.5)와 변동성 확대 경보를 제거했다.
+# 지우는 근거는 "CUSUM이 대신한다"가 아니다 — CUSUM은 z를 평소 std로 나눌 뿐이라
+# 평균이 그대로면 E[z-K] = -K로 누적합이 계속 0으로 리셋된다. 원리적으로 순수 산포
+# 증가는 못 잡는다. 지운 이유는 이 탐지기가 산포 증가를 잡고 있지 않았기 때문이다.
+#
+#   · 이 데이터에 산포 증가가 없다. 초반 30일 대비 후반 30일 std 비를 4대 x 35컬럼
+#     140조합 전부 재보면 최대가 1.031배(DP02)고 1.2배를 넘는 조합이 0개다. 주입된
+#     세 시나리오는 전부 평균을 미는 고장이지 산포를 키우는 고장이 아니다.
+#   · 그런데 89일 중 86일, 4대 x 31컬럼 전부에서 울렸다(10,200행 = 경보행의 16.7%).
+#   · 정상 장비를 못 가린다. DP01(시나리오 없음) 2,468행 vs DP04(고장) 2,446행 —
+#     정상 장비가 더 많이 울렸다. 임계값을 S관리도 B4(n=10 -> 1.716)로 올려도
+#     519 vs 545로 여전히 안 갈린다. 1.5가 문제가 아니라는 뜻이다.
+#   · 원인은 10샷 표본 std의 추정 노이즈다. 산포가 안 변해도 s/sigma >= 1.5가
+#     우연히 나올 확률이 1.643%(chi2(9))인데, 창이 1샷씩 밀리며 9개를 공유하므로
+#     한 번 커지면 10행 유지된다. PERSIST_WINDOW=5 조건이 이걸 거르는 게 아니라
+#     겹친 창에서 자동 충족돼 오히려 사건 하나를 다섯 번 세고 있었다.
+#   · 아무도 안 읽었다. build_health_index / agent / views 어디도 이 컬럼을 안 본다.
+#     점수·화면·챗봇에 안 들어가고 경보행 수만 부풀렸다.
+#
+# 산포가 커지는 고장을 감시하려면 겹치지 않는 부분군에 S관리도를 제대로 붙여야 한다
+# (n=10이면 상한 B4=1.716). 지금 것은 그게 아니었으므로 되살릴 때도 그대로 되살리면
+# 안 된다. std_slope도 이 판정에만 쓰이던 값이라 같이 뺀다.
 KENDALL_P_THRESHOLD = 0.05  # 교차검증용 전역 추세 판정(Kendall tau) 유의수준
 PERSIST_WINDOW = 5  # (26.08.05) 몇 행 연속으로 조건을 만족해야 "진짜 상태"로 볼지 —
 # 노이즈로 임계값 근처를 오락가락하는 걸 "새로 진입"으로 계속 잡던 문제(Surface_Roughness
 # 22,948건 중 21,426건이 진입 이벤트였음) 방지용. 1행짜리 순간 판정 대신 지속성 요구.
 
-# (26.08.05 추가) Type C "접근" 판정은 "윈도우 안 위험구간 진입 샷 수"로 한다. rolling_mean
-# 기반 risk_margin_z는 위험선까지 얼마나 남았는지를 "평균"으로 재는데, 평균은 개별 샷의
-# 위험 진입을 지워버린다(CLN_Pressure 실측: 개별 샷 6.68%가 threshold 아래인데 rolling
-# mean은 0.00%만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN(윈도우 내 최악값)을
-# 쓰면 10개 중 1개만 넘어도 걸려서 오히려 개별 샷 확률의 절반(49.47%)까지 뛰어 과민해진다.
-#
-# (26.08.08) 판정선을 "평소의 2.0배"에서 "우연히 나올 확률 < C_DANGER_ALPHA"로 바꿨다.
-# 고정 배수는 평소 진입률에 따라 엄격도가 8.7배까지 달라졌다 — 근거는 pipeline/common.py
-# binomial_alert_count 주석 참고. 필요 샷 수는 (장비, 컬럼)마다 baseline에서 계산한다.
+# (26.08.17) Type C "접근" 판정을 제거했다 — 근거는 process_file의 C유형 블록 주석.
+# 여기 있던 26.08.05/26.08.08 설계 기록(평균 대신 창 안 진입 샷 수를 세는 이유,
+# 고정 배수 대신 이항검정을 쓰는 이유)은 그 판정이 없어지면서 이 파일에서 쓸 데가 없다.
+# 다만 같은 사고방식이 살아 있는 곳이 셋이다 — 아래 멘토 스펙 연속 샷 수, 설비 상한
+# (rel_28), build_health_index의 위험구간 진입률. 근거 수치는 pipeline/common.py의
+# binomial_alert_count 주석에 있다.
 
 # (26.08.05 추가) A/B/E유형의 "지속적 편차" 판정을 CUSUM(누적합)으로 교체.
 # 기존 방식(WINDOW=10 rolling mean + PERSIST_WINDOW=5 연속조건)은 구조적으로 최소
@@ -241,8 +257,8 @@ OUTPUT_COLUMNS = [
     # 그 행의 current_value(샷 값) 기준 "OUT_OF_SPEC"/"OK".
     "spec_lsl", "spec_usl", "spec_status",
     "current_value", "rolling_mean", "rolling_std",
-    "std_slope", "difference", "slope", "normalized_deviation", "trend_direction",
-    "variability_warning", "spec_violation_warning", "external_limit_warning",
+    "difference", "slope", "normalized_deviation", "trend_direction",
+    "spec_violation_warning", "external_limit_warning",
     "early_warning", "episode_id", "message",
 ]
 # (26.08.05) Type C 컬럼은 "baseline"과 "threshold"가 서로 다른 개념인데 예전엔 threshold를
@@ -371,33 +387,14 @@ def compute_group_rolling(values):
 
 
 # ----------------------------------------------------------------------
-# 5-1. 변동성(std) 확대 추세 계산
-#      rolling_std 시계열 자체에 다시 같은 크기(WINDOW)의 창을 대고 기울기를 구한다.
-#      앞쪽 (WINDOW-1)개는 변동성 추세를 판단할 이력이 부족해 NaN으로 둔다.
-# ----------------------------------------------------------------------
-def compute_std_trend(rolling_std):
-    n = len(rolling_std)
-    std_slope = np.full(n, np.nan)
-    if n < WINDOW:
-        return std_slope
-
-    windows = np.lib.stride_tricks.sliding_window_view(rolling_std, WINDOW)
-    w_mean = windows.mean(axis=1)
-    x = np.arange(WINDOW, dtype=float)
-    x_mean = x.mean()
-    denom = ((x - x_mean) ** 2).sum()
-    slope = ((windows - w_mean.reshape(-1, 1)) * (x - x_mean)).sum(axis=1) / denom
-
-    std_slope[WINDOW - 1:] = slope
-    return std_slope
-
-
-# ----------------------------------------------------------------------
-# 5-2. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
+# 5-1. 지속성 필터 — "1행짜리 순간 판정" 대신 "N행 연속 유지"를 요구
 #      (26.08.05 추가) Type C(위험 threshold)의 entered_first가 임계값 근처 노이즈로
-#      계속 새로 트리거되던 문제, variability_warning이 10행 표본의 std 추정 자체가
-#      원래 흔들림이 커서(표본 10개로 분산 추정은 노이즈가 큼) 너무 자주 뜨던 문제를
-#      같은 방식으로 고친다.
+#      계속 새로 트리거되던 문제를 고친다.
+#
+#      (26.08.17) 이 필터는 겹치는 창 위에서는 지속성을 확인해주지 못한다 —
+#      연속된 rolling 창은 WINDOW-1개 샷을 공유하므로 한 번 만족되면 자동으로
+#      이어진다. 제거된 변동성 경보가 그 사례였다(위 상수 주석 참고). 여기 남은
+#      C유형 진입/접근은 판정 대상이 rolling 통계가 아니라 개별 샷이라 해당 없다.
 # ----------------------------------------------------------------------
 def _sustained_state(condition: np.ndarray, persist_n: int) -> np.ndarray:
     """condition이 최근 persist_n행 연속 True인 시점부터를 True로 표시(그 구간 전체, 상태형)."""
@@ -419,49 +416,6 @@ def _sustained_first(condition: np.ndarray, persist_n: int) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------
-# 5-3. Type C "접근" 판정용 정상 danger_rate — **장비×컬럼별로** "평소엔 위험구간에 샷이
-#      얼마나 들어가는지". 그 장비 안 Product×Recipe 그룹별 비율의 median을 쓴다(특정
-#      그룹이 튀어도 안 흔들리게).
-#
-#      (26.08.08) 이 값을 여기서 직접 계산하지 않고 step0 산출물을 읽는다. 예전엔
-#      trend_analysis.py(경보)와 build_health_index.py(화면)가 각자 계산했는데 정의가
-#      달랐다 — 여기는 그룹별 median, 저기는 일별 median. 같은 "평소 X%"가 화면과 경보에서
-#      다른 수를 가리켰다. 더 중요한 건 둘 다 **89일 전체 × 전체 샷**으로 쟀다는 점인데,
-#      불량 샷과 열화 기간이 baseline에 섞여 들어가 기준이 밀렸다(김시우님 지적).
-#      step0의 compute_c_entry_rate_baseline이 안정 구간 × OK샷으로 다시 재서
-#      00_baseline_C_entry_rate.csv에 저장한다 — 근거는 config.py의
-#      C_BASELINE_MIN_STABLE_DAYS 주석 참고.
-# ----------------------------------------------------------------------
-def compute_c_type_baseline_rate(df, column_type, c_map):
-    """00_baseline_C_entry_rate.csv에서 (장비, 컬럼, defect) -> 평소 진입률을 읽어온다.
-
-    인자 df/c_map은 더 이상 계산에 쓰지 않지만(호출부 시그니처 유지), column_type은
-    C유형만 남기는 필터로 계속 쓴다.
-
-    (26.08.11) 키에 defect가 들어간다 — 한 컬럼이 두 defect의 원인이면 경계값이 둘이라
-    "평소 얼마나 그 구간에 있었나"도 둘이다. 하나로 뭉치면 경보 판정 기준이 섞인다.
-    """
-    if not os.path.exists(BASELINE_C_ENTRY_RATE_CSV):
-        raise FileNotFoundError(
-            f"{BASELINE_C_ENTRY_RATE_CSV} 없음 — "
-            "먼저 `python -m pipeline.step0_preprocessing`을 실행하세요."
-        )
-    table = pd.read_csv(BASELINE_C_ENTRY_RATE_CSV)
-    c_columns = {col for col, t in column_type.items() if t == "C"}
-    table = table.loc[table["column"].isin(c_columns)]
-    # 그룹별 비율의 median이 아니라 풀링(전체 진입 샷 / 전체 OK샷)을 쓴다. median은 원래
-    # "한 그룹이 튀어도 안 흔들리게" 고른 것이었는데, 희귀 사건에서 0으로 붕괴한다 —
-    # DP04 CLN_Flow는 54개 그룹 중 49개가 진입 0건이라 median이 0.000%가 되고(실제
-    # 15,604샷 중 5건 = 0.032%), 그러면 "평소 대비 몇 배"가 정의 불가라 이진 판정으로
-    # 빠져 Health Index가 saturate했다. 나머지 11개 조합은 두 방식 차이가 0.8% 이내라
-    # 잃는 게 없다.
-    agg = table.groupby(["Machine_ID", "column", "matched_defect"])[
-        ["n_in_zone", "n_ok_shots"]].sum()
-    rate = agg["n_in_zone"] / agg["n_ok_shots"]
-    return {(m, c, d): float(v) for (m, c, d), v in rate.items()}
-
-
-# ----------------------------------------------------------------------
 # 6. 파일 단위 처리
 # ----------------------------------------------------------------------
 def process_file(source_name, path, analysis_columns, column_type, direction_map,
@@ -480,7 +434,6 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
     df["DateTime"] = pd.to_datetime(df["DateTime"])
     df = df.sort_values(GROUP_KEYS + ["DateTime"]).reset_index(drop=True)
 
-    c_baseline_rate = compute_c_type_baseline_rate(df, column_type, c_map)
     spec_rules = compute_spec_violation_rules(df, usable_columns)
     # (26.08.08) 설비 정비 대상 상한 알람(rel_28) — 현재 Vibration. 원인 티어표에 없는
     # 컬럼이라 C유형/짝짓기로는 안 걸리지만 관계DB가 별도 파일로 넘겨준 감시 대상이다.
@@ -575,22 +528,6 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                 # 그 경보 자신의 방향으로 덮어쓴다(alert_direction).
                 local_slope_direction = np.where(slope > 0, "up", np.where(slope < 0, "down", "flat"))
                 trend_direction = local_slope_direction.copy()
-
-                # --- 변동성(std) 확대 추세: 정상 대비 std가 충분히 크고(비율) 계속 커지는 중인지 ---
-                std_slope = compute_std_trend(rolling_std)
-                ref_std = fallback_std_map.get((product_id, recipe_id, col), np.nan)
-                if ref_std is not None and not (isinstance(ref_std, float) and np.isnan(ref_std)) and ref_std > 0:
-                    std_ratio = rolling_std / ref_std
-                else:
-                    std_ratio = np.full(len(current_value), np.nan)
-                variability_raw = (
-                    ~np.isnan(std_slope) & (std_slope > 0)
-                    & ~np.isnan(std_ratio) & (std_ratio >= VOLATILITY_RATIO_THRESHOLD)
-                )
-                # 10행 표본으로 구한 std는 그 자체로 추정 노이즈가 커서, 1행짜리 순간 판정 대신
-                # PERSIST_WINDOW행 연속 유지될 때만 "진짜 변동성 확대"로 본다(상태형 — 지속되는
-                # 동안 계속 표시).
-                variability_warning = _sustained_state(variability_raw, PERSIST_WINDOW)
 
                 early_warning = np.zeros(len(current_value), dtype=bool)
                 messages = np.array([""] * len(current_value), dtype=object)
@@ -697,61 +634,43 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     if risky_direction is not None and valid_threshold.any():
                         if risky_direction == "low_is_risky":
                             entered_raw = (current_value <= threshold_arr) & valid_threshold
-                            slope_toward_risk = slope < 0
-                            risky_side_raw = values < threshold
                         else:
                             entered_raw = (current_value >= threshold_arr) & valid_threshold
-                            slope_toward_risk = slope > 0
-                            risky_side_raw = values > threshold
                         # 위험영역에 "PERSIST_WINDOW행 연속" 머물렀을 때만, 그 시작 시점 1행만 경고.
                         # 예전엔 1행만 넘어도 진입으로 잡아서 임계값 근처 노이즈가 계속 "새로 진입"
                         # 취급됐음(Surface_Roughness 22,948건 중 21,426건이 이 케이스였음).
                         entered_first = _sustained_first(entered_raw, PERSIST_WINDOW)
-                        # (26.08.05) 예전엔 rolling_mean 기준 risk_margin_z(정상 쪽 편차도 다 잡던
-                        # 버그)를 썼다가, 그다음엔 "위험선까지 남은 여유가 Z_THRESHOLD std 미만"으로
-                        # 고쳤는데, CLN_Pressure로 검증해보니 rolling MEAN 자체가 개별 샷 위험 진입을
-                        # 지워버리는 문제가 있었다(개별 샷 6.68%가 threshold 아래인데 rolling mean은
-                        # 356일 중 0번만 아래로 내려감 — 66,824배 차이). 반대로 rolling MIN을 쓰면
-                        # 10개 중 1개만 넘어도 걸려 개별샷 확률의 절반(49.47%)까지 과민해진다.
-                        # build_health_index.py의 defect_zone_rate(위험구간 진입 샷 비율)와 같은
-                        # 방식으로 통일 — 이 WINDOW(10행) 안에서 위험구간에 들어간 샷의 비율이
-                        # 평소(baseline_rate) 대비 C_DANGER_RATE_MULTIPLE배 이상이면 "접근 중".
-                        windows_risky = np.lib.stride_tricks.sliding_window_view(risky_side_raw, WINDOW)
-                        danger_count = windows_risky.sum(axis=1)
-                        danger_rate = danger_count / WINDOW
-                        base_rate = c_baseline_rate.get(
-                            (machine_id, col, extra.get("matched_defect"))) or 0.0
-                        # 평소 진입률에서 WINDOW개 중 몇 개 이상이면 "우연이라 보기 어려운가".
-                        # base_rate=0이어도 이 식이 정의된다(k=1) — 예전의 별도 분기가 필요 없다.
-                        need = binomial_alert_count(base_rate, WINDOW, config.C_DANGER_ALPHA)
-                        rate_exceeded = danger_count >= need
-                        approaching_raw = (
-                            (~entered_raw) & slope_toward_risk & valid_threshold & rate_exceeded
-                        )
-                        # "접근중"도 상태형 메시지("지속적으로 접근하는 추세")라 variability_warning과
-                        # 같은 논리로 지속성 요구 — 순간적인 z 튐이 아니라 계속 접근할 때만.
-                        approaching = _sustained_state(approaching_raw, PERSIST_WINDOW)
-                        ew = entered_first | approaching
+                        #
+                        # (26.08.17) "접근" 판정을 제거했다. 원래는 진입 전에 미리 잡는 경로였다
+                        # — WINDOW샷 중 위험구간 샷 수가 평소 대비 우연이라 보기 어렵고(이항검정
+                        # alpha=1%), 기울기가 위험 쪽이고, PERSIST_WINDOW행 지속될 때.
+                        #
+                        # 지우는 이유는 설계가 틀려서가 아니라 걸릴 자리가 없어서다. 첫 조건이
+                        # "아직 안 넘음"(~entered_raw)인데, 실제 열화가 진행되면 값이 이미 넘어
+                        # 있어서 거기서 빠진다. 실측으로 51,039행 중 2행만 떴고 둘 다 DP01이다
+                        # — 시나리오 없는 정상 장비이므로 잡은 고장 0건, 오탐 2건이다.
+                        #
+                        # 창을 키우면 살아나기는 하는데 살아나는 게 오탐이다. WINDOW를 훑어보면
+                        # 접근 건수가 10->2건, 15->126건, 20->331건, 30->871건으로 늘지만
+                        # DP01 몫이 각각 2/32/87/126건이고, 무엇보다 **세 고장의 탐지일이
+                        # 전 구간에서 한 날도 안 바뀐다**(CLN_Flow 02-19 / Laser_Power 02-02 /
+                        # Head_Temp 02-17 고정). 즉 접근을 아무리 많이 띄워도 실제 고장을
+                        # 더 빨리 잡지 못한다.
+                        #
+                        # 하려던 일은 26.08.08에 C유형에 CUSUM을 붙이면서 이미 대체됐다.
+                        # 그 전에는 C유형이 threshold만 받아서 접근이 유일한 조기 경로였지만,
+                        # 지금은 "넘기 전에 밀리는 것"을 CUSUM이 본다(아래 블록).
+                        #
+                        # 되살린다면 "아직 안 넘음" 조건을 빼야 한다 — 그러면 진입과 겹치므로
+                        # 겹침을 어떻게 처리할지부터 정해야 한다. 그대로 되살리면 안 된다.
+                        ew = entered_first
                         early_warning |= ew
-                        # C유형 경보의 방향 = 위험 threshold 쪽으로 가는 방향(진입했든 접근 중이든).
+                        # C유형 경보의 방향 = 위험 threshold 쪽.
                         trend_direction[ew] = "down" if risky_direction == "low_is_risky" else "up"
                         for i in np.where(entered_first)[0]:
                             messages[i] = (
                                 f"{machine_id} / {product_id} / {recipe_id}의 {col}에서 "
                                 f"위험 Threshold({threshold_arr[i]:.4f})에 진입했습니다."
-                            )
-                        # 경보 근거를 문구에 그대로 싣는다 — "몇 배"가 아니라 "평소라면 이만큼
-                        # 나올 확률이 얼마나 낮은가"가 판정 근거이므로 그걸 읽히게 쓴다.
-                        base_txt = (f"이 장비 평소 {base_rate*100:.2f}%" if base_rate
-                                    else "이 장비는 평소 진입 이력 없음")
-                        for i in np.where(approaching)[0]:
-                            messages[i] = (
-                                f"{machine_id} / {product_id} / {recipe_id}의 {col}은(는) "
-                                f"최근 {WINDOW}개 샷 중 {int(danger_count[i])}개가 위험 Threshold"
-                                f"({threshold_arr[i]:.4f}) 구간에 들어감"
-                                f"({base_txt} — 우연이라면 {need}개 이상 나올 확률이 "
-                                f"{config.C_DANGER_ALPHA*100:.0f}% 미만) — "
-                                f"위험 방향으로 지속적으로 접근하는 추세가 감지되었습니다."
                             )
 
                     # (26.08.08) C유형에도 CUSUM 경로를 추가한다 — threshold 판정을 대체하는
@@ -794,14 +713,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                             f"편차가 감지되었습니다."
                         )
                 # 그 외(Baseline 미매핑 컬럼): baseline/type 정보만 NONE으로 기록
-                # 변동성 확대 추세는 A/B/C/E 판정과 별개로, 모든 매핑 컬럼에 공통 적용
-                for i in np.where(variability_warning)[0]:
-                    vmsg = (
-                        f"{machine_id} / {product_id} / {recipe_id}의 {col} 변동성이 "
-                        f"정상 대비 지속적으로 확대되고 있습니다."
-                    )
-                    messages[i] = f"{messages[i]} {vmsg}".strip() if messages[i] else vmsg
-                # 멘토 스펙 위반도 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
+                # 멘토 스펙 위반은 유형과 무관하게 공통 적용 — 다른 경보와 같은 행에서 동시에
                 # 뜰 수 있으므로(예: CUSUM 드리프트 끝에 실제로 스펙을 벗어남) 메시지를 덧붙인다.
                 # 이게 제일 급한 신호라 앞에 붙인다.
                 for i in np.where(spec_violation)[0]:
@@ -832,8 +744,7 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                         )
                         messages[i] = f"{emsg} {messages[i]}".strip() if messages[i] else emsg
 
-                early_warning = (early_warning | variability_warning | spec_violation
-                                 | external_limit_warning)
+                early_warning = early_warning | spec_violation | external_limit_warning
 
                 matched_defect_val = extra.get("matched_defect", "") if extra else ""
                 matched_defect_arr = np.full(len(current_value), matched_defect_val, dtype=object)
@@ -855,12 +766,10 @@ def process_file(source_name, path, analysis_columns, column_type, direction_map
                     "current_value": current_value,
                     "rolling_mean": rolling_mean,
                     "rolling_std": rolling_std,
-                    "std_slope": std_slope,
                     "difference": difference,
                     "slope": slope,
                     "normalized_deviation": normalized_deviation,
                     "trend_direction": trend_direction,
-                    "variability_warning": variability_warning,
                     "spec_violation_warning": spec_violation,
                     "external_limit_warning": external_limit_warning,
                     "early_warning": early_warning,

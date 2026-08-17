@@ -226,3 +226,6 @@ __marimo__/
 # r1(신규) 데이터 — 멘토 배포 파일, 용량(47MB) 때문에 팀 정책상 git에 안 올림.
 # 학습/검증 전용으로만 로컬에 두고 씀(pipeline/README.md의 r1 정책 참고).
 DP_HealthIndex_Dataset_r1.csv
+
+# Office 임시 잠금 파일 (문서를 열어두면 생긴다)
+~$*
