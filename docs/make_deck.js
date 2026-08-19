@@ -106,7 +106,7 @@ const T = (v, o = {}) => ({ text: v, options: { fontFace: F, fontSize: 11, color
     s.addText(`${b}    ${c}`, { x: bx + 0.16, y: ry + 0.36, w: bw - 0.32, h: 0.26, fontFace: F, fontSize: 10.5, color: SOFT });
     ry += 0.84;
   });
-  s.addText("확인된 열화 11건 중 9건이 1σ 미만으로 움직인다.\n스펙폭 대비로는 1.7 ~ 4.2%다.", {
+  s.addText("확인된 열화 9건 중 7건이 1σ 미만으로 움직인다.\n스펙폭 대비로는 1.7 ~ 4.2%다.", {
     x: bx, y: ry + 0.10, w: bw, h: 0.7, fontFace: F, fontSize: 11, color: SOFT, lineSpacingMultiple: 1.4,
   });
 
