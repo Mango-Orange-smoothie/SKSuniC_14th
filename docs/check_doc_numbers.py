@@ -80,12 +80,18 @@ def main():
     print(f"    경보행 {len(w):,} · 감시 컬럼 {w['column'].nunique()}개")
 
     ep = episodes(w)
-    print(f"\n    (장비x컬럼) 단위 — 발표 오탐표가 쓰는 단위")
+    print(f"\n    (장비x컬럼) 단위")
     print(f"    {'장비':<7}{'에피소드':>9}{'14일↑':>8}{'최장(일)':>10}")
     for m in MACHINES:
         e = ep[ep.machine == m]
         print(f"    {m:<7}{len(e):>9}{int((e.days >= 14).sum()):>8}{e.days.max():>10.1f}")
-    print(f"    14일↑ 합계 {int((ep.days >= 14).sum())}건")
+    print(f"    14일↑ 합계 {int((ep.days >= 14).sum())}건 "
+          f"— **끝난 경보까지 포함**한 수다.")
+    print(f"\n    ** 발표 자료가 쓰는 '14일 이상 지속' = 지금 켜져 있는 것만 "
+          f"= alert_level 'full' = {len(full)}건 "
+          f"({on[on.alert_level == 'full'].groupby('Machine_ID').size().to_dict()}).")
+    print(f"       판정근거_정리 §4-4와 같은 정의다. 위 {int((ep.days >= 14).sum())}건과 "
+          f"섞어 쓰지 말 것. **")
 
     rows = []
     for (m, p, r, c), g in w.groupby(["Machine_ID", "Product_ID", "Recipe_ID", "column"]):
