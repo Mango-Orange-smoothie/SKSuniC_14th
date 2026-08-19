@@ -1197,8 +1197,13 @@ def ask(question: str) -> dict:
     client = _client()
     runner = client.beta.messages.tool_runner(
         model=MODEL,
-        max_tokens=3000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
-        # 붙다 보니 2000으로 가끔 빠듯했다(26.08.06 티어체계 확장 이후 답변이 길어짐).
+        max_tokens=16000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
+        # 붙다 보니 2000으로 가끔 빠듯했고(26.08.06 티어체계 확장), 3000도 모자랐다.
+        # 3000이 모자란 건 답변이 길어져서가 아니다 — claude-sonnet-5는 thinking 파라미터를
+        # 안 주면 adaptive thinking이 켜지고(이전 세대는 꺼진 게 기본), 그 사고 토큰이
+        # max_tokens를 같이 먹는다. 장비 2대 비교처럼 도구를 여러 번 부르는 질문에서
+        # 3000이 전부 thinking으로 소진돼 text 블록이 아예 안 나왔다(stop_reason=max_tokens,
+        # 실측: 2번째 턴 output 3000 전부 thinking). 화면엔 "(응답 없음)"만 떴다.
         system=SYSTEM_PROMPT,
         tools=[
             get_machine_health, get_defect_causes, get_sop_for_factor,
@@ -1207,13 +1212,24 @@ def ask(question: str) -> dict:
         messages=[{"role": "user", "content": question}],
     )
     final_text = ""
+    last_stop_reason = None
     for message in runner:
+        last_stop_reason = message.stop_reason
         for block in message.content:
             # 빈 문자열 블록이면 덮어쓰지 않는다 — 도구만 호출하고 텍스트가 없는
             # 메시지가 마지막에 끼면(또는 빈 텍스트 블록이면) final_text가 이미 받아둔
             # 진짜 답변을 지워버려서 화면에 빈 말풍선만 뜨는 문제가 있었다.
             if block.type == "text" and block.text:
                 final_text = block.text
+    if not final_text:
+        # max_tokens를 늘려도 더 긴 질문에서 또 잘릴 수 있다. 그때 빈 문자열을 그대로
+        # 내리면 화면에 "(응답 없음)"만 뜨고 왜 없는지가 안 남는다 — 이유를 말풍선에 싣는다.
+        final_text = (
+            "답변이 max_tokens 한도에서 잘렸습니다(생각 토큰이 한도를 다 씀). "
+            "질문을 좁혀서 다시 물어보시거나 agent.py의 max_tokens를 올려주세요."
+            if last_stop_reason == "max_tokens"
+            else f"모델이 텍스트를 반환하지 않았습니다(stop_reason={last_stop_reason})."
+        )
     panels = (_build_panels(_machine_snapshots_this_turn, _chart_calls_this_turn, question)
               if (_machine_snapshots_this_turn or _chart_calls_this_turn) else None)
     return {"answer": final_text, "panels": panels}
