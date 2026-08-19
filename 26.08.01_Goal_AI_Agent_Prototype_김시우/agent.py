@@ -69,11 +69,11 @@ get_machine_health가 반환하는 구조 핵심:
     있다는 뜻이므로, 어제도 오늘도 물어봤다고 "새로 발생했다"고 말하면 안 됨.
   - alert_level / alert_strength: **"경보가 켜졌나"(early_warning_active)가 아니라
     "얼마나 큰 경보인가"다.** alert_strength(0~1)는 health_index가 추세 페널티에 실제로
-    쓴 값이고, alert_level은 그게 최대인지("full") 아닌지("early")다. 활성 경보 76건 중
-    65건이 "early"이고 그 65건의 health_index는 전부 67.9 이상이다 — 즉 경보가 켜져
+    쓴 값이고, alert_level은 그게 최대인지("full") 아닌지("early")다. 활성 경보 44건 중
+    35건이 "early"이고 그 35건의 health_index는 전부 80.7 이상이다 — 즉 경보가 켜져
     있다는 사실만으로는 심각하다는 뜻이 전혀 아니다.
-      "full"  = 지속일이 14일을 넘겨 점수를 최대폭으로 깎은 경보(11건, health_index
-                14.5~58.3). 이때만 "지속 경보"라고 부르고 조치 우선순위로 올려라.
+      "full"  = 지속일이 14일을 넘겨 점수를 최대폭으로 깎은 경보(9건, health_index
+                14.5~54.8). 이때만 "지속 경보"라고 부르고 조치 우선순위로 올려라.
       "early" = 아직 증거가 얕은 경보. 반드시 "초기 경보"로 부르고 "N일째"를 같이 말해라.
                 **끄지는 마라** — DP04 CLN_Flow도 39일 전에는 0.2일째였다. 다만 이걸
                 근거로 지금 당장 설비를 세우라는 식으로 말하면 안 된다.
@@ -792,8 +792,9 @@ def _alert_phrase(d: dict) -> str:
     """경보 한 건을 부르는 이름. 없으면 빈 문자열.
 
     (26.08.11) 예전엔 early_warning_active만 보고 전부 "경보 지속"이라고 썼다. 그런데
-    활성 경보 76건 중 65건은 지속일이 14일 미만이라 점수를 거의 안 깎는 초기 경보이고,
-    그 65건의 health_index는 전부 67.9 이상이다 — HI 99.4짜리를 "경보 지속"이라고
+    활성 경보 44건 중 35건은 지속일이 14일 미만이라 점수를 거의 안 깎는 초기 경보이고,
+    그 35건의 health_index는 전부 80.7 이상이다(26.08.18 실측. 도입 당시엔 76건 중
+    65건 / 67.9 이상이었다) — HI 99.4짜리를 "경보 지속"이라고
     부르면 도구 결과 자체가 과장이라 프롬프트로 아무리 막아도 답변이 따라간다.
     build_health_index가 점수에 쓴 alert_level을 그대로 문구로 옮긴다.
     """
@@ -910,7 +911,7 @@ def _panel_from(snapshot: dict, defect: str, factor: str, rank: int) -> dict | N
     # (26.08.10) 아이콘을 "최근 7일에 한 번이라도 났는가"가 아니라 **점수**로 정한다.
     #
     # 예전 규칙(occurred면 무조건 빨강)은 Particle처럼 매일 나는 불량에서 4대가 전부
-    # 항상 7/7이라 무조건 빨강이 됐다 — DP01은 HI 91.9로 제일 건강한데 화면은
+    # 항상 7/7이라 무조건 빨강이 됐다 — DP01은 HI 91.9(당시. 지금 85.0)로 제일 건강한데 화면은
     # "🔴 DP01 Particle"이었다(김시우님 지적). 반대로 Chipping은 89일에 4건뿐이라
     # 실제로 나빠도 하얗게 떴다. 발생 빈도는 그 불량의 성질이지 심각도가 아니다.
     if hi is None:
@@ -1197,8 +1198,13 @@ def ask(question: str) -> dict:
     client = _client()
     runner = client.beta.messages.tool_runner(
         model=MODEL,
-        max_tokens=3000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
-        # 붙다 보니 2000으로 가끔 빠듯했다(26.08.06 티어체계 확장 이후 답변이 길어짐).
+        max_tokens=16000,  # 원인/메커니즘/조치를 defect마다 반복 + recipe_hotspots 표까지
+        # 붙다 보니 2000으로 가끔 빠듯했고(26.08.06 티어체계 확장), 3000도 모자랐다.
+        # 3000이 모자란 건 답변이 길어져서가 아니다 — claude-sonnet-5는 thinking 파라미터를
+        # 안 주면 adaptive thinking이 켜지고(이전 세대는 꺼진 게 기본), 그 사고 토큰이
+        # max_tokens를 같이 먹는다. 장비 2대 비교처럼 도구를 여러 번 부르는 질문에서
+        # 3000이 전부 thinking으로 소진돼 text 블록이 아예 안 나왔다(stop_reason=max_tokens,
+        # 실측: 2번째 턴 output 3000 전부 thinking). 화면엔 "(응답 없음)"만 떴다.
         system=SYSTEM_PROMPT,
         tools=[
             get_machine_health, get_defect_causes, get_sop_for_factor,
@@ -1207,13 +1213,24 @@ def ask(question: str) -> dict:
         messages=[{"role": "user", "content": question}],
     )
     final_text = ""
+    last_stop_reason = None
     for message in runner:
+        last_stop_reason = message.stop_reason
         for block in message.content:
             # 빈 문자열 블록이면 덮어쓰지 않는다 — 도구만 호출하고 텍스트가 없는
             # 메시지가 마지막에 끼면(또는 빈 텍스트 블록이면) final_text가 이미 받아둔
             # 진짜 답변을 지워버려서 화면에 빈 말풍선만 뜨는 문제가 있었다.
             if block.type == "text" and block.text:
                 final_text = block.text
+    if not final_text:
+        # max_tokens를 늘려도 더 긴 질문에서 또 잘릴 수 있다. 그때 빈 문자열을 그대로
+        # 내리면 화면에 "(응답 없음)"만 뜨고 왜 없는지가 안 남는다 — 이유를 말풍선에 싣는다.
+        final_text = (
+            "답변이 max_tokens 한도에서 잘렸습니다(생각 토큰이 한도를 다 씀). "
+            "질문을 좁혀서 다시 물어보시거나 agent.py의 max_tokens를 올려주세요."
+            if last_stop_reason == "max_tokens"
+            else f"모델이 텍스트를 반환하지 않았습니다(stop_reason={last_stop_reason})."
+        )
     panels = (_build_panels(_machine_snapshots_this_turn, _chart_calls_this_turn, question)
               if (_machine_snapshots_this_turn or _chart_calls_this_turn) else None)
     return {"answer": final_text, "panels": panels}
